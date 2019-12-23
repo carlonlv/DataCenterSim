@@ -2,7 +2,7 @@
 % Please edit documentation in R/main_arguments.R
 \name{generate_parameters_df}
 \alias{generate_parameters_df}
-\title{Generate the dataframe combination of the parameters for simulation of a specific model.}
+\title{Generate Dataframe of Parameters.}
 \usage{
 generate_parameters_df(model_name, simulation)
 }

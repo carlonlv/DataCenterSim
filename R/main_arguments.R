@@ -5,9 +5,16 @@ basic_models <- c("AR1", "VAR1")
 bin_models <- c("AR1_logistic_lm", "AR1_logistic_glm")
 state_models <- c("Markov", "AR1_Markov", "AR1_state_based_logistic")
 
+result_loc <- getwd()
+
 load(fs::path("R" ,"sysdata.rda"), envir = environment())
 
 
+#' Check Input Parameters.
+#'
+#' @description Check whether the value satisfies the precondition of the parameter.
+#' @param param A String that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size} or \code{update_freq}.
+#' @param value A value that the parameter is about to be assigned to.
 check_values <- function(param, value) {
   param_lst <- get("param_lst", environment())
   if (param == "window_size") {
@@ -42,9 +49,10 @@ check_values <- function(param, value) {
 }
 
 
-#' Return the cached parameters for running the simulations.
+#' Get Parameters.
 #'
-#' @param param_name A String that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size} or \code{update_freq} or \code{NULL}.
+#' @description Return the cached parameters for running the simulations.
+#' @param param_name A String that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size}, \code{update_freq} or \code{NULL}.
 #' @return A list if \code{NULL} is provided, otherwise the vector of the parameter.
 #' @examples
 #' get_parameters()
@@ -61,8 +69,9 @@ get_parameters <- function(param_name=NULL) {
 }
 
 
-#' Set the value of a particular parameter.
+#' Set Parameters.
 #'
+#' @description Set the value of a particular parameter.
 #' @param param_name A string that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size}, \code{update_freq} or \code{NULL}
 #' @param value A numeric vector that needs to be compactable with the \code{param_name} provided.
 #' @examples
@@ -100,8 +109,9 @@ set_parameters <- function(param_name, value) {
 }
 
 
-#' Generate the dataframe combination of the parameters for simulation of a specific model.
+#' Generate Dataframe of Parameters.
 #'
+#' @description Generate the dataframe combination of the parameters for simulation of a specific model.
 #' @param model_name A String that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size} or \code{update_freq}.
 #' @param simulation A String that is either \code{online} or \code{offline}.
 #' @return A dataframe of the combination of the parameters.
@@ -152,3 +162,44 @@ generate_parameters_df <- function(model_name, simulation) {
 
   return(parameter.df)
 }
+
+
+#' Save Current Parameters.
+#'
+#' @description Write current cached parameters as the default parameters.
+#' @export
+save_parameters <- function() {
+  save(param_lst, file = fs::path("R" ,"sysdata.rda"), envir = environment())
+}
+
+
+#' Check Result Location.
+#'
+#' @description Return the location for the result of the simulations to be written to.
+#' @return A string representation of the location of the folder.
+#' @export
+get_result_location <- function() {
+  return(result_loc)
+}
+
+
+#' Change Result Location.
+#'
+#' @description Set the location to store the result of the simulations to given \code{path} or the default work directory if \code{NULL} is provided.
+#' @param path The path you wish to store the result to or \code{NULL}.
+#' @examples
+#' set_result_location()
+#' @export
+set_result_location <- function(path=NULL) {
+  if (is.null(path)) {
+    assign("result_loc", getwd(), environment())
+  } else {
+    if (!fs::dir_exists(path)) {
+      fs::dir_create(path)
+    }
+    assign("result_loc", path, environment())
+  }
+}
+
+
+

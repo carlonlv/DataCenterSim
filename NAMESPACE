@@ -2,6 +2,9 @@
 
 export(generate_parameters_df)
 export(get_parameters)
+export(get_result_location)
+export(save_parameters)
 export(set_parameters)
+export(set_result_location)
 import(dplyr)
 import(fs)

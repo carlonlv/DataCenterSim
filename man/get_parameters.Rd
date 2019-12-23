@@ -2,12 +2,12 @@
 % Please edit documentation in R/main_arguments.R
 \name{get_parameters}
 \alias{get_parameters}
-\title{Return the cached parameters for running the simulations.}
+\title{Get Parameters.}
 \usage{
 get_parameters(param_name = NULL)
 }
 \arguments{
-\item{param_name}{A String that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size} or \code{update_freq} or \code{NULL}.}
+\item{param_name}{A String that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size}, \code{update_freq} or \code{NULL}.}
 }
 \value{
 A list if \code{NULL} is provided, otherwise the vector of the parameter.

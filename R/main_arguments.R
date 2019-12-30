@@ -1,5 +1,8 @@
-#' @import dplyr
+#' @importFram stats arima quantile qnorm
+#' @importFrom dplyr filter arrange
 #' @import fs
+#' @importFrom mvtnorm pmvnorm
+#' @importFrom parallel mclapply
 
 basic_models <- c("AR1", "VAR1")
 bin_models <- c("AR1_logistic_lm", "AR1_logistic_glm")
@@ -202,4 +205,28 @@ set_result_location <- function(path=NULL) {
 }
 
 
-
+run_sim <- function(dataset_max, dataset_avg, model_name, parameters, sim_policy, training_policy, schedule_policy, adjust_policy, mode, cpu_required, write_result, cores=parallel::detectCores()) {
+  if (model_name == "AR1") {
+    if (sim_policy == "scheduling") {
+      if (mode == "max") {
+        result <- apply(parameters, 1, scheduling_sim_ar1, dataset_max, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores)
+      } else if (mode == "avg") {
+        result <- apply(parameters, 1, scheduling_sim_ar1, dataset_avg, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores)
+      } else {
+        stop("mode must be one of <max/avg>.")
+      }
+    } else if (sim_policy == "predicting") {
+      if (mode == "max") {
+        result <- apply(parameters, 1, predicting_sim_ar1, dataset_max, training_policy, schedule_policy, adjust_policy, mode, cores)
+      } else if (mode == "avg") {
+        result <- apply(parameters, 1, predicting_sim_ar1, dataset_avg, training_policy, schedule_policy, adjust_policy, mode, cores)
+      } else {
+        stop("mode must be one of <max/avg>.")
+      }
+    } else {
+      stop("sim_policy must be one of <scheduling/predicting.>")
+    }
+  } else {
+    stop("Under Construction.")
+  }
+}

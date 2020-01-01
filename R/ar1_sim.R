@@ -1,4 +1,4 @@
-#' Train AR1 Model.
+#' Train AR1 Model
 #'
 #' @description Train AR1 model using training set provided.
 #' @param train_dataset A vector of numeric value.
@@ -19,7 +19,7 @@ train_ar1 <- function(train_dataset) {
 }
 
 
-#' Predict Next Observation For AR1 Model.
+#' Predict Next Observation For AR1 Model
 #'
 #' @description Compute \eqn{Pr(next_obs \leq level)} if \code{level} is provided, otherwise, compurte \eqn{E[next_obs|prev_obs]} and \eqn{Var[next_obs|prev_obs]}.
 #' @param last_obs The previous observation.
@@ -53,7 +53,7 @@ do_prediction_ar1 <- function(last_obs, phi, mean, variance, predict_size, level
 }
 
 
-#' Schedule A Job On Given Test Set.
+#' Schedule A Job On Given Test Set
 #'
 #' @description Sequantially schedule a given job on given test set.
 #' @param last_obs The previous observation.
@@ -187,8 +187,9 @@ svt_scheduleing_sim_ar1 <- function(ts_num, dataset, cpu_required, train_size, w
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
 #' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
+#' @param write_result TRUE if the result of the experiment is written to a file.
 #' @return A dataframe containing the resulting scheduling informations.
-scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores) {
+scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores, write_result) {
   window_size <- param["window_size"]
   cut_off_prob <- param["cut_off_prob"]
   granularity <- param["granularity"]
@@ -217,11 +218,29 @@ scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, sc
 
   schedule_info <- data.frame("scheduled_num" = scheduled_num, "unscheduled_num" = unscheduled_num, "correct_scheduled_num" = correct_scheduled_num, "correct_unscheduled_num" = correct_unscheduled_num)
   rownames(schedule_info) <- ts_names
+
+  overall_result <- find_overall_evaluation(correct_scheduled_num, scheduled_num, correct_unscheduled_num, unscheduled_num)
+  print(paste("Avg Correct Scheduled Rate:", overall_result$avg_score1))
+  print(paste("Agg Correct Scheduled Rate:", overall_result$agg_score1))
+  print(paste("Avg Correct Unscheduled Rate:", overall_result$avg_score2))
+  print(paste("Agg Correct Unscheduled Rate:", overall_result$agg_score2))
+
+  if (write_result) {
+    file_name <- paste("AR1", "Sim:", "Scheduling", "Train:", training_policy, "Schedue:", schedule_policy, "Adjust:", adjust_policy)
+    fp <- fs::path(paste0(getwd(), file_name), ext = "csv")
+    if (!fs::file_exists(fp)) {
+      fs::file_create(fp)
+    }
+    new_row <- c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2)
+    names(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
+    utils::write.csv(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+  }
+
   return(schedule_info)
 }
 
 
-#' Schedule Jobs Using Predictions On Given Test Set.
+#' Schedule Jobs Using Predictions On Given Test Set
 #'
 #' @description Sequantially schedule jobs using predictions on provided test set.
 #' @param last_obs The previous observation.
@@ -355,8 +374,9 @@ svt_predicting_sim_ar1 <- function(ts_num, dataset, train_size, window_size, upd
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
 #' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
+#' @param write_result TRUE if the result of the experiment is written to a file.
 #' @return A dataframe containing the resulting scheduling informations.
-predicting_sim_ar1 <- function(param, dataset, training_policy, schedule_policy, adjust_policy, mode, cores) {
+predicting_sim_ar1 <- function(param, dataset, training_policy, schedule_policy, adjust_policy, mode, cores, write_result) {
   window_size <- param["window_size"]
   cut_off_prob <- param["cut_off_prob"]
   granularity <- param["granularity"]
@@ -373,7 +393,10 @@ predicting_sim_ar1 <- function(param, dataset, training_policy, schedule_policy,
   ts_names <- colnames(dataset)
 
   ## Do Simulation
+  start_time <- proc.time()
   result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim_ar1, dataset, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, mc.cores = cores)
+  end_time <- proc.time()
+  print(end_time - start_time)
 
   ## Reformat Results
   for (ts_num in 1:length(ts_names)) {
@@ -385,5 +408,23 @@ predicting_sim_ar1 <- function(param, dataset, training_policy, schedule_policy,
 
   evaluate_info <- data.frame("sur_num" = sur_num, "sur_den" = sur_den, "util_num" = util_num, "util_den" = util_den)
   rownames(evaluate_info) <- ts_names
+
+  overall_result <- find_overall_evaluation(sur_num, sur_den, util_num, util_den)
+  print(paste("Avg Survival Rate:", overall_result$avg_score1))
+  print(paste("Agg Survival Rate:", overall_result$agg_score1))
+  print(paste("Avg Utilization Rate:", overall_result$avg_score2))
+  print(paste("Agg Utilization Rate:", overall_result$agg_score2))
+
+  if (write_result) {
+    file_name <- paste("AR1", "Sim:", "Predicting", "Train:", training_policy, "Schedue:", schedule_policy, "Adjust:", adjust_policy)
+    fp <- fs::path(paste0(getwd(), file_name), ext = "csv")
+    if (!fs::file_exists(fp)) {
+      fs::file_create(fp)
+    }
+    new_row <- c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2)
+    names(new_row) <- c(names(param), "avg_survival", "agg_survival", "avg_utilization", "agg_utilization")
+    utils::write.csv(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+  }
+
   return(evaluate_info)
 }

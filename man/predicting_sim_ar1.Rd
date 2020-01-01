@@ -11,7 +11,8 @@ predicting_sim_ar1(
   schedule_policy,
   adjust_policy,
   mode,
-  cores
+  cores,
+  write_result
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ predicting_sim_ar1(
 \item{mode}{\code{"max"} or \code{"avg"} which time series is used as \code{dataset}.}
 
 \item{cores}{The number of threads for parallel programming for multiple traces, not supported for windows users.}
+
+\item{write_result}{TRUE if the result of the experiment is written to a file.}
 }
 \value{
 A dataframe containing the resulting scheduling informations.

@@ -341,3 +341,20 @@ compute_utilization <- function(utilization, actual_obs, window_size, granularit
   actual_used <- utilization * window_size
   return(list("utilization" = (sum(actual_used) / total_available), "numerator" = sum(actual_used), "denominator" = total_available))
 }
+
+
+#' Find Overall Evaluation
+#'
+#' @description Find the overall evaluation after an epoche is completed.
+#' @param numerator1 The numerator of score 1.
+#' @param denominator1 The denominator of score 1.
+#' @param numerator2 The numerator of score 2.
+#' @param denominator2 The denominator of score 2.
+#' @return A list consists of average and aggregated score 1 and score 2.
+find_overall_evaluation <- function(numerator1, denominator1, numerator2, denominator2) {
+  avg_score1 <- mean(numerator1 / denominator1, na.rm = TRUE)
+  agg_score1 <- sum(numerator1, na.rm = TRUE) / sum(denominator1, na.rm = TRUE)
+  avg_score2 <- mean(numerator2 / denominator2, na.rm = TRUE)
+  agg_score2 <- sum(numerator2, na.rm = TRUE) / sum(denominator2, na.rm = TRUE)
+  return(list("avg_score1" = avg_score1, "avg_score2" = avg_score2, "agg_score1" = agg_score1, "agg_score2" = agg_score2))
+}

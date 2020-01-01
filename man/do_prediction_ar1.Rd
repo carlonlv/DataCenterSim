@@ -2,7 +2,7 @@
 % Please edit documentation in R/ar1_sim.R
 \name{do_prediction_ar1}
 \alias{do_prediction_ar1}
-\title{Predict Next Observation For AR1 Model.}
+\title{Predict Next Observation For AR1 Model}
 \usage{
 do_prediction_ar1(last_obs, phi, mean, variance, predict_size, level)
 }

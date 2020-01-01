@@ -2,7 +2,7 @@
 % Please edit documentation in R/ar1_sim.R
 \name{predict_model_ar1}
 \alias{predict_model_ar1}
-\title{Schedule Jobs Using Predictions On Given Test Set.}
+\title{Schedule Jobs Using Predictions On Given Test Set}
 \usage{
 predict_model_ar1(
   last_obs,

@@ -2,7 +2,7 @@
 % Please edit documentation in R/ar1_sim.R
 \name{train_ar1}
 \alias{train_ar1}
-\title{Train AR1 Model.}
+\title{Train AR1 Model}
 \usage{
 train_ar1(train_dataset)
 }

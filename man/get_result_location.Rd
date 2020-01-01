@@ -2,7 +2,7 @@
 % Please edit documentation in R/main_arguments.R
 \name{get_result_location}
 \alias{get_result_location}
-\title{Check Result Location.}
+\title{Check Result Location}
 \usage{
 get_result_location()
 }

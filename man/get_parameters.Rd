@@ -2,7 +2,7 @@
 % Please edit documentation in R/main_arguments.R
 \name{get_parameters}
 \alias{get_parameters}
-\title{Get Parameters.}
+\title{Get Parameters}
 \usage{
 get_parameters(param_name = NULL)
 }

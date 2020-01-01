@@ -2,7 +2,7 @@
 % Please edit documentation in R/main_arguments.R
 \name{check_values}
 \alias{check_values}
-\title{Check Input Parameters.}
+\title{Check Input Parameters}
 \usage{
 check_values(param, value)
 }

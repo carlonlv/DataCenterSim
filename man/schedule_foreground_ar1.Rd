@@ -2,7 +2,7 @@
 % Please edit documentation in R/ar1_sim.R
 \name{schedule_foreground_ar1}
 \alias{schedule_foreground_ar1}
-\title{Schedule A Job On Given Test Set.}
+\title{Schedule A Job On Given Test Set}
 \usage{
 schedule_foreground_ar1(
   last_obs,

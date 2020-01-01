@@ -2,7 +2,7 @@
 % Please edit documentation in R/main_arguments.R
 \name{set_result_location}
 \alias{set_result_location}
-\title{Change Result Location.}
+\title{Change Result Location}
 \usage{
 set_result_location(path = NULL)
 }

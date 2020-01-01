@@ -2,7 +2,7 @@
 % Please edit documentation in R/main_arguments.R
 \name{set_parameters}
 \alias{set_parameters}
-\title{Set Parameters.}
+\title{Set Parameters}
 \usage{
 set_parameters(param_name, value)
 }

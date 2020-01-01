@@ -2,7 +2,7 @@
 % Please edit documentation in R/main_arguments.R
 \name{save_parameters}
 \alias{save_parameters}
-\title{Save Current Parameters.}
+\title{Save Current Parameters}
 \usage{
 save_parameters()
 }

@@ -1,4 +1,4 @@
-#' @importFram stats arima quantile qnorm
+#' @importFrom stats arima quantile qnorm
 #' @importFrom dplyr filter arrange
 #' @import fs
 #' @importFrom mvtnorm pmvnorm
@@ -13,7 +13,7 @@ result_loc <- getwd()
 load(fs::path("R" ,"sysdata.rda"), envir = environment())
 
 
-#' Check Input Parameters.
+#' Check Input Parameters
 #'
 #' @description Check whether the value satisfies the precondition of the parameter.
 #' @param param A String that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size} or \code{update_freq}.
@@ -52,7 +52,7 @@ check_values <- function(param, value) {
 }
 
 
-#' Get Parameters.
+#' Get Parameters
 #'
 #' @description Return the cached parameters for running the simulations.
 #' @param param_name A String that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size}, \code{update_freq} or \code{NULL}.
@@ -72,7 +72,7 @@ get_parameters <- function(param_name=NULL) {
 }
 
 
-#' Set Parameters.
+#' Set Parameters
 #'
 #' @description Set the value of a particular parameter.
 #' @param param_name A string that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size}, \code{update_freq} or \code{NULL}
@@ -112,7 +112,7 @@ set_parameters <- function(param_name, value) {
 }
 
 
-#' Generate Dataframe of Parameters.
+#' Generate Dataframe of Parameters
 #'
 #' @description Generate the dataframe combination of the parameters for simulation of a specific model.
 #' @param model_name A String that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size} or \code{update_freq}.
@@ -167,7 +167,7 @@ generate_parameters_df <- function(model_name, simulation) {
 }
 
 
-#' Save Current Parameters.
+#' Save Current Parameters
 #'
 #' @description Write current cached parameters as the default parameters.
 #' @export
@@ -176,7 +176,7 @@ save_parameters <- function() {
 }
 
 
-#' Check Result Location.
+#' Check Result Location
 #'
 #' @description Return the location for the result of the simulations to be written to.
 #' @return A string representation of the location of the folder.
@@ -186,7 +186,7 @@ get_result_location <- function() {
 }
 
 
-#' Change Result Location.
+#' Change Result Location
 #'
 #' @description Set the location to store the result of the simulations to given \code{path} or the default work directory if \code{NULL} is provided.
 #' @param path The path you wish to store the result to or \code{NULL}.
@@ -209,17 +209,17 @@ run_sim <- function(dataset_max, dataset_avg, model_name, parameters, sim_policy
   if (model_name == "AR1") {
     if (sim_policy == "scheduling") {
       if (mode == "max") {
-        result <- apply(parameters, 1, scheduling_sim_ar1, dataset_max, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores)
+        result <- apply(parameters, 1, scheduling_sim_ar1, dataset_max, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
       } else if (mode == "avg") {
-        result <- apply(parameters, 1, scheduling_sim_ar1, dataset_avg, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores)
+        result <- apply(parameters, 1, scheduling_sim_ar1, dataset_avg, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
       } else {
         stop("mode must be one of <max/avg>.")
       }
     } else if (sim_policy == "predicting") {
       if (mode == "max") {
-        result <- apply(parameters, 1, predicting_sim_ar1, dataset_max, training_policy, schedule_policy, adjust_policy, mode, cores)
+        result <- apply(parameters, 1, predicting_sim_ar1, dataset_max, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
       } else if (mode == "avg") {
-        result <- apply(parameters, 1, predicting_sim_ar1, dataset_avg, training_policy, schedule_policy, adjust_policy, mode, cores)
+        result <- apply(parameters, 1, predicting_sim_ar1, dataset_avg, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
       } else {
         stop("mode must be one of <max/avg>.")
       }

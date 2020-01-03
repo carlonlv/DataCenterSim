@@ -3,6 +3,9 @@
 #' @import fs
 #' @importFrom mvtnorm pmvnorm
 #' @importFrom parallel mclapply
+#' @importFrom MTS VARMACpp
+#' @importFrom dict dict numvecdict
+
 
 basic_models <- c("AR1", "VAR1")
 bin_models <- c("AR1_logistic_lm", "AR1_logistic_glm")

@@ -56,8 +56,7 @@ do_prediction_ar1 <- function(last_obs, phi, mean, variance, predict_size, level
 #' Schedule A Job On Given Test Set
 #'
 #' @description Sequantially schedule a given job on given test set.
-#' @param last_obs The previous observation.
-#' @param test_set The test set for scheduling and evaluations.
+#' @param test_set The test set for scheduling and evaluations, the initial amount of observations that equals to window size are from training set.
 #' @param trained_result A list containing trained mean, coefficient, variance of residuals.
 #' @param window_size The length of predictions.
 #' @param cut_off_prob The maximum probability allowed to have next scheduling failing.
@@ -67,13 +66,13 @@ do_prediction_ar1 <- function(last_obs, phi, mean, variance, predict_size, level
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
 #' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A list containing the resulting scheduling informations.
-schedule_foreground_ar1 <- function(last_obs, test_set, trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy, mode) {
+schedule_foreground_ar1 <- function(test_set, trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy, mode) {
   cpu_required <- ifelse(granularity > 0, round_to_nearest(cpu_required, granularity, FALSE), cpu_required)
 
   predictions <- c()
   actuals <- c()
 
-  last_time_schedule <- length(test_set) - window_size + 1
+  last_time_schedule <- length(test_set) - 2 * window_size + 1
 
   update <- window_size
   current_end <- 1
@@ -81,12 +80,13 @@ schedule_foreground_ar1 <- function(last_obs, test_set, trained_result, window_s
   adjust_switch <- FALSE
   while (current_end <= last_time_schedule) {
     ## Schedule based on model predictions
+    last_obs <- convert_frequency_dataset(test_set[current_end:(current_end + window_size - 1)], window_size, mode)
     prediction_result <- do_prediction_ar1(last_obs, trained_result$coeffs, trained_result$means, trained_result$vars, 1, 100 - cpu_required)
     prediction <- check_decision(prediction_result$prob, cut_off_prob)
 
     ## Evalute schedulings based on prediction
-    start_time <- current_end
-    end_time <- current_end + window_size - 1
+    start_time <- current_end + window_size
+    end_time <- start_time + window_size - 1
     actual <- check_actual(test_set[start_time:end_time], cpu_required, granularity)
     actuals <- c(actuals, actual)
 
@@ -96,7 +96,6 @@ schedule_foreground_ar1 <- function(last_obs, test_set, trained_result, window_s
     predictions <- c(predictions, update_info$prediction)
     update <- update_info$update
 
-    last_obs <- convert_frequency_dataset(test_set[current_end:(current_end + window_size - 1)], window_size, mode)
     current_end <- current_end + update
   }
   performance <- compute_performance(predictions, actuals)
@@ -140,7 +139,7 @@ svt_scheduleing_sim_ar1 <- function(ts_num, dataset, cpu_required, train_size, w
 
     ## Convert Frequency for training set
     new_trainset <- convert_frequency_dataset(train_set, window_size, mode)
-    last_obs <- convert_frequency_dataset_overlapping(train_set[(train_size - window_size + 1):train_size], window_size, mode)
+    starting_points <- train_set[(train_size - window_size + 1):train_size]
 
     ## Train Model
     if (train_sig) {
@@ -148,7 +147,7 @@ svt_scheduleing_sim_ar1 <- function(ts_num, dataset, cpu_required, train_size, w
     }
 
     ## Test Model
-    result <- schedule_foreground_ar1(last_obs, test_set, trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy, mode)
+    result <- schedule_foreground_ar1(c(starting_points, test_set), trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy, mode)
 
     ## Update Training Timestamp
     prev_correct_scheduled_rate <- correct_scheduled_num / scheduled_num
@@ -233,7 +232,7 @@ scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, sc
     }
     new_row <- c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2)
     names(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
-    utils::write.csv(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
   }
 
   return(schedule_info)
@@ -243,8 +242,7 @@ scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, sc
 #' Schedule Jobs Using Predictions On Given Test Set
 #'
 #' @description Sequantially schedule jobs using predictions on provided test set.
-#' @param last_obs The previous observation.
-#' @param test_set The test set for scheduling and evaluations.
+#' @param test_set The test set for scheduling and evaluations, the initial amount of observations that equals to window size are from training set.
 #' @param trained_result A list containing trained mean, coefficient, variance of residuals.
 #' @param window_size The length of predictions.
 #' @param cut_off_prob The level of uncertainty of prediction interval.
@@ -253,11 +251,11 @@ scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, sc
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
 #' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A list containing the resulting scheduling informations.
-predict_model_ar1 <- function(last_obs, test_set, trained_result, window_size, cut_off_prob, granularity, schedule_policy, adjust_policy, mode) {
+predict_model_ar1 <- function(test_set, trained_result, window_size, cut_off_prob, granularity, schedule_policy, adjust_policy, mode) {
   survivals <- c()
   utilizations <- c()
 
-  last_time_schedule <- length(test_set) - window_size + 1
+  last_time_schedule <- length(test_set) - 2 * window_size + 1
 
   update <- window_size
   current_end <- 1
@@ -265,12 +263,13 @@ predict_model_ar1 <- function(last_obs, test_set, trained_result, window_size, c
   adjust_switch <- FALSE
   while (current_end <= last_time_schedule) {
     ## Schedule based on model predictions
+    last_obs <- convert_frequency_dataset(test_set[current_end:(current_end + window_size - 1)], window_size, mode)
     prediction_result <- do_prediction_ar1(last_obs, trained_result$coeffs, trained_result$means, trained_result$vars, 1, NULL)
     pi_up <- compute_pi_up(prediction_result$mu, prediction_result$varcov, 1, cut_off_prob)
 
     ## Evalute schedulings based on prediction
     start_time <- current_end
-    end_time <- current_end + window_size - 1
+    end_time <- start_time + window_size - 1
     survival <- check_survival(pi_up, test_set[start_time:end_time], granularity)
     utilization <- check_utilization(pi_up, survival, granularity)
 
@@ -283,7 +282,6 @@ predict_model_ar1 <- function(last_obs, test_set, trained_result, window_size, c
     survivals <- c(survivals, survival)
     utilizations <- c(utilizations, utilization)
 
-    last_obs <- convert_frequency_dataset(test_set[start_time:end_time], window_size, mode)
     current_end <- current_end + update
   }
 
@@ -328,7 +326,7 @@ svt_predicting_sim_ar1 <- function(ts_num, dataset, train_size, window_size, upd
 
     ## Convert Frequency for training set
     new_trainset <- convert_frequency_dataset(train_set, window_size, mode)
-    last_obs <- convert_frequency_dataset_overlapping(train_set[(train_size - window_size + 1):train_size], window_size, mode)
+    starting_points <- train_set[(train_size - window_size + 1):train_size]
 
     ## Train Model
     if (train_sig) {
@@ -336,7 +334,7 @@ svt_predicting_sim_ar1 <- function(ts_num, dataset, train_size, window_size, upd
     }
 
     ## Test Model
-    result <- predict_model_ar1(last_obs, test_set, trained_result, window_size, cut_off_prob, granularity, schedule_policy, adjust_policy, mode)
+    result <- predict_model_ar1(c(starting_points, test_set), trained_result, window_size, cut_off_prob, granularity, schedule_policy, adjust_policy, mode)
 
     ## Update Training Timestamp
     prev_survival <- sur_num / sur_den
@@ -423,7 +421,7 @@ predicting_sim_ar1 <- function(param, dataset, training_policy, schedule_policy,
     }
     new_row <- c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2)
     names(new_row) <- c(names(param), "avg_survival", "agg_survival", "avg_utilization", "agg_utilization")
-    utils::write.csv(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
   }
 
   return(evaluate_info)

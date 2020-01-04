@@ -4,12 +4,10 @@
 \alias{generate_parameters_df}
 \title{Generate Dataframe of Parameters}
 \usage{
-generate_parameters_df(model_name, simulation)
+generate_parameters_df(model_name)
 }
 \arguments{
 \item{model_name}{A String that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size} or \code{update_freq}.}
-
-\item{simulation}{A String that is either \code{online} or \code{offline}.}
 }
 \value{
 A dataframe of the combination of the parameters.
@@ -18,5 +16,5 @@ A dataframe of the combination of the parameters.
 Generate the dataframe combination of the parameters for simulation of a specific model.
 }
 \examples{
-generate_parameters_df("AR1", "offline")
+generate_parameters_df("AR1")
 }

@@ -6,14 +6,15 @@
 #' @importFrom MTS VARMACpp
 #' @importFrom dict dict numvecdict
 
-
 basic_models <- c("AR1", "VAR1")
 bin_models <- c("AR1_logistic_lm", "AR1_logistic_glm")
 state_models <- c("Markov", "AR1_Markov", "AR1_state_based_logistic")
 
 result_loc <- getwd()
 
-load(fs::path("R" ,"sysdata.rda"), envir = environment())
+package_env <- environment()
+
+load(fs::path("R" ,"sysdata.rda"), envir = package_env)
 
 
 #' Check Input Parameters
@@ -22,7 +23,7 @@ load(fs::path("R" ,"sysdata.rda"), envir = environment())
 #' @param param A String that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size} or \code{update_freq}.
 #' @param value A value that the parameter is about to be assigned to.
 check_values <- function(param, value) {
-  param_lst <- get("param_lst", environment())
+  param_lst <- get("param_lst", envir = package_env)
   if (param == "window_size") {
     if (any(is.null(value)) | any(is.na(value)) | any(value != floor(value)) | any(value <= 0)) {
       stop("The value of window_size must be a positive integer.")
@@ -51,6 +52,10 @@ check_values <- function(param, value) {
     if (any(is.null(value)) | any(is.na(value)) | any(value != floor(value)) | any(value <= 0)) {
       stop("The value of bin_num must be a positive integer.")
     }
+  } else if (param == "tolerance") {
+    if (any(is.null(value)) | any(is.na(value)) | any(value >= 1 | value <= 0)) {
+      stop("The value of tolerance must be between 0 to 1.")
+    }
   }
 }
 
@@ -64,7 +69,7 @@ check_values <- function(param, value) {
 #' get_parameters()
 #' @export
 get_parameters <- function(param_name=NULL) {
-  param_lst <- get("param_lst", environment())
+  param_lst <- get("param_lst", envir = package_env)
   if (is.null(param_name)) {
     return(param_lst)
   } else if (param_name %in% names(param_lst)) {
@@ -90,11 +95,13 @@ set_parameters <- function(param_name, value) {
                             train_size = c(2000, 3000, 4000),
                             update_freq = c(36),
                             state_num = c(8, 16, 32),
-                            bin_num = c(500, 1000))
-  param_lst <- get("param_lst", environment())
+                            bin_num = c(500, 1000),
+                            tolerance = c(0.45))
+  param_lst <- get("param_lst", envir = package_env)
   if (is.null(param_name)) {
     if (any(is.null(value)) | any(is.na(value))) {
-      assign("param_lst", default_param_lst, environment())
+      unlockBinding("param_lst", env = package_env)
+      assign("param_lst", default_param_lst, envir = package_env)
     } else {
       stop("value is provided but param_name is NULL or NA")
     }
@@ -106,7 +113,8 @@ set_parameters <- function(param_name, value) {
         check_values(param_name, value)
         cp_param_lst <- param_lst
         cp_param_lst[param_name][[1]] <- value
-        assign("param_lst", cp_param_lst, environment())
+        unlockBinding("param_lst", env = package_env)
+        assign("param_lst", cp_param_lst, envir = package_env)
       } else {
         stop(paste0("param_name must be one of ", names(param_lst)))
       }
@@ -119,53 +127,27 @@ set_parameters <- function(param_name, value) {
 #'
 #' @description Generate the dataframe combination of the parameters for simulation of a specific model.
 #' @param model_name A String that is either \code{window_size}, \code{cut_off_prob}, \code{granularity}, \code{train_size} or \code{update_freq}.
-#' @param simulation A String that is either \code{online} or \code{offline}.
 #' @return A dataframe of the combination of the parameters.
 #' @examples
-#' generate_parameters_df("AR1", "offline")
+#' generate_parameters_df("AR1")
 #' @export
-generate_parameters_df <- function(model_name, simulation) {
-  param_lst <- get("param_lst", envir = environment())
+generate_parameters_df <- function(model_name) {
+  param_lst <- get("param_lst", envir = package_env)
   parameter.df <- NULL
   if (model_name %in% basic_models) {
-    if (simulation == "online") {
-      parameter.df <- expand.grid(param_lst$window_size, param_lst$cut_off_prob, param_lst$granularity, param_lst$train_size, param_lst$update_freq)
-      colnames(parameter.df) <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq")
-    } else if (simulation == "offline") {
-      parameter.df <- expand.grid(param_lst$window_size, param_lst$cut_off_prob, param_lst$granularity)
-      colnames(parameter.df) <- c("window_size", "cut_off_prob", "granularity")
-    } else {
-      stop("simulation must be one of online or offline")
-    }
+    parameter.df <- expand.grid(param_lst$window_size, param_lst$cut_off_prob, param_lst$granularity, param_lst$train_size, param_lst$update_freq, param_lst$tolerance)
+    colnames(parameter.df) <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance")
   } else if (model_name %in% state_models) {
-    if (simulation == "online") {
-      parameter.df <- expand.grid(param_lst$window_size, param_lst$cut_off_prob, param_lst$granularity, param_lst$train_size, param_lst$update_freq, param_lst$state_num)
-      colnames(parameter.df) <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "state_num")
-    } else if (simulation == "offline") {
-      parameter.df <- expand.grid(param_lst$window_size, param_lst$cut_off_prob, param_lst$granularity, param_lst$state_num)
-      colnames(parameter.df) <- c("window_size", "cut_off_prob", "granularity", "state_num")
-    } else {
-      stop("simulation must be one of online or offline")
-    }
+    parameter.df <- expand.grid(param_lst$window_size, param_lst$cut_off_prob, param_lst$granularity, param_lst$train_size, param_lst$update_freq, param_lst$state_num, param_lst$tolerance)
+    colnames(parameter.df) <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "state_num", "tolerance")
   } else if (model_name %in% bin_models) {
-    if (simulation == "online") {
-      parameter.df <- expand.grid(param_lst$window_size, param_lst$cut_off_prob, param_lst$granularity, param_lst$train_size, param_lst$update_freq, param_lst$bin_num)
-      colnames(parameter.df) <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "bin_num")
-    } else if (simulation == "offline") {
-      parameter.df <- expand.grid(param_lst$window_size, param_lst$cut_off_prob, param_lst$granularity, param_lst$bin_num)
-      colnames(parameter.df) <- c("window_size", "cut_off_prob", "granularity", "bin_num")
-    } else {
-      stop("simulation must be one of online or offline")
-    }
+    parameter.df <- expand.grid(param_lst$window_size, param_lst$cut_off_prob, param_lst$granularity, param_lst$train_size, param_lst$update_freq, param_lst$bin_num, param_lst$tolerance)
+    colnames(parameter.df) <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "bin_num", "tolerance")
   } else {
     stop(paste0("Model name must be one of ", c(basic_models, bin_models, state_models)))
   }
-
-  if (simulation == "online") {
-    parameter.df <- dplyr::filter(parameter.df, parameter.df$update_freq %% parameter.df$window_size == 0)
-  }
+  parameter.df <- dplyr::filter(parameter.df, parameter.df$update_freq %% parameter.df$window_size == 0)
   parameter.df <- dplyr::arrange(parameter.df)
-
   return(parameter.df)
 }
 
@@ -175,7 +157,7 @@ generate_parameters_df <- function(model_name, simulation) {
 #' @description Write current cached parameters as the default parameters.
 #' @export
 save_parameters <- function() {
-  save(param_lst, file = fs::path("R" ,"sysdata.rda"), envir = environment())
+  save(param_lst, file = fs::path("R" ,"sysdata.rda"), envir = package_env)
 }
 
 
@@ -198,12 +180,14 @@ get_result_location <- function() {
 #' @export
 set_result_location <- function(path=NULL) {
   if (is.null(path)) {
-    assign("result_loc", getwd(), environment())
+    unlockBinding("result_loc", env = package_env)
+    assign("result_loc", getwd(), envir = package_env)
   } else {
     if (!fs::dir_exists(path)) {
       fs::dir_create(path)
     }
-    assign("result_loc", path, environment())
+    unlockBinding("result_loc", env = package_env)
+    assign("result_loc", path, envir = package_env)
   }
 }
 

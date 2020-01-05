@@ -205,7 +205,10 @@ scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, sc
   ts_names <- colnames(dataset)
 
   ## Do Simulation
+  start_time <- proc.time()
   result <- parallel::mclapply(1:length(ts_names), svt_scheduleing_sim_ar1, dataset, cpu_required, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, mc.cores = cores)
+  end_time <- proc.time()
+  print(end_time - start_time)
 
   ## Reformat Results
   for (ts_num in 1:length(ts_names)) {
@@ -230,7 +233,7 @@ scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, sc
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
     }
-    new_row <- data.frame(row.names = 1)
+    new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
     utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
@@ -419,7 +422,7 @@ predicting_sim_ar1 <- function(param, dataset, training_policy, schedule_policy,
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
     }
-    new_row <- data.frame(row.names = 1)
+    new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
     utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")

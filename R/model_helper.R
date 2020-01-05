@@ -64,7 +64,7 @@ convert_frequency_dataset_overlapping <- function(dataset, new_freq, mode) {
 }
 
 
-#' Compute Prediction Upper Bound For Forcasting.
+#' Compute Prediction Interval Upper Bound For Forcasting.
 #'
 #' @description Computer prediction using predicted value and variance, can be adjusted to granularity.
 #' @param mu The predicted mean of next observations.
@@ -78,6 +78,38 @@ compute_pi_up <- function(mu, varcov, predict_size, cut_off_prob) {
     upper_bounds[i] <- min(mu[i] + stats::qnorm((1 - cut_off_prob)) * sqrt(varcov[i,i]), 100)
   }
   return(upper_bounds)
+}
+
+
+#' Computation of PI's upper bound for Markov Model
+#'
+#' @description Compute the PI's upper bound based on probability cut off
+#' @param to_states The vector contains the probability of going to each state
+#' @param prob_cut_off The probability cut off point for PI
+#' @param granularity The granularity of 100 percent of total cpu.
+#' @return The prediction upper bound.
+compute_pi_up_markov <- function(to_states, prob_cut_off, granularity) {
+  compute_pi_up_markov_single <- function(to_states, prob_cut_off, granularity) {
+    current_state <- 1
+    current_prob <- 0
+    while (current_state <= length(to_states)) {
+      current_prob <- current_prob + to_states[current_state]
+      if (current_prob < 1 - prob_cut_off) {
+        current_state <- current_state + 1
+      }
+      else {
+        break
+      }
+    }
+    pi_up <- current_state * (100 / length(to_states))
+    if (granularity > 0) {
+      scheduled_size <- round_to_nearest(100 - pi_up, granularity, TRUE)
+      pi_up <- 100 - scheduled_size
+    }
+    return(pi_up)
+  }
+  pi_ups <- apply(to_states, 1, compute_pi_up_markov_single, prob_cut_off, granularity)
+  return(max(pi_ups))
 }
 
 
@@ -362,3 +394,22 @@ find_overall_evaluation <- function(numerator1, denominator1, numerator2, denomi
   agg_score2 <- sum(numerator2, na.rm = TRUE) / sum(denominator2, na.rm = TRUE)
   return(list("avg_score1" = avg_score1, "avg_score2" = avg_score2, "agg_score1" = agg_score1, "agg_score2" = agg_score2))
 }
+
+
+#' Find Corresponding State
+#'
+#' @description Find the corresponding state for a specific observation with fixed partitioning method.
+#' @param obs A numeric input of observation.
+#' @param state_num The total number of states.
+#' @return The corresponding state number.
+find_state_num <- function(obs, state_num) {
+  binsize <- 100 / state_num
+  state <- NULL
+  if (obs == 0) {
+    state <- 1
+  } else {
+    state <- ceiling(obs / binsize)
+  }
+  return(state)
+}
+

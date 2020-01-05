@@ -217,7 +217,10 @@ svt_scheduleing_sim_var1 <- function(ts_num, dataset_max, dataset_avg, cpu_requi
     }
 
     ## Test Model
+    start_time <- proc.time()
     result <- schedule_foreground_var1(c(starting_points_max, test_set_max), c(starting_points_avg, test_set_avg), trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy)
+    end_time <- proc.time()
+    print(end_time - start_time)
 
     ## Update Training Timestamp
     prev_correct_scheduled_rate <- correct_scheduled_num / scheduled_num
@@ -300,7 +303,7 @@ scheduling_sim_var1 <- function(param, dataset_max, dataset_avg, cpu_required, t
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
     }
-    new_row <- data.frame(row.names = 1)
+    new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
     utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
@@ -499,7 +502,7 @@ predicting_sim_var1 <- function(param, dataset_max, dataset_avg, training_policy
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
     }
-    new_row <- data.frame(row.names = 1)
+    new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
     utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")

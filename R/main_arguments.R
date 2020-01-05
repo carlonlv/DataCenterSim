@@ -196,15 +196,15 @@ run_sim <- function(dataset_max, dataset_avg, model_name, parameters, sim_policy
   if (model_name == "AR1") {
     if (sim_policy == "scheduling") {
       if (mode == "max") {
-        result <- apply(parameters, 1, scheduling_sim_ar1, dataset_max, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
+        result <- apply(parameters, 1, scheduling_sim_ar1, dataset_max, cpu_required, training_policy, schedule_policy, adjust_policy, cores, write_result, mode)
       } else {
-        result <- apply(parameters, 1, scheduling_sim_ar1, dataset_avg, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
+        result <- apply(parameters, 1, scheduling_sim_ar1, dataset_avg, cpu_required, training_policy, schedule_policy, adjust_policy, cores, write_result, mode)
       }
     } else {
       if (mode == "max") {
-        result <- apply(parameters, 1, predicting_sim_ar1, dataset_max, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
+        result <- apply(parameters, 1, predicting_sim_ar1, dataset_max, training_policy, schedule_policy, adjust_policy, cores, write_result, mode)
       } else {
-        result <- apply(parameters, 1, predicting_sim_ar1, dataset_avg, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
+        result <- apply(parameters, 1, predicting_sim_ar1, dataset_avg, training_policy, schedule_policy, adjust_policy, cores, write_result, mode)
       }
     }
   } else if (model_name == "VAR1") {
@@ -213,7 +213,21 @@ run_sim <- function(dataset_max, dataset_avg, model_name, parameters, sim_policy
     } else {
       result <- apply(parameters, 1, predicting_sim_var1, dataset_max, dataset_avg, training_policy, schedule_policy, adjust_policy, cores, write_result )
     }
-  } else {
+  } else if (model_name == "Markov") {
+    if (sim_policy == "scheduling") {
+      if (mode == "max") {
+        result <- apply(parameters, 1, scheduling_sim_markov, dataset_max, cpu_required, training_policy, schedule_policy, adjust_policy, cores, write_result, mode)
+      } else {
+        result <- apply(parameters, 1, scheduling_sim_markov, dataset_avg, cpu_required, training_policy, schedule_policy, adjust_policy, cores, write_result, mode)
+      }
+    } else {
+      if (mode == "max") {
+        result <- apply(parameters, 1, predicting_sim_markov, dataset_max, training_policy, schedule_policy, adjust_policy, cores, write_result, mode)
+      } else {
+        result <- apply(parameters, 1, predicting_sim_markov, dataset_avg, training_policy, schedule_policy, adjust_policy, cores, write_result, mode)
+      }
+    }
+  }else {
     stop("Under Construction.")
   }
 }

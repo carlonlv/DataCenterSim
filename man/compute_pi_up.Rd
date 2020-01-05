@@ -2,7 +2,7 @@
 % Please edit documentation in R/model_helper.R
 \name{compute_pi_up}
 \alias{compute_pi_up}
-\title{Compute Prediction Upper Bound For Forcasting.}
+\title{Compute Prediction Interval Upper Bound For Forcasting.}
 \usage{
 compute_pi_up(mu, varcov, predict_size, cut_off_prob)
 }

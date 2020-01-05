@@ -90,7 +90,7 @@ get_parameters <- function(param_name=NULL) {
 #' @export
 set_parameters <- function(param_name, value) {
   default_param_lst <- list(window_size = c(12),
-                            cut_off_prob = c(0.005, 0.01, 0.1),
+                            cut_off_prob = c(0.01, 0.1),
                             granularity = c(3.1250, 1.5625, 0.0000),
                             train_size = c(2000, 3000, 4000),
                             update_freq = c(36),
@@ -197,21 +197,21 @@ run_sim <- function(dataset_max, dataset_avg, model_name, parameters, sim_policy
     if (sim_policy == "scheduling") {
       if (mode == "max") {
         result <- apply(parameters, 1, scheduling_sim_ar1, dataset_max, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
-      } else if (mode == "avg") {
+      } else {
         result <- apply(parameters, 1, scheduling_sim_ar1, dataset_avg, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
-      } else {
-        stop("mode must be one of <max/avg>.")
-      }
-    } else if (sim_policy == "predicting") {
-      if (mode == "max") {
-        result <- apply(parameters, 1, predicting_sim_ar1, dataset_max, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
-      } else if (mode == "avg") {
-        result <- apply(parameters, 1, predicting_sim_ar1, dataset_avg, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
-      } else {
-        stop("mode must be one of <max/avg>.")
       }
     } else {
-      stop("sim_policy must be one of <scheduling/predicting.>")
+      if (mode == "max") {
+        result <- apply(parameters, 1, predicting_sim_ar1, dataset_max, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
+      } else {
+        result <- apply(parameters, 1, predicting_sim_ar1, dataset_avg, training_policy, schedule_policy, adjust_policy, mode, cores, write_result)
+      }
+    }
+  } else if (model_name == "VAR1") {
+    if (sim_policy == "scheduling") {
+      result <- apply(parameters, 1, scheduling_sim_var1, dataset_max, dataset_avg, cpu_required, training_policy, schedule_policy, adjust_policy, cores, write_result)
+    } else {
+      result <- apply(parameters, 1, predicting_sim_var1, dataset_max, dataset_avg, training_policy, schedule_policy, adjust_policy, cores, write_result )
     }
   } else {
     stop("Under Construction.")

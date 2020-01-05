@@ -189,12 +189,12 @@ svt_scheduleing_sim_ar1 <- function(ts_num, dataset, cpu_required, train_size, w
 #' @param write_result TRUE if the result of the experiment is written to a file.
 #' @return A dataframe containing the resulting scheduling informations.
 scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores, write_result) {
-  window_size <- param["window_size"]
-  cut_off_prob <- param["cut_off_prob"]
-  granularity <- param["granularity"]
-  train_size <- param["train_size"]
-  update_freq <- param["update_freq"]
-  tolerance <- param["tolerance"]
+  window_size <- as.numeric(param["window_size"])
+  cut_off_prob <- as.numeric(param["cut_off_prob"])
+  granularity <- as.numeric(param["granularity"])
+  train_size <- as.numeric(param["train_size"])
+  update_freq <- as.numeric(param["update_freq"])
+  tolerance <- as.numeric(param["tolerance"])
 
   scheduled_num <- c()
   unscheduled_num <- c()
@@ -230,8 +230,9 @@ scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, sc
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
     }
-    new_row <- c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2)
-    names(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
+    new_row <- data.frame(row.names = 1)
+    new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
+    colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
     utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
   }
 
@@ -268,7 +269,7 @@ predict_model_ar1 <- function(test_set, trained_result, window_size, cut_off_pro
     pi_up <- compute_pi_up(prediction_result$mu, prediction_result$varcov, 1, cut_off_prob)
 
     ## Evalute schedulings based on prediction
-    start_time <- current_end
+    start_time <- current_end + window_size
     end_time <- start_time + window_size - 1
     survival <- check_survival(pi_up, test_set[start_time:end_time], granularity)
     utilization <- check_utilization(pi_up, survival, granularity)
@@ -357,7 +358,6 @@ svt_predicting_sim_ar1 <- function(ts_num, dataset, train_size, window_size, upd
   sur_den <- sum(sur_den)
   util_num <- sum(util_num)
   util_den <- sum(util_den)
-
   return(list("sur_num" = sur_num, "sur_den" = sur_den, "util_num" = util_num, "util_den" = util_den))
 }
 
@@ -419,10 +419,10 @@ predicting_sim_ar1 <- function(param, dataset, training_policy, schedule_policy,
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
     }
-    new_row <- c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2)
-    names(new_row) <- c(names(param), "avg_survival", "agg_survival", "avg_utilization", "agg_utilization")
+    new_row <- data.frame(row.names = 1)
+    new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
+    colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
     utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
   }
-
   return(evaluate_info)
 }

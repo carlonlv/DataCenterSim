@@ -184,11 +184,11 @@ svt_scheduleing_sim_ar1 <- function(ts_num, dataset, cpu_required, train_size, w
 #' @param training_policy \code{"once"} for offline training, \code{"fixed"} for training at fixed time, \code{"dynamic"} for training when previous performance is bad.
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
-#' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
+#' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A dataframe containing the resulting scheduling informations.
-scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, schedule_policy, adjust_policy, mode, cores, write_result) {
+scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, schedule_policy, adjust_policy, cores, write_result, mode) {
   window_size <- as.numeric(param["window_size"])
   cut_off_prob <- as.numeric(param["cut_off_prob"])
   granularity <- as.numeric(param["granularity"])
@@ -313,7 +313,6 @@ predict_model_ar1 <- function(test_set, trained_result, window_size, cut_off_pro
 #' @return A list containing the resulting scheduling informations.
 svt_predicting_sim_ar1 <- function(ts_num, dataset, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode) {
   dataset <- dataset[, ts_num]
-  cpu_required <- cpu_required[ts_num]
 
   sur_num <- c()
   sur_den <- c()
@@ -373,11 +372,11 @@ svt_predicting_sim_ar1 <- function(ts_num, dataset, train_size, window_size, upd
 #' @param training_policy \code{"once"} for offline training, \code{"fixed"} for training at fixed time, \code{"dynamic"} for training when previous performance is bad.
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
-#' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
+#' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A dataframe containing the resulting scheduling informations.
-predicting_sim_ar1 <- function(param, dataset, training_policy, schedule_policy, adjust_policy, mode, cores, write_result) {
+predicting_sim_ar1 <- function(param, dataset, training_policy, schedule_policy, adjust_policy, cores, write_result, mode) {
   window_size <- param["window_size"]
   cut_off_prob <- param["cut_off_prob"]
   granularity <- param["granularity"]
@@ -395,7 +394,8 @@ predicting_sim_ar1 <- function(param, dataset, training_policy, schedule_policy,
 
   ## Do Simulation
   start_time <- proc.time()
-  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim_ar1, dataset, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, mc.cores = cores)
+  #result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim_ar1, dataset, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, mc.cores = cores)
+  result <- lapply(1:length(ts_names), svt_predicting_sim_ar1, dataset, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode)
   end_time <- proc.time()
   print(end_time - start_time)
 

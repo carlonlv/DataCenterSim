@@ -4,7 +4,7 @@
 \alias{do_prediction_var1}
 \title{Predict Next Observation For VAR Model}
 \usage{
-do_prediction_var1(last_obs, ts_model, predict_size = 1, level = NULL)
+do_prediction_var1(last_obs, ts_model, predict_size, level = NULL)
 }
 \arguments{
 \item{last_obs}{The previous observation.}

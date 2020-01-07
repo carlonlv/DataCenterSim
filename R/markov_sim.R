@@ -47,6 +47,7 @@ do_prediction_markov <- function(last_obs, trained_result, predict_size, level=N
   from <- find_state_num(last_obs, nrow(trained_result))
   to_states <- data.frame()
   if (predict_size > 1) {
+    to_states <- rbind(to_states, final_transition[from,])
     for (i in 1:(predict_size - 1)) {
       final_transition <- final_transition %*% parsed_transition
       to_states <- rbind(to_states, final_transition[from,])
@@ -63,9 +64,6 @@ do_prediction_markov <- function(last_obs, trained_result, predict_size, level=N
   }
   return(list("prob" = prob, "to_states" = to_states))
 }
-
-
-
 
 
 #' Schedule A Job On Given Test Set
@@ -154,7 +152,7 @@ svt_scheduleing_sim_markov <- function(ts_num, dataset, cpu_required, train_size
     test_set <- dataset[(current + train_size):(current + train_size + update_freq - 1)]
 
     ## Convert Frequency for training set
-    new_trainset <- convert_frequency_dataset(train_set, window_size, mode)
+    new_trainset <- convert_frequency_dataset_overlapping(train_set, window_size, mode)
     starting_points <- train_set[(train_size - window_size + 1):train_size]
 
     ## Train Model
@@ -246,14 +244,14 @@ scheduling_sim_markov <- function(param, dataset, cpu_required, training_policy,
 
   if (write_result) {
     file_name <- paste("Markov", "Sim:", "Scheduling", "Train:", training_policy, "Schedue:", schedule_policy, "Adjust:", adjust_policy)
-    fp <- fs::path(paste0(getwd(), file_name), ext = "csv")
+    fp <- fs::path(paste0(get_result_location(), file_name), ext = "csv")
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
     }
     new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
-    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
   }
 
   return(schedule_info)
@@ -307,7 +305,7 @@ predict_model_markov <- function(test_set, trained_result, window_size, cut_off_
   }
 
   overall_survival <- compute_survival(survivals)
-  overall_utilization <- compute_utilization(utilizations, test_set, window_size, granularity)
+  overall_utilization <- compute_utilization(utilizations, test_set[(window_size + 1):(current_end - update + 2 * window_size - 1)], window_size, granularity)
   return(list("sur_num" = overall_survival$numerator, "sur_den" = overall_survival$denominator, "util_num" = overall_utilization$numerator, "util_den" = overall_utilization$denominator))
 }
 
@@ -331,7 +329,6 @@ predict_model_markov <- function(test_set, trained_result, window_size, cut_off_
 #' @return A list containing the resulting scheduling informations.
 svt_predicting_sim_markov <- function(ts_num, dataset, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, state_num) {
   dataset <- dataset[, ts_num]
-  cpu_required <- cpu_required[ts_num]
 
   sur_num <- c()
   sur_den <- c()
@@ -347,7 +344,7 @@ svt_predicting_sim_markov <- function(ts_num, dataset, train_size, window_size, 
     test_set <- dataset[(current + train_size):(current + train_size + update_freq - 1)]
 
     ## Convert Frequency for training set
-    new_trainset <- convert_frequency_dataset(train_set, window_size, mode)
+    new_trainset <- convert_frequency_dataset_overlapping(train_set, window_size, mode)
     starting_points <- train_set[(train_size - window_size + 1):train_size]
 
     ## Train Model
@@ -397,13 +394,13 @@ svt_predicting_sim_markov <- function(ts_num, dataset, train_size, window_size, 
 #' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A dataframe containing the resulting scheduling informations.
 predicting_sim_markov <- function(param, dataset, training_policy, schedule_policy, adjust_policy, cores, write_result, mode) {
-  window_size <- param["window_size"]
-  cut_off_prob <- param["cut_off_prob"]
-  granularity <- param["granularity"]
-  train_size <- param["train_size"]
-  update_freq <- param["update_freq"]
-  tolerance <- param["tolerance"]
-  state_num <- param["state_num"]
+  window_size <- as.numeric(param["window_size"])
+  cut_off_prob <- as.numeric(param["cut_off_prob"])
+  granularity <- as.numeric(param["granularity"])
+  train_size <- as.numeric(param["train_size"])
+  update_freq <- as.numeric(param["update_freq"])
+  tolerance <- as.numeric(param["tolerance"])
+  state_num <- as.numeric(param["state_num"])
 
   sur_num <- c()
   sur_den <- c()
@@ -438,14 +435,14 @@ predicting_sim_markov <- function(param, dataset, training_policy, schedule_poli
 
   if (write_result) {
     file_name <- paste("Markov", "Sim:", "Predicting", "Train:", training_policy, "Schedue:", schedule_policy, "Adjust:", adjust_policy)
-    fp <- fs::path(paste0(getwd(), file_name), ext = "csv")
+    fp <- fs::path(paste0(get_result_location(), file_name), ext = "csv")
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
     }
     new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
-    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
   }
 
   return(evaluate_info)

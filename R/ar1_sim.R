@@ -229,14 +229,14 @@ scheduling_sim_ar1 <- function(param, dataset, cpu_required, training_policy, sc
 
   if (write_result) {
     file_name <- paste("AR1", "Sim:", "Scheduling", "Train:", training_policy, "Schedue:", schedule_policy, "Adjust:", adjust_policy)
-    fp <- fs::path(paste0(getwd(), file_name), ext = "csv")
+    fp <- fs::path(paste0(get_result_location(), file_name), ext = "csv")
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
     }
     new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
-    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
   }
 
   return(schedule_info)
@@ -290,7 +290,7 @@ predict_model_ar1 <- function(test_set, trained_result, window_size, cut_off_pro
   }
 
   overall_survival <- compute_survival(survivals)
-  overall_utilization <- compute_utilization(utilizations, test_set, window_size, granularity)
+  overall_utilization <- compute_utilization(utilizations, test_set[(window_size + 1):(current_end - update + 2 * window_size - 1)], window_size, granularity)
   return(list("sur_num" = overall_survival$numerator, "sur_den" = overall_survival$denominator, "util_num" = overall_utilization$numerator, "util_den" = overall_utilization$denominator))
 }
 
@@ -394,8 +394,7 @@ predicting_sim_ar1 <- function(param, dataset, training_policy, schedule_policy,
 
   ## Do Simulation
   start_time <- proc.time()
-  #result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim_ar1, dataset, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, mc.cores = cores)
-  result <- lapply(1:length(ts_names), svt_predicting_sim_ar1, dataset, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode)
+  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim_ar1, dataset, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, mc.cores = cores)
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -418,14 +417,14 @@ predicting_sim_ar1 <- function(param, dataset, training_policy, schedule_policy,
 
   if (write_result) {
     file_name <- paste("AR1", "Sim:", "Predicting", "Train:", training_policy, "Schedue:", schedule_policy, "Adjust:", adjust_policy)
-    fp <- fs::path(paste0(getwd(), file_name), ext = "csv")
+    fp <- fs::path(paste0(get_result_location(), file_name), ext = "csv")
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
     }
     new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
-    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
   }
   return(evaluate_info)
 }

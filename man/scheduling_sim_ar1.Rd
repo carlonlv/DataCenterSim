@@ -11,9 +11,9 @@ scheduling_sim_ar1(
   training_policy,
   schedule_policy,
   adjust_policy,
-  mode,
   cores,
-  write_result
+  write_result,
+  mode
 )
 }
 \arguments{
@@ -29,11 +29,11 @@ scheduling_sim_ar1(
 
 \item{adjust_policy}{\code{TRUE} for "backing off" strategy whenever a mistake is made.}
 
-\item{mode}{\code{"max"} or \code{"avg"} which time series is used as \code{dataset}.}
-
 \item{cores}{The number of threads for parallel programming for multiple traces, not supported for windows users.}
 
 \item{write_result}{TRUE if the result of the experiment is written to a file.}
+
+\item{mode}{\code{"max"} or \code{"avg"} which time series is used as \code{dataset}.}
 }
 \value{
 A dataframe containing the resulting scheduling informations.

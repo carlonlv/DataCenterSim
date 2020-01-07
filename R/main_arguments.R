@@ -4,7 +4,7 @@
 #' @importFrom mvtnorm pmvnorm
 #' @importFrom parallel mclapply
 #' @importFrom MTS VARMACpp
-#' @importFrom dict dict numvecdict
+#' @importFrom matrixcalc matrix.power
 
 basic_models <- c("AR1", "VAR1")
 bin_models <- c("AR1_logistic_lm", "AR1_logistic_glm")

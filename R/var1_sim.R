@@ -8,7 +8,7 @@ train_var1 <- function(train_dataset_max, train_dataset_avg) {
   uni_data_matrix <- matrix(nrow = length(train_dataset_max), ncol = 2)
   uni_data_matrix[,1] <- train_dataset_max
   uni_data_matrix[,2] <- train_dataset_avg
-  return(suppressWarnings(MTS::VARMACpp(uni_data_matrix, p = 1, q = 0, include.mean = TRUE)))
+  return(MTS::VAR(uni_data_matrix, p = 1, include.mean = TRUE, output = FALSE))
 }
 
 
@@ -20,90 +20,27 @@ train_var1 <- function(train_dataset_max, train_dataset_avg) {
 #' @param ts_model A list get from training var model
 #' @param level The level in \eqn{Pr(next_obs \leq level)}, or \code{NULL} if the probability is not needed.
 #' @return A list containing the calculated probability, expectation and variance.
-do_prediction_var1 <- function(last_obs, ts_model, predict_size=1, level=NULL) {
-  initialize_coefficient_matrix <- function(predict_size, current_err) {
-    initial <- matrix(0, nrow = 2, ncol = 2*predict_size)
-    pre_ma <- predict_size - current_err
-    initial[1:2, (1 + 2*pre_ma):(2*(pre_ma + 1))] <- diag(nrow = 2, ncol = 2)
-    return(initial)
-  }
-  update_dict_matrices <- function(prev, ar_coef) {
-    num_small_matrices <- ncol(prev) / 2
-    result <- matrix(0, nrow = 2, ncol = ncol(prev))
-    for (i in 1:num_small_matrices) {
-      multi <- prev[,(1 + 2*(i - 1)):(2*i)]
-      result[,(1 + 2*(i - 1)):(2*i)] <- ar_coef %*% multi
-    }
-    return(result)
-  }
-  calculate_var_cov_matrix <- function(var, predict_size, ar_coef) {
-    forecast_var <- dict::dict()
-    forecast_var_max <- dict::numvecdict()
-    forecast_var_avg <- dict::numvecdict()
-    for (i in 1:predict_size) {
-      initial <- initialize_coefficient_matrix(predict_size, i)
-      if (i > 1) {
-        initial <- initial + update_dict_matrices(forecast_var[[i - 1]], ar_coef)
-      }
-      forecast_var[[i]] <- initial
-      for (m in 1:(ncol(initial)/2)) {
-        forecast_var_max$append_number(i, initial[1,(1 + 2*(m - 1))])
-        forecast_var_avg$append_number(i, initial[1,(2*m)])
-      }
-    }
-    var_cov <- matrix(nrow = predict_size, ncol = predict_size)
-    var_max <- var[1,1]
-    var_avg <- var[2,2]
-    cov_max_avg <- var[1,2]
-    for (row in 1:predict_size) {
-      for (col in 1:predict_size) {
-        if (row > col) {
-          var_cov[row, col] <- var_cov[col, row]
-        } else {
-          max_coef_row <- forecast_var_max[[row]]
-          avg_coef_row <- forecast_var_avg[[row]]
-          max_coef_col <- forecast_var_max[[col]]
-          avg_coef_col <- forecast_var_avg[[col]]
-          var_cov[row, col] <- sum(max_coef_row * max_coef_col) * var_max + sum(avg_coef_row * avg_coef_col) * var_max +
-            sum(max_coef_row * avg_coef_col) * cov_max_avg + sum(avg_coef_row * max_coef_col) * cov_max_avg
-        }
-      }
-    }
-    return(var_cov)
-  }
-  calculate_estimates <- function(ar_coef, last_obs, predict_size, intercept) {
-    estimate <- matrix(nrow = 2, ncol = predict_size)
-    intercept_extended <- NULL
-    for (l in 1:ncol(last_obs)) {
-      intercept_extended <- cbind(intercept_extended, intercept)
-    }
-    last_obs <- last_obs - intercept_extended
-    for (i in 1:predict_size) {
-      last_ob <- matrix(c(0,0), nrow = 2, ncol = 1)
-      last_ob <- last_ob + ar_coef %*% last_obs[,1]
-      last_obs <- cbind(last_ob, last_obs)
-    }
-    intercept_extended <- NULL
-    for (l in 1:ncol(last_obs)) {
-      intercept_extended <- cbind(intercept_extended, intercept)
-    }
-    last_obs <- last_obs + intercept_extended
-    return(last_obs[1,1:predict_size])
-  }
-
-  intercept <- matrix(nrow = 2, ncol = 1)
-  intercept[1,1] <- as.numeric(ts_model$coef[1,1])
-  intercept[2,1] <- as.numeric(ts_model$coef[2,1])
-
-  ar_coef <- matrix(nrow = 2, ncol = 2)
-  ar_coef[1, 1] <- as.numeric(ts_model$coef[2, 1])
-  ar_coef[1, 2] <- as.numeric(ts_model$coef[3, 1])
-  ar_coef[2, 1] <- as.numeric(ts_model$coef[2, 2])
-  ar_coef[2, 2] <- as.numeric(ts_model$coef[3, 2])
-
+do_prediction_var1 <- function(last_obs, ts_model, predict_size, level=NULL) {
+  intercept <- ts_model$Ph0
+  ar_coef <- ts_model$Phi
   sample_var <- ts_model$Sigma
-  mu <- calculate_estimates(ar_coef, last_obs, predict_size, intercept)
-  varcov <- calculate_var_cov_matrix(sample_var, predict_size, ar_coef)
+
+  mu <- last_obs
+  for (h in 1:predict_size) {
+    mu <- matrix(intercept, nrow = 2, ncol = 1) + ar_coef %*% mu
+  }
+
+  if (predict_size == 1) {
+    varcov <- sample_var
+  } else {
+    forecast_var <- list()
+    forecast_var[[1]] <- sample_var
+    for (h in 2:predict_size) {
+      temp_coef <- matrixcalc::matrix.power(ar_coef, h - 1)
+      forecast_var[[h]] <- forecast_var[[h - 1]] + temp_coef %*% sample_var %*% t(temp_coef)
+    }
+    varcov <- forecast_var[[predict_size]]
+  }
 
   prob <- NULL
   if (!is.null(level)) {
@@ -278,7 +215,10 @@ scheduling_sim_var1 <- function(param, dataset_max, dataset_avg, cpu_required, t
   ts_names <- colnames(dataset_max)
 
   ## Do Simulation
+  start_time <- proc.time()
   result <- parallel::mclapply(1:length(ts_names), svt_scheduleing_sim_var1, dataset_max, dataset_avg, cpu_required, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mc.cores = cores)
+  end_time <- proc.time()
+  print(end_time - start_time)
 
   ## Reformat Results
   for (ts_num in 1:length(ts_names)) {
@@ -299,14 +239,14 @@ scheduling_sim_var1 <- function(param, dataset_max, dataset_avg, cpu_required, t
 
   if (write_result) {
     file_name <- paste("VAR1", "Sim:", "Scheduling", "Train:", training_policy, "Schedue:", schedule_policy, "Adjust:", adjust_policy)
-    fp <- fs::path(paste0(getwd(), file_name), ext = "csv")
+    fp <- fs::path(paste0(get_result_location(), file_name), ext = "csv")
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
     }
     new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
-    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
   }
 
   return(schedule_info)
@@ -364,7 +304,7 @@ predict_model_var1 <- function(test_set_max, test_set_avg, trained_result, windo
   }
 
   overall_survival <- compute_survival(survivals)
-  overall_utilization <- compute_utilization(utilizations, test_set_max, window_size, granularity)
+  overall_utilization <- compute_utilization(utilizations, test_set_max[(window_size + 1):(current_end - update + 2 * window_size - 1)], window_size, granularity)
   return(list("sur_num" = overall_survival$numerator, "sur_den" = overall_survival$denominator, "util_num" = overall_utilization$numerator, "util_den" = overall_utilization$denominator))
 }
 
@@ -388,8 +328,6 @@ predict_model_var1 <- function(test_set_max, test_set_avg, trained_result, windo
 svt_predicting_sim_var1 <- function(ts_num, dataset_max, dataset_avg, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy) {
   dataset_max <- dataset_max[, ts_num]
   dataset_avg <- dataset_avg[, ts_num]
-
-  cpu_required <- cpu_required[ts_num]
 
   sur_num <- c()
   sur_den <- c()
@@ -458,12 +396,12 @@ svt_predicting_sim_var1 <- function(ts_num, dataset_max, dataset_avg, train_size
 #' @param write_result TRUE if the result of the experiment is written to a file.
 #' @return A dataframe containing the resulting scheduling informations.
 predicting_sim_var1 <- function(param, dataset_max, dataset_avg, training_policy, schedule_policy, adjust_policy, cores, write_result) {
-  window_size <- param["window_size"]
-  cut_off_prob <- param["cut_off_prob"]
-  granularity <- param["granularity"]
-  train_size <- param["train_size"]
-  update_freq <- param["update_freq"]
-  tolerance <- param["tolerance"]
+  window_size <- as.numeric(param["window_size"])
+  cut_off_prob <- as.numeric(param["cut_off_prob"])
+  granularity <- as.numeric(param["granularity"])
+  train_size <- as.numeric(param["train_size"])
+  update_freq <- as.numeric(param["update_freq"])
+  tolerance <- as.numeric(param["tolerance"])
 
   sur_num <- c()
   sur_den <- c()
@@ -498,14 +436,14 @@ predicting_sim_var1 <- function(param, dataset_max, dataset_avg, training_policy
 
   if (write_result) {
     file_name <- paste("VAR", "Sim:", "Predicting", "Train:", training_policy, "Schedue:", schedule_policy, "Adjust:", adjust_policy)
-    fp <- fs::path(paste0(getwd(), file_name), ext = "csv")
+    fp <- fs::path(paste0(get_result_location(), file_name), ext = "csv")
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
     }
     new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
-    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
   }
   return(evaluate_info)
 }

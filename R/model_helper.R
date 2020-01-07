@@ -129,19 +129,15 @@ get_training_step <- function(training_policy, tolerance, prev_score1, prev_scor
   } else if (training_policy == "fixed") {
     train_sig <- TRUE
   } else {
-    if (is.nan(last_score1) | is.nan(last_score2)) {
+    bad_performance_score1 <- last_score1 < stats::quantile(prev_score1, probs = tolerance, na.rm = TRUE)
+    bad_performance_score2 <- last_score2 < stats::quantile(prev_score2, probs = tolerance, na.rm = TRUE)
+    if (is.na(bad_performance_score1 | bad_performance_score2)) {
       train_sig <- TRUE
     } else {
-      bad_performance_score1 <- last_score1 < stats::quantile(prev_score1, probs = tolerance, na.rm = TRUE)
-      bad_performance_score2 <- last_score2 < stats::quantile(prev_score2, probs = tolerance, na.rm = TRUE)
-      if (is.na(bad_performance_score1 | bad_performance_score2)) {
-        train_sig <- FALSE
+      if (bad_performance_score1 | bad_performance_score2) {
+        train_sig <- TRUE
       } else {
-        if (bad_performance_score1 | bad_performance_score2) {
-          train_sig <- TRUE
-        } else {
-          train_sig <- FALSE
-        }
+        train_sig <- FALSE
       }
     }
   }

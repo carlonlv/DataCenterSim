@@ -38,3 +38,4 @@ A dataframe containing the resulting scheduling informations.
 \description{
 Sequantially training and testing by scheduling a job using Markov Model.
 }
+\keyword{internal}

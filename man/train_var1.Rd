@@ -17,3 +17,4 @@ A list consisting trained coefficients, standard errors, and residuals.
 \description{
 Train VAR model using training set provided.
 }
+\keyword{internal}

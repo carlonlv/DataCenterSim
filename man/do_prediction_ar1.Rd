@@ -25,3 +25,4 @@ A list containing the calculated probability, expectation and variance.
 \description{
 Compute \eqn{Pr(next_obs \leq level)} if \code{level} is provided, otherwise, compurte \eqn{E[next_obs|prev_obs]} and \eqn{Var[next_obs|prev_obs]}.
 }
+\keyword{internal}

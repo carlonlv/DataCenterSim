@@ -29,3 +29,4 @@ A list containing update step and switch information.
 \description{
 Get predicting update step given survival informations.
 }
+\keyword{internal}

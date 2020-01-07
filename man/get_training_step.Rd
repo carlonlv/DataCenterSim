@@ -32,3 +32,4 @@ train signal whether \code{TRUE} if retraining is needed at next update, otherwi
 \description{
 Computer training step.
 }
+\keyword{internal}

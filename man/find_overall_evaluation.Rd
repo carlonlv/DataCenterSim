@@ -21,3 +21,4 @@ A list consists of average and aggregated score 1 and score 2.
 \description{
 Find the overall evaluation after an epoche is completed.
 }
+\keyword{internal}

@@ -9,11 +9,12 @@ train_markov(dataset, state_num)
 \arguments{
 \item{dataset}{A vector of numeric value.}
 
-\item{state_num}{number of states for the Markov Chain}
+\item{state_num}{number of states for the Markov Chain.}
 }
 \value{
-A transitional matrix for the Markov Chain
+A transitional matrix for the Markov Chain.
 }
 \description{
 Train Markov model using training set provided.
 }
+\keyword{internal}

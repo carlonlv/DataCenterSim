@@ -16,8 +16,9 @@ do_prediction_markov(last_obs, trained_result, predict_size, level = NULL)
 \item{level}{The level in \eqn{Pr(next_obs \leq level)}, or \code{NULL} if the probability is not needed.}
 }
 \value{
-A list containing the calculated probability
+A list containing the calculated probability.
 }
 \description{
 Compute \eqn{Pr(next_obs \leq level)} if \code{level} is provided, otherwise, compurte \eqn{E[next_obs|prev_obs]} and \eqn{Var[next_obs|prev_obs]}.
 }
+\keyword{internal}

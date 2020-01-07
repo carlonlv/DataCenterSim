@@ -19,3 +19,4 @@ check_actual(actual_obs, cpu_required, granularity)
 \description{
 Check the actual information if the job is scheduled.
 }
+\keyword{internal}

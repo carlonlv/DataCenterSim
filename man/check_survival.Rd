@@ -19,3 +19,4 @@ If both predicted available and actual available is smaller than \code{granulari
 \description{
 Check the survival information of a prediction based on actual observations.
 }
+\keyword{internal}

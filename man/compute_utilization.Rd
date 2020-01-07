@@ -21,3 +21,4 @@ A list containing the information of overall survival information.
 \description{
 Compute the overall utilization rate given utilization informations.
 }
+\keyword{internal}

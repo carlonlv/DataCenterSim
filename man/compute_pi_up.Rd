@@ -21,3 +21,4 @@ The prediction upper bounds, if \code{predict_size} is greater than 1, a vector 
 \description{
 Computer prediction using predicted value and variance, can be adjusted to granularity.
 }
+\keyword{internal}

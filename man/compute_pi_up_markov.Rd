@@ -19,3 +19,4 @@ The prediction upper bound.
 \description{
 Compute the PI's upper bound based on probability cut off
 }
+\keyword{internal}

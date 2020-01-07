@@ -15,3 +15,4 @@ A list consisting trained coefficients, mean, and variance of residuals.
 \description{
 Train AR1 model using training set provided.
 }
+\keyword{internal}

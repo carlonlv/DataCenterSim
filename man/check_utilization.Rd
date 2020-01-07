@@ -19,3 +19,4 @@ A vector same size as the input vector.
 \description{
 Check the utilization of next predictions.
 }
+\keyword{internal}

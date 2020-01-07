@@ -32,3 +32,4 @@ A list containing update step, (adjusted) prediction, and switch information.
 \description{
 Get update scheduling step given prediction and actual informations.
 }
+\keyword{internal}

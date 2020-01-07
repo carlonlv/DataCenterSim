@@ -19,3 +19,4 @@ The rounded data.
 \description{
 Round the \code{data} to the nearest number that can be divisible by \code{divisor}.
 }
+\keyword{internal}

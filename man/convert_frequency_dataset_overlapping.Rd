@@ -19,3 +19,4 @@ The vector of same size of input vector.
 \description{
 Convert \code{dataset} to bigger frequency provided by \code{new_freq} using max/avg operators, the rest will be truncated off.
 }
+\keyword{internal}

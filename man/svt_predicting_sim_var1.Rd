@@ -50,3 +50,4 @@ A list containing the resulting scheduling informations.
 \description{
 Sequantially training and testing by scheduling jobs based on predictions on a single trace using VAR Model.
 }
+\keyword{internal}

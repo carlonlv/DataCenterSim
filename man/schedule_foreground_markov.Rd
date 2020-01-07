@@ -41,3 +41,4 @@ A list containing the resulting scheduling informations.
 \description{
 Sequantially schedule a given job on given test set.
 }
+\keyword{internal}

@@ -38,3 +38,4 @@ A list containing the resulting scheduling informations.
 \description{
 Sequantially schedule jobs using predictions on provided test set.
 }
+\keyword{internal}

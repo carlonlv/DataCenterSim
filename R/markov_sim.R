@@ -2,8 +2,9 @@
 #'
 #' @description Train Markov model using training set provided.
 #' @param dataset A vector of numeric value.
-#' @param state_num number of states for the Markov Chain
-#' @return A transitional matrix for the Markov Chain
+#' @param state_num number of states for the Markov Chain.
+#' @return A transitional matrix for the Markov Chain.
+#' @keywords internal
 train_markov <- function(dataset, state_num) {
   from_states <- sapply(dataset[-length(dataset)], find_state_num, state_num)
   to_states <- sapply(dataset[-1], find_state_num, state_num)
@@ -33,7 +34,8 @@ train_markov <- function(dataset, state_num) {
 #' @param trained_result The transition matrix trained for the Markov Model.
 #' @param predict_size The number of steps to predict forward.
 #' @param level The level in \eqn{Pr(next_obs \leq level)}, or \code{NULL} if the probability is not needed.
-#' @return A list containing the calculated probability
+#' @return A list containing the calculated probability.
+#' @keywords internal
 do_prediction_markov <- function(last_obs, trained_result, predict_size, level=NULL) {
   final_transition <- trained_result
   parsed_transition <- trained_result
@@ -79,6 +81,7 @@ do_prediction_markov <- function(last_obs, trained_result, predict_size, level=N
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
 #' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A list containing the resulting scheduling informations.
+#' @keywords internal
 schedule_foreground_markov <- function(test_set, trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy, mode) {
   cpu_required <- ifelse(granularity > 0, round_to_nearest(cpu_required, granularity, FALSE), cpu_required)
 
@@ -134,6 +137,7 @@ schedule_foreground_markov <- function(test_set, trained_result, window_size, cu
 #' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @param state_num Number of states in the markov chain
 #' @return A list containing the resulting scheduling informations.
+#' @keywords internal
 svt_scheduleing_sim_markov <- function(ts_num, dataset, cpu_required, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, state_num) {
   dataset <- dataset[, ts_num]
   cpu_required <- cpu_required[ts_num]
@@ -202,6 +206,7 @@ svt_scheduleing_sim_markov <- function(ts_num, dataset, cpu_required, train_size
 #' @param write_result TRUE if the result of the experiment is written to a file.
 #' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A dataframe containing the resulting scheduling informations.
+#' @keywords internal
 scheduling_sim_markov <- function(param, dataset, cpu_required, training_policy, schedule_policy, adjust_policy, cores, write_result, mode) {
   window_size <- param["window_size"]
   cut_off_prob <- param["cut_off_prob"]
@@ -270,6 +275,7 @@ scheduling_sim_markov <- function(param, dataset, cpu_required, training_policy,
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
 #' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A list containing the resulting scheduling informations.
+#' @keywords internal
 predict_model_markov <- function(test_set, trained_result, window_size, cut_off_prob, granularity, schedule_policy, adjust_policy, mode) {
   survivals <- c()
   utilizations <- c()
@@ -327,6 +333,7 @@ predict_model_markov <- function(test_set, trained_result, window_size, cut_off_
 #' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @param state_num Number of states in the markov chain.
 #' @return A list containing the resulting scheduling informations.
+#' @keywords internal
 svt_predicting_sim_markov <- function(ts_num, dataset, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, state_num) {
   dataset <- dataset[, ts_num]
 
@@ -393,6 +400,7 @@ svt_predicting_sim_markov <- function(ts_num, dataset, train_size, window_size, 
 #' @param write_result TRUE if the result of the experiment is written to a file.
 #' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A dataframe containing the resulting scheduling informations.
+#' @keywords internal
 predicting_sim_markov <- function(param, dataset, training_policy, schedule_policy, adjust_policy, cores, write_result, mode) {
   window_size <- as.numeric(param["window_size"])
   cut_off_prob <- as.numeric(param["cut_off_prob"])

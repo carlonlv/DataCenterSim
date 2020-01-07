@@ -15,3 +15,4 @@ A list containing the information of overall survival information.
 \description{
 Compute the overall survival rate given survival informations.
 }
+\keyword{internal}

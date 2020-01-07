@@ -41,3 +41,4 @@ A dataframe containing the resulting scheduling informations.
 \description{
 Sequantially training and testing by scheduling a job using VAR Model.
 }
+\keyword{internal}

@@ -4,6 +4,7 @@
 #' @param train_dataset_max A numeric vector representing max trace.
 #' @param train_dataset_avg A numeric vector representing avg trace.
 #' @return A list consisting trained coefficients, standard errors, and residuals.
+#' @keywords internal
 train_var1 <- function(train_dataset_max, train_dataset_avg) {
   uni_data_matrix <- matrix(nrow = length(train_dataset_max), ncol = 2)
   uni_data_matrix[,1] <- train_dataset_max
@@ -20,6 +21,7 @@ train_var1 <- function(train_dataset_max, train_dataset_avg) {
 #' @param ts_model A list get from training var model
 #' @param level The level in \eqn{Pr(next_obs \leq level)}, or \code{NULL} if the probability is not needed.
 #' @return A list containing the calculated probability, expectation and variance.
+#' @keywords internal
 do_prediction_var1 <- function(last_obs, ts_model, predict_size, level=NULL) {
   intercept <- ts_model$Ph0
   ar_coef <- ts_model$Phi
@@ -63,6 +65,7 @@ do_prediction_var1 <- function(last_obs, ts_model, predict_size, level=NULL) {
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
 #' @return A list containing the resulting scheduling informations.
+#' @keywords internal
 schedule_foreground_var1 <- function(test_set_max, test_set_avg, trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy) {
   cpu_required <- ifelse(granularity > 0, round_to_nearest(cpu_required, granularity, FALSE), cpu_required)
 
@@ -121,6 +124,7 @@ schedule_foreground_var1 <- function(test_set_max, test_set_avg, trained_result,
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
 #' @return A list containing the resulting scheduling informations.
+#' @keywords internal
 svt_scheduleing_sim_var1 <- function(ts_num, dataset_max, dataset_avg, cpu_required, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy) {
   dataset_max <- dataset_max[, ts_num]
   dataset_avg <- dataset_avg[, ts_num]
@@ -198,6 +202,7 @@ svt_scheduleing_sim_var1 <- function(ts_num, dataset_max, dataset_avg, cpu_requi
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
 #' @return A dataframe containing the resulting scheduling informations.
+#' @keywords internal
 scheduling_sim_var1 <- function(param, dataset_max, dataset_avg, cpu_required, training_policy, schedule_policy, adjust_policy, cores, write_result) {
   window_size <- param["window_size"]
   cut_off_prob <- param["cut_off_prob"]
@@ -265,6 +270,7 @@ scheduling_sim_var1 <- function(param, dataset_max, dataset_avg, cpu_required, t
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
 #' @return A list containing the resulting scheduling informations.
+#' @keywords internal
 predict_model_var1 <- function(test_set_max, test_set_avg, trained_result, window_size, cut_off_prob, granularity, schedule_policy, adjust_policy) {
   survivals <- c()
   utilizations <- c()
@@ -325,6 +331,7 @@ predict_model_var1 <- function(test_set_max, test_set_avg, trained_result, windo
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
 #' @return A list containing the resulting scheduling informations.
+#' @keywords internal
 svt_predicting_sim_var1 <- function(ts_num, dataset_max, dataset_avg, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy) {
   dataset_max <- dataset_max[, ts_num]
   dataset_avg <- dataset_avg[, ts_num]
@@ -395,6 +402,7 @@ svt_predicting_sim_var1 <- function(ts_num, dataset_max, dataset_avg, train_size
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
 #' @return A dataframe containing the resulting scheduling informations.
+#' @keywords internal
 predicting_sim_var1 <- function(param, dataset_max, dataset_avg, training_policy, schedule_policy, adjust_policy, cores, write_result) {
   window_size <- as.numeric(param["window_size"])
   cut_off_prob <- as.numeric(param["cut_off_prob"])

@@ -17,3 +17,4 @@ The corresponding state number.
 \description{
 Find the corresponding state for a specific observation with fixed partitioning method.
 }
+\keyword{internal}

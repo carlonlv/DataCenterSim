@@ -17,3 +17,4 @@ check_decision(prob, cut_off_prob)
 \description{
 Make decision based on the probability and cut off probability.
 }
+\keyword{internal}

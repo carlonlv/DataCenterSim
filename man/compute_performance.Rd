@@ -17,3 +17,4 @@ A list consists scheduled num, unscheduled num, correctly scheduled num, correct
 \description{
 Compute overall correctly scheduled ratio and correctlt unscheduled ratio.
 }
+\keyword{internal}

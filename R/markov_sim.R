@@ -255,7 +255,7 @@ scheduling_sim_markov <- function(param, dataset, cpu_required, training_policy,
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
-      utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
+      utils::write.table(new_row, file = fp, append = FALSE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
     } else {
       utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
     }
@@ -450,7 +450,7 @@ predicting_sim_markov <- function(param, dataset, training_policy, schedule_poli
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
-      utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
+      utils::write.table(new_row, file = fp, append = FALSE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
     } else {
       utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
     }

@@ -189,10 +189,10 @@ svt_scheduleing_sim_var1 <- function(ts_num, dataset_max, dataset_avg, cpu_requi
 }
 
 
-#' Simulation of Scheduling A Job With VAR Model
+#' Simulation of Scheduling A Job With VAR1 Model
 #'
-#' @description Sequantially training and testing by scheduling a job using VAR Model.
-#' @param param A vector containing necessary informations or hyperparameters for VAR model.
+#' @description Sequantially training and testing by scheduling a job using VAR1 Model.
+#' @param param A vector containing necessary informations or hyperparameters for VAR1 model.
 #' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.
 #' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.#'
 #' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
@@ -316,13 +316,12 @@ predict_model_var1 <- function(test_set_max, test_set_avg, trained_result, windo
 }
 
 
-#' Simulation of Scheduling Jobs Based On Predictions On A Single Trace With VAR Model
+#' Simulation of Scheduling Jobs Based On Predictions On A Single Trace With VAR1 Model
 #'
-#' @description Sequantially training and testing by scheduling jobs based on predictions on a single trace using VAR Model.
+#' @description Sequantially training and testing by scheduling jobs based on predictions on a single trace using VAR1 Model.
 #' @param ts_num The corresponding trace/column in \code{dataset}.
 #' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.
-#' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.#' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
-#' @param train_size The length of data used for training.
+#' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.
 #' @param window_size The length of predictions.
 #' @param update_freq The length of testing on scheduing decision each iteration.
 #' @param cut_off_prob The level of uncertainty of prediction interval.
@@ -391,12 +390,12 @@ svt_predicting_sim_var1 <- function(ts_num, dataset_max, dataset_avg, train_size
 }
 
 
-#' Simulation of Scheduling Jobs Based On Predictions With VAR Model
+#' Simulation of Scheduling Jobs Based On Predictions With VAR1 Model
 #'
-#' @description Sequantially training and testing by scheduling a job using VAR Model.
-#' @param param A vector containing necessary informations or hyperparameters for VAR model.
+#' @description Sequantially training and testing by scheduling a job using VAR1 Model.
+#' @param param A vector containing necessary informations or hyperparameters for VAR1 model.
 #' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.
-#' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.#' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
+#' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.
 #' @param training_policy \code{"once"} for offline training, \code{"fixed"} for training at fixed time, \code{"dynamic"} for training when previous performance is bad.
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.

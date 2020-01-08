@@ -211,7 +211,7 @@ run_sim <- function(dataset_max, dataset_avg, model_name, parameters, sim_policy
     if (sim_policy == "scheduling") {
       result <- apply(parameters, 1, scheduling_sim_var1, dataset_max, dataset_avg, cpu_required, training_policy, schedule_policy, adjust_policy, cores, write_result)
     } else {
-      result <- apply(parameters, 1, predicting_sim_var1, dataset_max, dataset_avg, training_policy, schedule_policy, adjust_policy, cores, write_result )
+      result <- apply(parameters, 1, predicting_sim_var1, dataset_max, dataset_avg, training_policy, schedule_policy, adjust_policy, cores, write_result)
     }
   } else if (model_name == "Markov") {
     if (sim_policy == "scheduling") {
@@ -226,6 +226,12 @@ run_sim <- function(dataset_max, dataset_avg, model_name, parameters, sim_policy
       } else {
         result <- apply(parameters, 1, predicting_sim_markov, dataset_avg, training_policy, schedule_policy, adjust_policy, cores, write_result, mode)
       }
+    }
+  } else if (model_name == "AR1_Markov") {
+    if (sim_policy == "scheduling") {
+      result <- apply(parameters, 1, scheduling_sim_ar1_markov, dataset_max, dataset_avg, cpu_required, training_policy, schedule_policy, adjust_policy, cores, write_result)
+    } else {
+      result <- apply(parameters, 1, predicting_sim_ar1_markov, dataset_max, dataset_avg, training_policy, schedule_policy, adjust_policy, cores, write_result)
     }
   }else {
     stop("Under Construction.")

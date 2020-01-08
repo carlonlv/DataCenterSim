@@ -1,29 +1,36 @@
 #' Train Markov Model
 #'
 #' @description Train Markov model using training set provided.
-#' @param dataset A vector of numeric value.
+#' @param disjoint_dataset_avg A vector of training set average aggregated using disjoint schemes.
+#' @param overlapping_dataset_max A vector of training set average aggregated using overlapping schemes.
+#' @param overlapping_dataset_avg A vector of training set max aggregated using overlapping schemes.
 #' @param state_num number of states for the Markov Chain.
 #' @return A transitional matrix for the Markov Chain.
 #' @keywords internal
-train_markov <- function(dataset, state_num) {
-  from_states <- sapply(dataset[-length(dataset)], find_state_num, state_num)
-  to_states <- sapply(dataset[-1], find_state_num, state_num)
-  uncond_dist <- rep(0, state_num)
-  transition <- matrix(0, nrow = state_num, ncol = state_num)
-  for (i in 1:length(from_states)) {
-    from <- from_states[i]
-    to <- to_states[i]
-    transition[from, to] <- transition[from, to] + 1
-    uncond_dist[to] <- uncond_dist[to] + 1
-  }
-  for (r in 1:ncol(transition)) {
-    if (sum(transition[r,]) == 0) {
-      transition[r,] <- uncond_dist
-    } else {
-      transition[r,] <- transition[r,] / sum(transition[r,])
+train_ar1_markov <- function(disjoint_dataset_avg, overlapping_dataset_max, overlapping_dataset_avg, state_num) {
+  train_markov_avg_to_max <- function(dataset_max, dataset_avg, state_num) {
+    from_states <- sapply(dataset_avg, find_state_num, state_num)
+    to_states <- sapply(dataset_max, find_state_num, state_num)
+    uncond_dist <- rep(0, state_num)
+    transition <- matrix(0, nrow = state_num, ncol = state_num)
+    for (i in 1:length(from_states)) {
+      from <- from_states[i]
+      to <- to_states[i]
+      transition[from, to] <- transition[from, to] + 1
+      uncond_dist[to] <- uncond_dist[to] + 1
     }
+    for (r in 1:ncol(transition)) {
+      if (sum(transition[r,]) == 0) {
+        transition[r,] <- uncond_dist
+      } else {
+        transition[r,] <- transition[r,] / sum(transition[r,])
+      }
+    }
+    return(transition)
   }
-  return(transition)
+  trained_ar1 <- train_ar1(disjoint_dataset_avg)
+  trained_markov <- train_markov_avg_to_max(overlapping_dataset_max, overlapping_dataset_avg, state_num)
+  return(list("coeffs" = as.numeric(trained_ar1$coef[1]), "means" = as.numeric(trained_ar1$coef[2]), "vars" = trained_ar1$sigma2, "transition" = trained_markov))
 }
 
 
@@ -31,64 +38,39 @@ train_markov <- function(dataset, state_num) {
 #'
 #' @description Compute \eqn{Pr(next_obs \leq level)} if \code{level} is provided, otherwise, compurte \eqn{E[next_obs|prev_obs]} and \eqn{Var[next_obs|prev_obs]}.
 #' @param last_obs The last observation from which the prediction is carried on.
-#' @param trained_result The transition matrix trained for the Markov Model.
+#' @param trained_result The coefficients trained for AR1 part, and the transition matrix trained for the Markov part.
 #' @param predict_size The number of steps to predict forward.
 #' @param level The level in \eqn{Pr(next_obs \leq level)}, or \code{NULL} if the probability is not needed.
 #' @return A list containing the calculated probability.
 #' @keywords internal
-do_prediction_markov <- function(last_obs, trained_result, predict_size, level=NULL) {
-  final_transition <- trained_result
-  parsed_transition <- trained_result
-  if (!is.null(level)) {
-    level_state <- find_state_num(level, nrow(trained_result))
-    for (i in level_state:nrow(trained_result)) {
-      parsed_transition[i,] <- rep(0, nrow(trained_result))
-      parsed_transition[i, i] <- 1
-    }
-  }
-  from <- find_state_num(last_obs, nrow(trained_result))
-  to_states <- data.frame()
-  if (predict_size > 1) {
-    to_states <- rbind(to_states, final_transition[from,])
-    for (i in 1:(predict_size - 1)) {
-      final_transition <- final_transition %*% parsed_transition
-      to_states <- rbind(to_states, final_transition[from,])
-    }
-  } else {
-    to_states <- rbind(to_states, final_transition[from,])
-  }
-
-  # calculate probability
-  prob <- NULL
-  if (!is.null(level)) {
-    to <- find_state_num(level, nrow(trained_result))
-    prob <- sum(final_transition[from, to:(nrow(trained_result))])
-  }
-  return(list("prob" = prob, "to_states" = to_states))
+do_prediction_ar1_markov <- function(last_obs, trained_result, predict_size, level=NULL) {
+  expected_avgs <- do_prediction_ar1(last_obs, trained_result$coeffs, trained_result$means, trained_result$vars, predict_size, level)$mu
+  markov_predictions <- do_prediction_markov(expected_avgs, trained_result$transition, predict_size, level)
+  return(list("prob" = markov_predictions$prob, "to_states" = markov_predictions$to_states))
 }
 
 
 #' Schedule A Job On Given Test Set
 #'
 #' @description Sequantially schedule a given job on given test set.
-#' @param test_set The test set for scheduling and evaluations, the initial amount of observations that equals to window size are from training set.
-#' @param trained_result The transition matrix trained for the Markov Model.
+#' @param test_set_max The test set of max for scheduling and evaluations.
+#' @param test_set_avg The test set of avg for scheduling and evaluations.
+#' @param trained_result A list containing trained mean, coefficient, variance of residuals of AR1 component, and trasition matrix of Markov component.
 #' @param window_size The length of predictions.
 #' @param cut_off_prob The maximum probability allowed to have next scheduling failing.
 #' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
 #' @param granularity The granularity of 100 percent of total cpu.
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
-#' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A list containing the resulting scheduling informations.
 #' @keywords internal
-schedule_foreground_markov <- function(test_set, trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy, mode) {
+schedule_foreground_ar1_markov <- function(test_set_max, test_set_avg, trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy) {
   cpu_required <- ifelse(granularity > 0, round_to_nearest(cpu_required, granularity, FALSE), cpu_required)
 
   predictions <- c()
   actuals <- c()
 
-  last_time_schedule <- length(test_set) - 2 * window_size + 1
+  last_time_schedule <- length(test_set_max) - 2 * window_size + 1
 
   update <- window_size
   current_end <- 1
@@ -96,14 +78,14 @@ schedule_foreground_markov <- function(test_set, trained_result, window_size, cu
   adjust_switch <- FALSE
   while (current_end <= last_time_schedule) {
     ## Schedule based on model predictions
-    last_obs <- convert_frequency_dataset(test_set[current_end:(current_end + window_size - 1)], window_size, mode)
-    prediction_result <- do_prediction_markov(last_obs, trained_result, 1, 100 - cpu_required)
+    last_obs_avg <- convert_frequency_dataset(test_set_avg[current_end:(current_end + window_size - 1)], window_size, "avg")
+    prediction_result <- do_prediction_ar1_markov(last_obs_avg, trained_result, 1, 100 - cpu_required)
     prediction <- check_decision(prediction_result$prob, cut_off_prob)
 
     ## Evalute schedulings based on prediction
     start_time <- current_end + window_size
     end_time <- start_time + window_size - 1
-    actual <- check_actual(test_set[start_time:end_time], cpu_required, granularity)
+    actual <- check_actual(test_set_max[start_time:end_time], cpu_required, granularity)
     actuals <- c(actuals, actual)
 
     ## Update step based on adjustment policy and schedule policy
@@ -119,11 +101,12 @@ schedule_foreground_markov <- function(test_set, trained_result, window_size, cu
 }
 
 
-#' Simulation of Scheduling A Job On A Single Trace With Markov Model
+#' Simulation of Scheduling A Job On A Single Trace With AR1 mixed with Markov Model
 #'
-#' @description Sequantially training and testing by schedulingh a job on a single trace using Markov Model.
+#' @description Sequantially training and testing by schedulingh a job on a single trace using AR1 mixed with Markov Model.
 #' @param ts_num The corresponding trace/column in \code{dataset}.
-#' @param dataset A \eqn{n \times m} matrix, with each column is the time series of maxes and avges of CPU information on a machine.
+#' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.
+#' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.
 #' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
 #' @param train_size The length of data used for training.
 #' @param window_size The length of predictions.
@@ -134,12 +117,13 @@ schedule_foreground_markov <- function(test_set, trained_result, window_size, cu
 #' @param tolerance The tolerance level of retrain, the quantile of previous performance.
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
-#' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @param state_num Number of states in the markov chain.
 #' @return A list containing the resulting scheduling informations.
 #' @keywords internal
-svt_scheduleing_sim_markov <- function(ts_num, dataset, cpu_required, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, state_num) {
-  dataset <- dataset[, ts_num]
+svt_scheduleing_sim_ar1_markov <- function(ts_num, dataset_max, dataset_avg, cpu_required, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, state_num) {
+  dataset_max <- dataset_max[, ts_num]
+  dataset_avg <- dataset_avg[, ts_num]
+
   cpu_required <- cpu_required[ts_num]
 
   scheduled_num <- c()
@@ -148,24 +132,32 @@ svt_scheduleing_sim_markov <- function(ts_num, dataset, cpu_required, train_size
   correct_unscheduled_num <- c()
 
   current <- 1
-  last_time_update <- length(dataset) - update_freq - train_size + 1
+  last_time_update <- length(dataset_max) - update_freq - train_size + 1
   train_sig <- TRUE
   while (current <= last_time_update) {
     ## Split into train set and test set
-    train_set <- dataset[current:(current + train_size - 1)]
-    test_set <- dataset[(current + train_size):(current + train_size + update_freq - 1)]
+    train_set_max <- dataset_max[current:(current + train_size - 1)]
+    train_set_avg <- dataset_avg[current:(current + train_size - 1)]
+    test_set_max <- dataset_max[(current + train_size):(current + train_size + update_freq - 1)]
+    test_set_avg <- dataset_avg[(current + train_size):(current + train_size + update_freq - 1)]
 
     ## Convert Frequency for training set
-    new_trainset <- convert_frequency_dataset_overlapping(train_set, window_size, mode)
-    starting_points <- train_set[(train_size - window_size + 1):train_size]
+    disjoint_new_trainset_avg <- convert_frequency_dataset(train_set_avg, window_size, "avg")
+    overlapping_new_trainset_max <- convert_frequency_dataset(train_set_max, window_size, "max")
+    overlapping_new_trainset_avg <- convert_frequency_dataset(train_set_avg, window_size, "avg")
+    starting_points_max <- train_set_max[(train_size - window_size + 1):train_size]
+    starting_points_avg <- train_set_avg[(train_size - window_size + 1):train_size]
 
     ## Train Model
     if (train_sig) {
-      trained_result <- train_markov(new_trainset,state_num)
+      trained_result <- train_ar1_markov(disjoint_new_trainset_avg, overlapping_new_trainset_max, overlapping_new_trainset_avg, state_num)
     }
 
     ## Test Model
-    result <- schedule_foreground_markov(c(starting_points, test_set), trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy, mode)
+    start_time <- proc.time()
+    result <- schedule_foreground_ar1_markov(c(starting_points_max, test_set_max), c(starting_points_avg, test_set_avg), trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy)
+    end_time <- proc.time()
+    print(end_time - start_time)
 
     ## Update Training Timestamp
     prev_correct_scheduled_rate <- correct_scheduled_num / scheduled_num
@@ -193,21 +185,21 @@ svt_scheduleing_sim_markov <- function(ts_num, dataset, cpu_required, train_size
 }
 
 
-#' Simulation of Scheduling A Job With Markov Model
+#' Simulation of Scheduling A Job With AR1 mixed with Markov Model
 #'
-#' @description Sequantially training and testing by scheduling a job using Markov Model.
-#' @param param A vector containing necessary informations or hyperparameters for Markov model.
-#' @param dataset A \eqn{n \times m} matrix, with each column is the time series of maxes and avges of CPU information on a machine.
+#' @description Sequantially training and testing by scheduling a job using AR1 mixed with Markov Model.
+#' @param param A vector containing necessary informations or hyperparameters for AR1 mixed with Markov model.
+#' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.
+#' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.#'
 #' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
 #' @param training_policy \code{"once"} for offline training, \code{"fixed"} for training at fixed time, \code{"dynamic"} for training when previous performance is bad.
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
-#' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A dataframe containing the resulting scheduling informations.
 #' @keywords internal
-scheduling_sim_markov <- function(param, dataset, cpu_required, training_policy, schedule_policy, adjust_policy, cores, write_result, mode) {
+scheduling_sim_ar1_markov <- function(param, dataset_max, dataset_avg, cpu_required, training_policy, schedule_policy, adjust_policy, cores, write_result) {
   window_size <- param["window_size"]
   cut_off_prob <- param["cut_off_prob"]
   granularity <- param["granularity"]
@@ -222,11 +214,11 @@ scheduling_sim_markov <- function(param, dataset, cpu_required, training_policy,
   correct_unscheduled_num <- c()
 
   ## Split in Training and Testing Set
-  ts_names <- colnames(dataset)
+  ts_names <- colnames(dataset_max)
 
   ## Do Simulation
   start_time <- proc.time()
-  result <- parallel::mclapply(1:length(ts_names), svt_scheduleing_sim_markov, dataset, cpu_required, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, state_num, mc.cores = cores)
+  result <- parallel::mclapply(1:length(ts_names), svt_scheduleing_sim_ar1_markov, dataset_max, dataset_avg, cpu_required, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, state_num, mc.cores = cores)
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -248,7 +240,7 @@ scheduling_sim_markov <- function(param, dataset, cpu_required, training_policy,
   print(paste("Agg Correct Unscheduled Rate:", overall_result$agg_score2))
 
   if (write_result) {
-    file_name <- paste("Markov", "Sim:", "Scheduling", "Train:", training_policy, "Schedule:", schedule_policy, "Adjust:", adjust_policy)
+    file_name <- paste("AR1_Markov", "Sim:", "Scheduling", "Train:", training_policy, "Schedule:", schedule_policy, "Adjust:", adjust_policy)
     fp <- fs::path(paste0(get_result_location(), file_name), ext = "csv")
     new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
@@ -267,21 +259,21 @@ scheduling_sim_markov <- function(param, dataset, cpu_required, training_policy,
 #' Schedule Jobs Using Predictions On Given Test Set
 #'
 #' @description Sequantially schedule jobs using predictions on provided test set.
-#' @param test_set The test set for scheduling and evaluations, the initial amount of observations that equals to window size are from training set.
-#' @param trained_result A trained result for the transition matrix of markov chain.
+#' @param test_set_max The test set of max for scheduling and evaluations.
+#' @param test_set_avg The test set of avg for scheduling and evaluations.
+#' @param trained_result A list containing trained mean, coefficient, variance of residuals.
 #' @param window_size The length of predictions.
 #' @param cut_off_prob The level of uncertainty of prediction interval.
 #' @param granularity The granularity of 100 percent of total cpu.
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
-#' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A list containing the resulting scheduling informations.
 #' @keywords internal
-predict_model_markov <- function(test_set, trained_result, window_size, cut_off_prob, granularity, schedule_policy, adjust_policy, mode) {
+predict_model_ar1_markov <- function(test_set_max, test_set_avg, trained_result, window_size, cut_off_prob, granularity, schedule_policy, adjust_policy) {
   survivals <- c()
   utilizations <- c()
 
-  last_time_schedule <- length(test_set) - 2 * window_size + 1
+  last_time_schedule <- length(test_set_avg) - 2 * window_size + 1
 
   update <- window_size
   current_end <- 1
@@ -289,14 +281,14 @@ predict_model_markov <- function(test_set, trained_result, window_size, cut_off_
   adjust_switch <- FALSE
   while (current_end <= last_time_schedule) {
     ## Schedule based on model predictions
-    last_obs <- convert_frequency_dataset(test_set[current_end:(current_end + window_size - 1)], window_size, mode)
-    prediction_result <- do_prediction_markov(last_obs, trained_result, 1, NULL)
-    pi_up <- compute_pi_up_markov(prediction_result$to_states, cut_off_prob, granularity)
+    last_obs_avg <- convert_frequency_dataset(test_set_avg[current_end:(current_end + window_size - 1)], window_size, "avg")
+    prediction_result <- do_prediction_ar1_markov(last_obs_avg, trained_result, 1, NULL)
+    pi_up <- compute_pi_up(prediction_result$mu, prediction_result$varcov, 1, cut_off_prob)
 
     ## Evalute schedulings based on prediction
     start_time <- current_end + window_size
     end_time <- start_time + window_size - 1
-    survival <- check_survival(pi_up, test_set[start_time:end_time], granularity)
+    survival <- check_survival(pi_up, test_set_max[start_time:end_time], granularity)
     utilization <- check_utilization(pi_up, survival, granularity)
 
     ## Update step based on adjustment policy and schedule policy
@@ -312,16 +304,17 @@ predict_model_markov <- function(test_set, trained_result, window_size, cut_off_
   }
 
   overall_survival <- compute_survival(survivals)
-  overall_utilization <- compute_utilization(utilizations, test_set[(window_size + 1):(current_end - update + 2 * window_size - 1)], window_size, granularity)
+  overall_utilization <- compute_utilization(utilizations, test_set_max[(window_size + 1):(current_end - update + 2 * window_size - 1)], window_size, granularity)
   return(list("sur_num" = overall_survival$numerator, "sur_den" = overall_survival$denominator, "util_num" = overall_utilization$numerator, "util_den" = overall_utilization$denominator))
 }
 
 
-#' Simulation of Scheduling Jobs Based On Predictions On A Single Trace With Markov Model
+#' Simulation of Scheduling Jobs Based On Predictions On A Single Trace With AR1 mixed with Markov Model
 #'
-#' @description Sequantially training and testing by scheduling jobs based on predictions on a single trace using Markov Model.
+#' @description Sequantially training and testing by scheduling jobs based on predictions on a single trace using AR1 mixed with Markov Model.
 #' @param ts_num The corresponding trace/column in \code{dataset}.
-#' @param dataset A \eqn{n \times m} matrix, with each column is the time series of maxes and avges of CPU information on a machine.
+#' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.
+#' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.#' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
 #' @param train_size The length of data used for training.
 #' @param window_size The length of predictions.
 #' @param update_freq The length of testing on scheduing decision each iteration.
@@ -331,12 +324,12 @@ predict_model_markov <- function(test_set, trained_result, window_size, cut_off_
 #' @param tolerance The tolerance level of retrain, the quantile of previous performance.
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
-#' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
-#' @param state_num Number of states in the markov chain.
+#' @param state_num number of states for the Markov Chain.
 #' @return A list containing the resulting scheduling informations.
 #' @keywords internal
-svt_predicting_sim_markov <- function(ts_num, dataset, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, state_num) {
-  dataset <- dataset[, ts_num]
+svt_predicting_sim_ar1_markov <- function(ts_num, dataset_max, dataset_avg, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, state_num) {
+  dataset_max <- dataset_max[, ts_num]
+  dataset_avg <- dataset_avg[, ts_num]
 
   sur_num <- c()
   sur_den <- c()
@@ -344,24 +337,29 @@ svt_predicting_sim_markov <- function(ts_num, dataset, train_size, window_size, 
   util_den <- c()
 
   current <- 1
-  last_time_update <- length(dataset) - update_freq - train_size + 1
+  last_time_update <- length(dataset_max) - update_freq - train_size + 1
   train_sig <- TRUE
   while (current <= last_time_update) {
     ## Split into train set and test set
-    train_set <- dataset[current:(current + train_size - 1)]
-    test_set <- dataset[(current + train_size):(current + train_size + update_freq - 1)]
+    train_set_max <- dataset_max[current:(current + train_size - 1)]
+    train_set_avg <- dataset_avg[current:(current + train_size - 1)]
+    test_set_max <- dataset_max[(current + train_size):(current + train_size + update_freq - 1)]
+    test_set_avg <- dataset_avg[(current + train_size):(current + train_size + update_freq - 1)]
 
     ## Convert Frequency for training set
-    new_trainset <- convert_frequency_dataset_overlapping(train_set, window_size, mode)
-    starting_points <- train_set[(train_size - window_size + 1):train_size]
+    disjoint_new_trainset_avg <- convert_frequency_dataset(train_set_avg, window_size, "avg")
+    overlapping_new_trainset_max <- convert_frequency_dataset(train_set_max, window_size, "max")
+    overlapping_new_trainset_avg <- convert_frequency_dataset(train_set_avg, window_size, "avg")
+    starting_points_max <- train_set_max[(train_size - window_size + 1):train_size]
+    starting_points_avg <- train_set_avg[(train_size - window_size + 1):train_size]
 
     ## Train Model
     if (train_sig) {
-      trained_result <- train_markov(new_trainset,state_num)
+      trained_result <- train_ar1_markov(disjoint_new_trainset_avg, overlapping_new_trainset_max, overlapping_new_trainset_avg, state_num)
     }
 
     ## Test Model
-    result <- predict_model_markov(c(starting_points, test_set), trained_result, window_size, cut_off_prob, granularity, schedule_policy, adjust_policy, mode)
+    result <- predict_model_ar1_markov(c(starting_points_max, test_set_max), c(starting_points_avg, test_set_avg), trained_result, window_size, cut_off_prob, granularity, schedule_policy, adjust_policy)
 
     ## Update Training Timestamp
     prev_survival <- sur_num / sur_den
@@ -384,25 +382,24 @@ svt_predicting_sim_markov <- function(ts_num, dataset, train_size, window_size, 
   sur_den <- sum(sur_den)
   util_num <- sum(util_num)
   util_den <- sum(util_den)
-
   return(list("sur_num" = sur_num, "sur_den" = sur_den, "util_num" = util_num, "util_den" = util_den))
 }
 
 
-#' Simulation of Scheduling Jobs Based On Predictions With Markov Model
+#' Simulation of Scheduling Jobs Based On Predictions With AR1 mixed with Markov Model
 #'
-#' @description Sequantially training and testing by scheduling a job using Markov Model.
-#' @param param A vector containing necessary informations or hyperparameters for Markov model.
-#' @param dataset A \eqn{n \times m} matrix, with each column is the time series of maxes and avges of CPU information on a machine.
+#' @description Sequantially training and testing by scheduling a job using AR1 mixed with Markov Model.
+#' @param param A vector containing necessary informations or hyperparameters for AR1 mixed with Markov model.
+#' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.
+#' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.
 #' @param training_policy \code{"once"} for offline training, \code{"fixed"} for training at fixed time, \code{"dynamic"} for training when previous performance is bad.
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
-#' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A dataframe containing the resulting scheduling informations.
 #' @keywords internal
-predicting_sim_markov <- function(param, dataset, training_policy, schedule_policy, adjust_policy, cores, write_result, mode) {
+predicting_sim_ar1_markov <- function(param, dataset_max, dataset_avg, training_policy, schedule_policy, adjust_policy, cores, write_result) {
   window_size <- as.numeric(param["window_size"])
   cut_off_prob <- as.numeric(param["cut_off_prob"])
   granularity <- as.numeric(param["granularity"])
@@ -417,11 +414,11 @@ predicting_sim_markov <- function(param, dataset, training_policy, schedule_poli
   util_den <- c()
 
   ## Split in Training and Testing Set
-  ts_names <- colnames(dataset)
+  ts_names <- colnames(dataset_max)
 
   ## Do Simulation
   start_time <- proc.time()
-  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim_markov, dataset, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, state_num, mc.cores = cores)
+  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim_ar1_markov, dataset_max, dataset_avg, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, state_num, mc.cores = cores)
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -443,7 +440,7 @@ predicting_sim_markov <- function(param, dataset, training_policy, schedule_poli
   print(paste("Agg Utilization Rate:", overall_result$agg_score2))
 
   if (write_result) {
-    file_name <- paste("Markov", "Sim:", "Predicting", "Train:", training_policy, "Schedule:", schedule_policy, "Adjust:", adjust_policy)
+    file_name <- paste("AR1_Markov", "Sim:", "Predicting", "Train:", training_policy, "Schedue:", schedule_policy, "Adjust:", adjust_policy)
     fp <- fs::path(paste0(get_result_location(), file_name), ext = "csv")
     new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))

@@ -248,17 +248,18 @@ scheduling_sim_markov <- function(param, dataset, cpu_required, training_policy,
   print(paste("Agg Correct Unscheduled Rate:", overall_result$agg_score2))
 
   if (write_result) {
-    file_name <- paste("Markov", "Sim:", "Scheduling", "Train:", training_policy, "Schedue:", schedule_policy, "Adjust:", adjust_policy)
+    file_name <- paste("Markov", "Sim:", "Scheduling", "Train:", training_policy, "Schedule:", schedule_policy, "Adjust:", adjust_policy)
     fp <- fs::path(paste0(get_result_location(), file_name), ext = "csv")
-    if (!fs::file_exists(fp)) {
-      fs::file_create(fp)
-    }
     new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
-    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
+    if (!fs::file_exists(fp)) {
+      fs::file_create(fp)
+      utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
+    } else {
+      utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+    }
   }
-
   return(schedule_info)
 }
 
@@ -442,15 +443,17 @@ predicting_sim_markov <- function(param, dataset, training_policy, schedule_poli
   print(paste("Agg Utilization Rate:", overall_result$agg_score2))
 
   if (write_result) {
-    file_name <- paste("Markov", "Sim:", "Predicting", "Train:", training_policy, "Schedue:", schedule_policy, "Adjust:", adjust_policy)
+    file_name <- paste("Markov", "Sim:", "Predicting", "Train:", training_policy, "Schedule:", schedule_policy, "Adjust:", adjust_policy)
     fp <- fs::path(paste0(get_result_location(), file_name), ext = "csv")
-    if (!fs::file_exists(fp)) {
-      fs::file_create(fp)
-    }
     new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
-    utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+    colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
+    if (!fs::file_exists(fp)) {
+      fs::file_create(fp)
+      utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
+    } else {
+      utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+    }
   }
-
   return(evaluate_info)
 }

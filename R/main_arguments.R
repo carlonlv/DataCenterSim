@@ -7,7 +7,6 @@
 #' @importFrom matrixcalc matrix.power
 
 basic_models <- c("AR1", "VAR1")
-bin_models <- c("AR1_logistic_lm", "AR1_logistic_glm")
 state_models <- c("Markov", "AR1_Markov", "AR1_state_based_logistic")
 
 result_loc <- getwd()
@@ -47,10 +46,6 @@ check_values <- function(param, value) {
   } else if (param == "state_num") {
     if (any(is.null(value)) | any(is.na(value)) | any(value != floor(value)) | any(value <= 0)) {
       stop("The value of state_num must be a positive integer.")
-    }
-  } else if (param == "bin_num") {
-    if (any(is.null(value)) | any(is.na(value)) | any(value != floor(value)) | any(value <= 0)) {
-      stop("The value of bin_num must be a positive integer.")
     }
   } else if (param == "tolerance") {
     if (any(is.null(value)) | any(is.na(value)) | any(value >= 1 | value <= 0)) {
@@ -95,7 +90,6 @@ set_parameters <- function(param_name, value) {
                             train_size = c(2000, 3000, 4000),
                             update_freq = c(36),
                             state_num = c(8, 16, 32),
-                            bin_num = c(500, 1000),
                             tolerance = c(0.45))
   param_lst <- get("param_lst", envir = package_env)
   if (is.null(param_name)) {
@@ -140,11 +134,8 @@ generate_parameters_df <- function(model_name) {
   } else if (model_name %in% state_models) {
     parameter.df <- expand.grid(param_lst$window_size, param_lst$cut_off_prob, param_lst$granularity, param_lst$train_size, param_lst$update_freq, param_lst$state_num, param_lst$tolerance)
     colnames(parameter.df) <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "state_num", "tolerance")
-  } else if (model_name %in% bin_models) {
-    parameter.df <- expand.grid(param_lst$window_size, param_lst$cut_off_prob, param_lst$granularity, param_lst$train_size, param_lst$update_freq, param_lst$bin_num, param_lst$tolerance)
-    colnames(parameter.df) <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "bin_num", "tolerance")
   } else {
-    stop(paste0("Model name must be one of ", c(basic_models, bin_models, state_models)))
+    stop(paste0("Model name must be one of ", c(basic_models, state_models)))
   }
   parameter.df <- dplyr::filter(parameter.df, parameter.df$update_freq %% parameter.df$window_size == 0)
   parameter.df <- dplyr::arrange(parameter.df)

@@ -18,7 +18,7 @@ train_markov <- function(dataset, state_num) {
   }
   for (r in 1:ncol(transition)) {
     if (sum(transition[r,]) == 0) {
-      transition[r,] <- uncond_dist
+      transition[r,] <- uncond_dist / sum(uncond_dist)
     } else {
       transition[r,] <- transition[r,] / sum(transition[r,])
     }

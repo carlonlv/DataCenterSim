@@ -21,7 +21,7 @@ train_ar1_markov <- function(disjoint_dataset_avg, overlapping_dataset_max, over
     }
     for (r in 1:ncol(transition)) {
       if (sum(transition[r,]) == 0) {
-        transition[r,] <- uncond_dist
+        transition[r,] <- uncond_dist / sum(uncond_dist)
       } else {
         transition[r,] <- transition[r,] / sum(transition[r,])
       }
@@ -30,7 +30,7 @@ train_ar1_markov <- function(disjoint_dataset_avg, overlapping_dataset_max, over
   }
   trained_ar1 <- train_ar1(disjoint_dataset_avg)
   trained_markov <- train_markov_avg_to_max(overlapping_dataset_max, overlapping_dataset_avg, state_num)
-  return(list("coeffs" = as.numeric(trained_ar1$coef[1]), "means" = as.numeric(trained_ar1$coef[2]), "vars" = trained_ar1$sigma2, "transition" = trained_markov))
+  return(list("coeffs" = trained_ar1$coeffs, "means" = trained_ar1$means, "vars" = trained_ar1$vars, "transition" = trained_markov))
 }
 
 
@@ -45,7 +45,7 @@ train_ar1_markov <- function(disjoint_dataset_avg, overlapping_dataset_max, over
 #' @keywords internal
 do_prediction_ar1_markov <- function(last_obs, trained_result, predict_size, level=NULL) {
   expected_avgs <- do_prediction_ar1(last_obs, trained_result$coeffs, trained_result$means, trained_result$vars, predict_size, level)$mu
-  markov_predictions <- do_prediction_markov(expected_avgs, trained_result$transition, predict_size, level)
+  markov_predictions <- do_prediction_markov(max(expected_avgs, 0), trained_result$transition, predict_size, level)
   return(list("prob" = markov_predictions$prob, "to_states" = markov_predictions$to_states))
 }
 
@@ -143,8 +143,8 @@ svt_scheduleing_sim_ar1_markov <- function(ts_num, dataset_max, dataset_avg, cpu
 
     ## Convert Frequency for training set
     disjoint_new_trainset_avg <- convert_frequency_dataset(train_set_avg, window_size, "avg")
-    overlapping_new_trainset_max <- convert_frequency_dataset(train_set_max, window_size, "max")
-    overlapping_new_trainset_avg <- convert_frequency_dataset(train_set_avg, window_size, "avg")
+    overlapping_new_trainset_max <- convert_frequency_dataset_overlapping(train_set_max, window_size, "max")
+    overlapping_new_trainset_avg <- convert_frequency_dataset_overlapping(train_set_avg, window_size, "avg")
     starting_points_max <- train_set_max[(train_size - window_size + 1):train_size]
     starting_points_avg <- train_set_avg[(train_size - window_size + 1):train_size]
 
@@ -283,7 +283,7 @@ predict_model_ar1_markov <- function(test_set_max, test_set_avg, trained_result,
     ## Schedule based on model predictions
     last_obs_avg <- convert_frequency_dataset(test_set_avg[current_end:(current_end + window_size - 1)], window_size, "avg")
     prediction_result <- do_prediction_ar1_markov(last_obs_avg, trained_result, 1, NULL)
-    pi_up <- compute_pi_up(prediction_result$mu, prediction_result$varcov, 1, cut_off_prob)
+    pi_up <- compute_pi_up_markov(prediction_result$to_states, cut_off_prob, granularity)
 
     ## Evalute schedulings based on prediction
     start_time <- current_end + window_size
@@ -348,8 +348,8 @@ svt_predicting_sim_ar1_markov <- function(ts_num, dataset_max, dataset_avg, trai
 
     ## Convert Frequency for training set
     disjoint_new_trainset_avg <- convert_frequency_dataset(train_set_avg, window_size, "avg")
-    overlapping_new_trainset_max <- convert_frequency_dataset(train_set_max, window_size, "max")
-    overlapping_new_trainset_avg <- convert_frequency_dataset(train_set_avg, window_size, "avg")
+    overlapping_new_trainset_max <- convert_frequency_dataset_overlapping(train_set_max, window_size, "max")
+    overlapping_new_trainset_avg <- convert_frequency_dataset_overlapping(train_set_avg, window_size, "avg")
     starting_points_max <- train_set_max[(train_size - window_size + 1):train_size]
     starting_points_avg <- train_set_avg[(train_size - window_size + 1):train_size]
 

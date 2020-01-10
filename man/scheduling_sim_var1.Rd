@@ -2,7 +2,7 @@
 % Please edit documentation in R/var1_sim.R
 \name{scheduling_sim_var1}
 \alias{scheduling_sim_var1}
-\title{Simulation of Scheduling A Job With VAR Model}
+\title{Simulation of Scheduling A Job With VAR1 Model}
 \usage{
 scheduling_sim_var1(
   param,
@@ -17,7 +17,7 @@ scheduling_sim_var1(
 )
 }
 \arguments{
-\item{param}{A vector containing necessary informations or hyperparameters for VAR model.}
+\item{param}{A vector containing necessary informations or hyperparameters for VAR1 model.}
 
 \item{dataset_max}{A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.}
 
@@ -39,6 +39,6 @@ scheduling_sim_var1(
 A dataframe containing the resulting scheduling informations.
 }
 \description{
-Sequantially training and testing by scheduling a job using VAR Model.
+Sequantially training and testing by scheduling a job using VAR1 Model.
 }
 \keyword{internal}

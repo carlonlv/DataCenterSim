@@ -1,4 +1,4 @@
-#' @importFrom stats arima quantile qnorm
+#' @importFrom stats arima quantile qnorm glm glm.control
 #' @importFrom dplyr filter arrange
 #' @import fs
 #' @importFrom mvtnorm pmvnorm
@@ -6,7 +6,7 @@
 #' @importFrom MTS VARMACpp
 #' @importFrom matrixcalc matrix.power
 
-basic_models <- c("AR1", "VAR1")
+basic_models <- c("AR1", "VAR1", "AR1_logistic")
 state_models <- c("Markov", "AR1_Markov", "AR1_state_based_logistic")
 
 result_loc <- getwd()

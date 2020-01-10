@@ -2,7 +2,7 @@
 % Please edit documentation in R/var1_sim.R
 \name{svt_predicting_sim_var1}
 \alias{svt_predicting_sim_var1}
-\title{Simulation of Scheduling Jobs Based On Predictions On A Single Trace With VAR Model}
+\title{Simulation of Scheduling Jobs Based On Predictions On A Single Trace With VAR1 Model}
 \usage{
 svt_predicting_sim_var1(
   ts_num,
@@ -24,9 +24,7 @@ svt_predicting_sim_var1(
 
 \item{dataset_max}{A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.}
 
-\item{dataset_avg}{A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.#' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.}
-
-\item{train_size}{The length of data used for training.}
+\item{dataset_avg}{A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.}
 
 \item{window_size}{The length of predictions.}
 
@@ -48,6 +46,6 @@ svt_predicting_sim_var1(
 A list containing the resulting scheduling informations.
 }
 \description{
-Sequantially training and testing by scheduling jobs based on predictions on a single trace using VAR Model.
+Sequantially training and testing by scheduling jobs based on predictions on a single trace using VAR1 Model.
 }
 \keyword{internal}

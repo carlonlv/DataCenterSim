@@ -5,19 +5,16 @@
 #' @param train_dataset_avg A vector of numeric value of avg
 #' @return A list consisting trained coefficients, mean, and variance of residuals.
 #' @keywords internal
-train_ar1_logistic <- function(train_dataset_max,train_dataset_avg,cpu_required) {
+train_ar1_logistic <- function(train_dataset_max, train_dataset_avg, cpu_required) {
   parser_for_logistic_model <- function(train_set_max, train_set_avg, cpu_required) {
-    df <- data.frame("avg"=train_set_avg, "max"=train_set_max)
+    df <- data.frame("avg" = train_set_avg, "max" = train_set_max)
     df$survived <- ifelse(df$max <= (100 - cpu_required), 1, 0)
     return(df)
   }
+  trained_ar1 <- train_ar1(train_dataset_avg)
   logistic_input <- parser_for_logistic_model(train_dataset_max, train_dataset_avg, cpu_required)
-  suppressWarnings(log.lm <- glm(survived~avg, data = logistic_input, family = "binomial", control=glm.control(maxit=2000)))
-  result <- train_ar1_model(train_dataset_avg)
-  result$Intercept_Logistic <- as.numeric(log.lm$coefficients[1])
-  result$Slope_Logistic <- as.numeric(log.lm$coefficients[2])
-  result$log.lm <- log.lm
-  return(result)
+  trained_logistic <- suppressWarnings(stats::glm(survived~avg, data = logistic_input, family = "binomial", control = stats::glm.control(maxit = 2000)))
+  return(list("coeffs_ar1" = trained_ar1$coeffs, "means_ar1" = trained_ar1$means, "vars_ar1" = trained_ar1$vars, "coeffs_logistic" = as.numeric(trained_logistic$coefficients[1]), "slope_logistic" = as.numeric(trained_logistic$coefficients[2])))
 }
 
 
@@ -25,21 +22,16 @@ train_ar1_logistic <- function(train_dataset_max,train_dataset_avg,cpu_required)
 #'
 #' @description Compute \eqn{Pr(next_obs \leq level)} if \code{level} is provided, otherwise, compurte \eqn{E[next_obs|prev_obs]} and \eqn{Var[next_obs|prev_obs]}.
 #' @param last_obs The previous observation.
-#' @param phi The slope in \eqn{(Y_t - \mu) = \phi (Y_{t-1} - \mu) + e_t} where \eqn{e_t} is white noise process.
-#' @param mean The mean of the stationary process with \eqn{\mu = E[Y_t]}.
-#' @param variance The variance of residuals, used to estimate the variance of the error term, which is a white noise process of zero mean.
+#' @param trained_result The trained result from function \code{train_ar1_logistic}
 #' @param predict_size The number of steps to predict forward.
 #' @param level The level in \eqn{Pr(next_obs \leq level)} if the probability is not needed.
 #' @return A list containing the calculated probability
 #' @keywords internal
-do_prediction_ar1_logistic <- function(last_obs,train_result, predict_size, level) {
-  phi <- train_result$coeffs
-  mean <- train_result$means
-  mu <- last_obs * phi + (1 - phi) * mean
-  expected_avgs <- max(mu,0)
-  logit <- expected_avgs * train_result$Slope_Logistic + train_result$Intercept_Logistic
-  prob <- exp(logit)/(1+exp(logit))
-  1-prob
+do_prediction_ar1_logistic <- function(last_obs,trained_result, predict_size, level) {
+  expected_avgs <- do_prediction_ar1(last_obs, trained_result$coeffs_ar1, trained_result$means_ar1, trained_result$vars_ar1, predict_size, level)$mu
+  logit <- expected_avgs * trained_result$coeffs_logistic + trained_result$slope_logistic
+  prob <- exp(logit) / (1 + exp(logit))
+  return(list("prob" = 1 - prob))
 }
 
 
@@ -70,8 +62,8 @@ schedule_foreground_ar1_logistic <- function(test_set_max, test_set_avg, trained
   adjust_switch <- FALSE
   while (current_end <= last_time_schedule) {
     ## Schedule based on model predictions
-    last_obs <- convert_frequency_dataset(test_set_avg[current_end:(current_end + window_size - 1)], window_size, "avg")
-    prediction_result <- do_prediction_ar1_logistic(last_obs, trained_result, 1, 100 - cpu_required)
+    last_obs_avg <- convert_frequency_dataset(test_set_avg[current_end:(current_end + window_size - 1)], window_size, "avg")
+    prediction_result <- do_prediction_ar1_logistic(last_obs_avg, trained_result, 1, 100 - cpu_required)
     prediction <- check_decision(prediction_result$prob, cut_off_prob)
 
     ## Evalute schedulings based on prediction
@@ -108,7 +100,6 @@ schedule_foreground_ar1_logistic <- function(test_set_max, test_set_avg, trained
 #' @param tolerance The tolerance level of retrain, the quantile of previous performance.
 #' @param schedule_policy \code{"disjoint"} for scheduling at fixed time, \code{"dynamic"} for scheduling again immediately when failed.
 #' @param adjust_policy \code{TRUE} for "backing off" strategy whenever a mistake is made.
-#' @param mode \code{"max"} or \code{"avg"} which time series is used as \code{dataset}.
 #' @return A list containing the resulting scheduling informations.
 #' @keywords internal
 svt_scheduleing_sim_ar1_logistic <- function(ts_num, dataset_avg,dataset_max, cpu_required, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy) {
@@ -137,17 +128,17 @@ svt_scheduleing_sim_ar1_logistic <- function(ts_num, dataset_avg,dataset_max, cp
     new_trainset_avg <- convert_frequency_dataset(train_set_avg, window_size, mode)
     new_trainset_max <- convert_frequency_dataset(train_set_max, window_size, mode)
 
-    starting_points2 <- train_set_avg[(train_size - window_size + 1):train_size]
-    starting_points1 <- train_set_max[(train_size - window_size + 1):train_size]
+    starting_points_avg <- train_set_avg[(train_size - window_size + 1):train_size]
+    starting_points_max <- train_set_max[(train_size - window_size + 1):train_size]
 
 
     ## Train Model
     if (train_sig) {
-      trained_result <- train_ar1_logistic(c(starting_points1,new_trainset_max),c(starting_points2,new_trainset_avg),cpu_required)
+      trained_result <- train_ar1_logistic(new_trainset_max, new_trainset_avg, cpu_required)
     }
 
     ## Test Model
-    result <- schedule_foreground_ar1_logistic(c(starting_points1,new_trainset_max),c(starting_points2,new_trainset_avg,cpu_required), trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy)
+    result <- schedule_foreground_ar1_logistic(c(starting_points_max, test_set_max),c(starting_points_avg, test_set_avg), trained_result, window_size, cut_off_prob, cpu_required, granularity, schedule_policy, adjust_policy)
 
     ## Update Training Timestamp
     prev_correct_scheduled_rate <- correct_scheduled_num / scheduled_num
@@ -207,7 +198,7 @@ scheduling_sim_ar1_logistic <- function(param, dataset_avg,dataset_max, cpu_requ
 
   ## Do Simulation
   start_time <- proc.time()
-  result <- parallel::mclapply(1:length(ts_names), svt_scheduleing_sim_ar1_logistic, dataset_avg, dataset_max, cpu_required, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mode, mc.cores = cores)
+  result <- parallel::mclapply(1:length(ts_names), svt_scheduleing_sim_ar1_logistic, dataset_avg, dataset_max, cpu_required, train_size, window_size, update_freq, cut_off_prob, granularity, training_policy, tolerance, schedule_policy, adjust_policy, mc.cores = cores)
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -236,7 +227,7 @@ scheduling_sim_ar1_logistic <- function(param, dataset_avg,dataset_max, cpu_requ
     colnames(new_row) <- c(names(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
-      utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
+      utils::write.table(new_row, file = fp, append = FALSE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
     } else {
       utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
     }

@@ -425,4 +425,3 @@ find_state_num <- function(obs, state_num) {
   }
   return(state)
 }
-

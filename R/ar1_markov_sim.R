@@ -101,9 +101,9 @@ schedule_foreground_ar1_markov <- function(test_set_max, test_set_avg, trained_r
 }
 
 
-#' Simulation of Scheduling A Job On A Single Trace With AR1 mixed with Markov Model
+#' Simulation of Scheduling A Job On A Single Trace With AR1-Markov Model
 #'
-#' @description Sequantially training and testing by schedulingh a job on a single trace using AR1 mixed with Markov Model.
+#' @description Sequantially training and testing by schedulingh a job on a single trace using AR1-Markov Model.
 #' @param ts_num The corresponding trace/column in \code{dataset}.
 #' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.
 #' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.
@@ -185,10 +185,10 @@ svt_scheduleing_sim_ar1_markov <- function(ts_num, dataset_max, dataset_avg, cpu
 }
 
 
-#' Simulation of Scheduling A Job With AR1 mixed with Markov Model
+#' Simulation of Scheduling A Job With AR1-Markov Model
 #'
-#' @description Sequantially training and testing by scheduling a job using AR1 mixed with Markov Model.
-#' @param param A vector containing necessary informations or hyperparameters for AR1 mixed with Markov model.
+#' @description Sequantially training and testing by scheduling a job using AR1-Markov Model.
+#' @param param A vector containing necessary informations or hyperparameters for AR1-Markov model.
 #' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.
 #' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.#'
 #' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
@@ -309,9 +309,9 @@ predict_model_ar1_markov <- function(test_set_max, test_set_avg, trained_result,
 }
 
 
-#' Simulation of Scheduling Jobs Based On Predictions On A Single Trace With AR1 mixed with Markov Model
+#' Simulation of Scheduling Jobs Based On Predictions On A Single Trace With AR1-Markov Model
 #'
-#' @description Sequantially training and testing by scheduling jobs based on predictions on a single trace using AR1 mixed with Markov Model.
+#' @description Sequantially training and testing by scheduling jobs based on predictions on a single trace using AR1-Markov Model.
 #' @param ts_num The corresponding trace/column in \code{dataset}.
 #' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.
 #' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.#' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
@@ -386,10 +386,10 @@ svt_predicting_sim_ar1_markov <- function(ts_num, dataset_max, dataset_avg, trai
 }
 
 
-#' Simulation of Scheduling Jobs Based On Predictions With AR1 mixed with Markov Model
+#' Simulation of Scheduling Jobs Based On Predictions With AR1-Markov Model
 #'
-#' @description Sequantially training and testing by scheduling a job using AR1 mixed with Markov Model.
-#' @param param A vector containing necessary informations or hyperparameters for AR1 mixed with Markov model.
+#' @description Sequantially training and testing by scheduling a job using AR1-Markov Model.
+#' @param param A vector containing necessary informations or hyperparameters for AR1-Markov model.
 #' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes of CPU information on a machine.
 #' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of avges of CPU information on a machine.
 #' @param training_policy \code{"once"} for offline training, \code{"fixed"} for training at fixed time, \code{"dynamic"} for training when previous performance is bad.

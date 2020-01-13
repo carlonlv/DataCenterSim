@@ -1,3 +1,10 @@
+#' @rdname sim-class
+#' @slot state_num A numeric vector that specify the number of states for models that require this attribute. Default is \code{8, 16, 32}.
+markov_sim <- setClass("markov_sim",
+                       slots = list(state_num = "numeric"),
+                       prototype = list(state_num = c(8, 16, 32)),
+                       contains = "sim")
+
 #' Train Markov Model
 #'
 #' @description Train Markov model using training set provided.

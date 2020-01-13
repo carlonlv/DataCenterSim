@@ -1,3 +1,10 @@
+#' @rdname sim-class
+#' @slot mode A character that specify the targeting trace to be tested on, this can either be \code{"max"} or \code{"avg"} for max traces and average traces respectively.
+ar1_sim <- setClass("ar1_sim",
+                    slots = list(mode = "character"),
+                    prototype = list(mode = NA_character_),
+                    contains = "sim")
+
 #' Train AR1 Model
 #'
 #' @description Train AR1 model using training set provided.

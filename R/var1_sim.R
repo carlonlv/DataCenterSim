@@ -1,3 +1,7 @@
+#' @rdname sim-class
+var1_sim <- setClass("var1_sim",
+                     contains = "sim")
+
 #' Train VAR Model
 #'
 #' @description Train VAR model using training set provided.

@@ -83,9 +83,9 @@ setMethod("compute_pi_up",
             varcov <- object@predict_result$varcov
             upper_bounds <- rep(NA, length(mu))
             for (i in 1:length(mu)) {
-              upper_bounds[i] <- min(mu[i] + stats::qnorm((1 - cut_off_prob)) * sqrt(varcov[i,i]), 100)
+              upper_bounds[i] <- min(mu[i] + stats::qnorm((1 - object@cut_off_prob)) * sqrt(varcov[i,i]), 100)
             }
-            return(upper_bounds)
+            return(max(upper_bounds))
           })
 
 

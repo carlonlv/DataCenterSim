@@ -37,7 +37,7 @@ setMethod("train_model",
               }))
             }
             trained_result <- list("coeffs" = as.numeric(ts_model$coef[1]), "means" = as.numeric(ts_model$coef[2]), "vars" = ts_model$sigma2)
-            return(ar1_sim_process(object, trained_result = trained_result))
+            return(ar1_sim_process(object, trained_model = trained_result))
           })
 
 

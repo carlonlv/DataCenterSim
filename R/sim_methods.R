@@ -78,6 +78,22 @@ setReplaceMethod("update_freq",
                  })
 
 
+setMethod("tolerance",
+          signature(object = "sim"),
+          function(object){
+            return(object@tolerance)
+          })
+
+
+setReplaceMethod("tolerance",
+                 signature(object = "sim", value = "numeric"),
+                 function(object, value) {
+                   object@tolerance <- value
+                   validObject(object)
+                   return(object)
+                 })
+
+
 setMethod("train_policy",
           signature(object = "sim"),
           function(object){
@@ -138,10 +154,3 @@ setReplaceMethod("result_loc",
                    validObject(object)
                    return(object)
                  })
-
-setMethod("train_model",
-          signature(object = "ar1_sim", dataset = "numeric"),
-          function(object, dataset) {
-            return(arima(dataset))
-          })
-

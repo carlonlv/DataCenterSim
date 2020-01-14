@@ -27,14 +27,19 @@ setGeneric("adjust_policy<-", function(object, value) standardGeneric("adjust_po
 setGeneric("result_loc", function(object) standardGeneric("result_loc"))
 setGeneric("result_loc<-", function(object, value) standardGeneric("result_loc<-"))
 
+setGeneric("tolerance", function(object) standardGeneric("tolerance"))
+setGeneric("tolerance<-", function(object, value) standardGeneric("tolerance<-"))
+
 setGeneric("mode", function(object) standardGeneric("object"))
 setGeneric("mode<-", function(object, value) standardGeneric("mode<-"))
 
 setGeneric("state_num", function(object) standardGeneric("state_num"))
 setGeneric("state_num<-", function(object, value) standardGeneric("state_num<-"))
 
-setGeneric("train_model", function(object) standardGeneric("train_model"))
+setGeneric("train_model", function(object, trainset_max, trainset_avg) standardGeneric("train_model"))
 
-setGeneric("do_prediction", function(object) standardGeneric("do_prediction"))
+setGeneric("do_prediction", function(object, last_obs_max, last_obs_avg, predict_size, level) standardGeneric("do_prediction"))
 
 setGeneric("compute_pi_up", function(object) standardGeneric("compute_pi_up"))
+
+setGeneric("generate_result", function(object, evaluation, write_result) standardGeneric("generate_result"))

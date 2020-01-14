@@ -67,24 +67,6 @@ convert_frequency_dataset_overlapping <- function(dataset, new_freq, mode) {
 }
 
 
-#' Compute Prediction Interval Upper Bound For Forcasting.
-#'
-#' @description Computer prediction using predicted value and variance, can be adjusted to granularity.
-#' @param mu The predicted mean of next observations.
-#' @param varcov The variance covariance matrix of predictions of next observations.
-#' @param predict_size The number of steps to predict forward.
-#' @param cut_off_prob The level of uncertainty of prediction interval.
-#' @return The prediction upper bounds, if \code{predict_size} is greater than 1, a vector is returned.
-#' @keywords internal
-compute_pi_up <- function(mu, varcov, predict_size, cut_off_prob) {
-  upper_bounds <- rep(NA, predict_size)
-  for (i in 1:predict_size) {
-    upper_bounds[i] <- min(mu[i] + stats::qnorm((1 - cut_off_prob)) * sqrt(varcov[i,i]), 100)
-  }
-  return(upper_bounds)
-}
-
-
 #' Computation of PI's upper bound for Markov Model
 #'
 #' @description Compute the PI's upper bound based on probability cut off
@@ -425,3 +407,4 @@ find_state_num <- function(obs, state_num) {
   }
   return(state)
 }
+

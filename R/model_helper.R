@@ -67,39 +67,6 @@ convert_frequency_dataset_overlapping <- function(dataset, new_freq, mode) {
 }
 
 
-#' Computation of PI's upper bound for Markov Model
-#'
-#' @description Compute the PI's upper bound based on probability cut off
-#' @param to_states The vector contains the probability of going to each state
-#' @param prob_cut_off The probability cut off point for PI
-#' @param granularity The granularity of 100 percent of total cpu.
-#' @return The prediction upper bound.
-#' @keywords internal
-compute_pi_up_markov <- function(to_states, prob_cut_off, granularity) {
-  compute_pi_up_markov_single <- function(to_states, prob_cut_off, granularity) {
-    current_state <- 1
-    current_prob <- 0
-    while (current_state <= length(to_states)) {
-      current_prob <- current_prob + to_states[current_state]
-      if (current_prob < 1 - prob_cut_off) {
-        current_state <- current_state + 1
-      }
-      else {
-        break
-      }
-    }
-    pi_up <- current_state * (100 / length(to_states))
-    if (granularity > 0) {
-      scheduled_size <- round_to_nearest(100 - pi_up, granularity, TRUE)
-      pi_up <- 100 - scheduled_size
-    }
-    return(pi_up)
-  }
-  pi_ups <- apply(to_states, 1, compute_pi_up_markov_single, prob_cut_off, granularity)
-  return(max(pi_ups))
-}
-
-
 #' Get Training Update Step.
 #'
 #' @description Computer training step.

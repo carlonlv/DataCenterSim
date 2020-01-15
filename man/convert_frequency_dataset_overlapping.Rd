@@ -4,14 +4,14 @@
 \alias{convert_frequency_dataset_overlapping}
 \title{Convert Dataset Frequency Using Overlapping Windows.}
 \usage{
-convert_frequency_dataset_overlapping(dataset, new_freq, mode)
+convert_frequency_dataset_overlapping(dataset, new_freq, response)
 }
 \arguments{
 \item{dataset}{A vector of numeric value.}
 
 \item{new_freq}{An integer value.}
 
-\item{mode}{If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.}
+\item{response}{If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.}
 }
 \value{
 The vector of same size of input vector.

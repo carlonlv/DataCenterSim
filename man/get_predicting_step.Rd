@@ -17,7 +17,7 @@ get_predicting_step(
 
 \item{window_size}{The length of predictions.}
 
-\item{adjust_policy}{The adjustment policy, \code{TRUE} or \code{FALSE}.}
+\item{adjust_policy}{The adjustment policy, \code{"back_off"} or \code{"none"}.}
 
 \item{adjust_switch}{The previous switch, \code{TRUE} for on and \code{FALSE}.}
 

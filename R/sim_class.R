@@ -8,7 +8,7 @@ check_valid_sim <- function(object) {
   train_policy_choices <- c("once", "fixed", "dynamic")
   schedule_policy_choices <- c("disjoint", "dynamic")
   adjust_policy_choices <- c("back_off", "none")
-  mode_choices <- c("max", "avg")
+  response_choices <- c("max", "avg")
   errors <- character()
   if (length(object@type) != 1 | is.na(object@type) | all(object@type != type_choices)) {
     msg <- paste0("type must be one of ", paste(type_choices, collapse = " "), ".")
@@ -54,8 +54,8 @@ check_valid_sim <- function(object) {
     msg <- paste0("tolerance must only consist numeric values within 0 and 1, exclusively.")
     errors <- c(errors, msg)
   }
-  if (length(object@mode) != 1 | is.na(object@mode) |  all(object@mode != mode_choices)) {
-    msg <- paste0("mode must be one of ", paste(mode, collapse = " "), ".")
+  if (length(object@response) != 1 | is.na(object@response) |  all(object@response != response_choices)) {
+    msg <- paste0("response must be one of ", paste(response_choices, collapse = " "), ".")
     errors <- c(errors, msg)
   }
   if (length(errors) == 0) {
@@ -78,7 +78,7 @@ check_valid_sim <- function(object) {
 #' @slot schedule_policy A character that specify the scheduling policy, this can either be \code{"disjoint"} or \code{"dynamic"}. Default value is \code{"dynamic"}.
 #' @slot adjust_policy A character that specify the adjustment policy, this can either be \code{"back_off"} or \code{"none"}. Defaut is \code{"none"}.
 #' @slot tolerance A numeric vector that specify the minimum quantile of past performance needs to be achieved, otherwise, re-train signal will be sent.
-#' @slot mode A character that specify the targeting trace to be tested on, this can either be \code{"max"} or \code{"avg"} for max traces and average traces respectively.
+#' @slot response A character that specify the targeting trace to be tested on, this can either be \code{"max"} or \code{"avg"} for max traces and average traces respectively.
 #' @slot result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @name sim-class
 #' @rdname sim-class
@@ -94,7 +94,7 @@ sim <- setClass("sim",
                              schedule_policy = "character",
                              adjust_policy = "character",
                              tolerance = "numeric",
-                             mode = "character",
+                             response = "character",
                              result_loc = "character"),
                 prototype = list(type = NA_character_,
                                  window_size = c(12),
@@ -106,6 +106,6 @@ sim <- setClass("sim",
                                  schedule_policy = "dynamic",
                                  adjust_policy = "none",
                                  tolerance = c(0.45, 0.5),
-                                 mode = NA_character_,
+                                 response = NA_character_,
                                  result_loc = getwd()),
                 validity = check_valid_sim)

@@ -1,45 +1,233 @@
-#' @include sim.R
+#' @include sim_class.R
+NULL
 
+#' Getter/Setter for Window Size
+#'
+#' A window size is the length of aggregation of observations as an alternative or reduction of extrapolation in forecasting.
+#'
+#' @param object An S4 sim object.
+#' @name window_size
+#' @rdname window_size
 setGeneric("window_size", function(object) standardGeneric("window_size"))
+
+#' @param value A numeric value that is a postive integer.
+#' @name window_size<-
+#' @rdname window_size
 setGeneric("window_size<-", function(object, value) standardGeneric("window_size<-"))
 
+
+#' Getter/Setter for Cut Off Probability
+#'
+#' A cut off probability is the minimum probability allowed to have next observation below a input threshold, or equals to \eqn{\frac{1/2}(1 - Prob)} as \eqn{Prob} stands for Probability in Prediction Interval.
+#'
+#' @param object An S4 sim object
+#' @name cut_off_prob
+#' @rdname cut_off_prob
 setGeneric("cut_off_prob", function(object) standardGeneric("cut_off_prob"))
+
+#' @param value A numeric value between 0 and 1, exclusive.
+#' @name cut_off_prob<-
+#' @rdname cut_off_prob
 setGeneric("cut_off_prob<-", function(object, value) standardGeneric("cut_off_prob<-"))
 
+
+#' Getter/Setter for Granularity
+#'
+#' Granularity in terms of cores equals to \eqn{100 / Num_of_cores}, as each task can only be dispatched in mutiples of granularity. If CPU resources can (ideally) be dispatched in real numbers, granularity can take input of \code{0}.
+#'
+#' @param object An S4 sim object.
+#' @name granularity
+#' @rdname granularity
 setGeneric("granularity", function(object) standardGeneric("granularity"))
+
+#' @param value A numeric value that is beteen 0 and 100, right exclusive.
+#' @name granularity<-
+#' @rdname granularity
 setGeneric("granularity<-", function(object, value) standardGeneric("granularity<-"))
 
+
+#' Getter/Setter for Traning Size
+#'
+#' Traning size is the amount of observations used to train a model, both in offline training and online training.
+#'
+#' @param object An S4 sim object
+#' @name train_size
+#' @rdname train_size
 setGeneric("train_size", function(object) standardGeneric("train_size"))
+
+#' @param value A numeric value that is a positive integer.
+#' @name train_size<-
+#' @rdname train_size
 setGeneric("train_size<-", function(object, value) standardGeneric("train_size<-"))
 
+
+#' Getter/Setter for Update Frequency
+#'
+#' Update frequency is the step size of each update in an online simulation with rolling windows, it also serves as the size of (batch) test set after each training step.
+#'
+#' @param object An S4 sim object.
+#' @name update_freq
+#' @rdname update_freq
 setGeneric("update_freq", function(object) standardGeneric("update_freq"))
+
+#' @param value A numeric value that is a positive integer.
+#' @name update_freq<-
+#' @rdname update_freq
 setGeneric("update_freq<-", function(object, value) standardGeneric("update_freq<-"))
 
+
+#' Getter/Setter for Training Policy
+#'
+#' Training policy specifies the training scheme, as in offline training, online training with fixed frequency, or online training based on current and previous evaluations.
+#'
+#' @param object An S4 sim object.
+#' @name train_policy
+#' @rdname train_policy
 setGeneric("train_policy", function(object) standardGeneric("train_policy"))
+
+#' @param value A character value that can either be \code{"once"} for offline training, or \code{"fixed"} for online training with fixed frequency, or \code{"dynamic"} for online training based on evalutions.
+#' @name train_policy<-
+#' @rdname train_policy
 setGeneric("train_policy<-", function(object, value) standardGeneric("train_policy<-"))
 
+
+#' Getter/Setter for Schedule Policy
+#'
+#' Scheduling policy specifies the scheduling scheme, as in scheduling with fixed frequency, or retrying to schedule immediately after a job has failed.
+#'
+#' @param object An S4 sim object.
+#' @name schedule_policy
+#' @rdname schedule_policy
 setGeneric("schedule_policy", function(object) standardGeneric("schedule_policy"))
+
+#' @param value A character value that can either be \code{"disjoint"} for scheduling with fixed frequency, or \code{"dynamic"} for scheduling with dynamic strategy.
+#' @name schedule_policy<-
+#' @rdname schedule_policy
 setGeneric("schedule_policy<-", function(object, value) standardGeneric("schedule_policy<-"))
 
+
+#' Getter/Setter for Adjust Policy
+#'
+#' Adjust policy specifies the adjustment scheme for sequential scheduling/prediction failures. \code{"back_off"} enforeces backing off strategy that stops scheduling/predicting after a scheduling/prediction has failed, and resume scheduling/predicting after a scheuling/prediction has survived.
+#'
+#' @param object An S4 sim object.
+#' @name adjust_policy
+#' @rdname adjust_policy
 setGeneric("adjust_policy", function(object) standardGeneric("adjust_policy"))
+
+#' @param value A character value that can either be \code{"back_off"} for backing off strategy or \code{"none"}.
+#' @name adjust_policy<-
+#' @rdname adjust_policy
 setGeneric("adjust_policy<-", function(object, value) standardGeneric("adjust_policy<-"))
 
+
+#' Getter/Setter for Result Location
+#'
+#' Result location is a path to a directory you wish to store the result to, the default is the current work directory.
+#'
+#' @param object An S4 sim object
+#' @name result_loc
+#' @rdname result_loc
 setGeneric("result_loc", function(object) standardGeneric("result_loc"))
+
+#' @param value A character value of the path to a directory.
+#' @name result_loc<-
+#' @rdname result_loc
 setGeneric("result_loc<-", function(object, value) standardGeneric("result_loc<-"))
 
+
+#' Getter/Setter for Tolerance
+#'
+#' Tolerance is used for dynamic scheme training policy. It controls the minimum quantile of past evaluation the current evaluation needs to supass, otherwise a retrain signal is sent for step.
+#'
+#' @param object An S4 sim object
+#' @name tolerance
+#' @rdname tolerance
 setGeneric("tolerance", function(object) standardGeneric("tolerance"))
+
+#' @param value A numeric value that is between 0 and 1, exclusive.
+#' @name tolerance<-
+#' @rdname tolerance
 setGeneric("tolerance<-", function(object, value) standardGeneric("tolerance<-"))
 
-setGeneric("mode", function(object) standardGeneric("object"))
-setGeneric("mode<-", function(object, value) standardGeneric("mode<-"))
 
+#' Getter/Setter for Response
+#'
+#' Response describes the type of response variable, the maximum of trace to predict or the average of trace to predict.
+#'
+#' @param object An S4 sim object
+#' @name response
+#' @rdname response
+setGeneric("response", function(object) standardGeneric("response"))
+
+#' @param value A character value that is either \code{"max"} or \code{"avg"}.
+#' @name response<-
+#' @rdname response
+setGeneric("response<-", function(object, value) standardGeneric("response<-"))
+
+
+#' Getter/Setter for Number of States
+#'
+#' State num is the number of states for Markov Models or Mixed models that contains Markov chain components.
+#'
+#' @param object An S4 sim object.
+#' @name state_num
+#' @rdname state_num
 setGeneric("state_num", function(object) standardGeneric("state_num"))
+
+#' @param value A numeric value that is a positive integer.
+#' @name state_num<-
+#' @rdname state_num
 setGeneric("state_num<-", function(object, value) standardGeneric("state_num<-"))
 
+
+#' Train Model
+#'
+#' This is a generic function that trains model according to the input object type, with additional arguments supplied by attributes of the object.
+#'
+#' @param object An S4 sim object.
+#' @param trainset_max A matrix of size \eqn{n \times m} representing the training set of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param trainset_avg A matrix of size \eqn{n \times m} representing the training set of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @return A hidden S4 sim process object that contains trained result.
+#' @name train_model
+#' @rdname train_model
 setGeneric("train_model", function(object, trainset_max, trainset_avg) standardGeneric("train_model"))
 
+
+#' Do Prediction
+#'
+#' This is a generic function that do prediction according to the input object type.
+#'
+#' @param object An S4 sim process object with trained model information.
+#' @param last_obs_max A numeric value representing the last observation of maximum.
+#' @param last_obs_avg A numeric value representing the last observation of average.
+#' @param predict_size The number of window sizes to predict forword.
+#' @param level The level in \eqn{Pr(Y_{t+1}|Y_{t}) \leq level} to be computed.
+#' @return The same S4 process object with prediction information.
+#' @name do_prediction
+#' @rdname do_prediction
 setGeneric("do_prediction", function(object, last_obs_max, last_obs_avg, predict_size, level) standardGeneric("do_prediction"))
 
+
+#' Compute Prediction Interval Upper Bound
+#'
+#' This is a generic function that computes the upper bound of prediction interval according to the type of input object.
+#'
+#' @param object An S4 sim process object with prediction information.
+#' @return A numeric value representing the maximum of prediction interval upper bound in the forecasting steps.
+#' @name compute_pi_up
+#' @rdname compute_pi_up
 setGeneric("compute_pi_up", function(object) standardGeneric("compute_pi_up"))
 
+
+#' Generate The Result Of Simulation
+#'
+#' This is a generic function that generates of the output of simulation.
+#'
+#' @param object An S4 sim object.
+#' @param evaluation The evaluation dataframe with each row representing each trace, and the columns consists of performance information.
+#' @param write_result A logical TRUE/FALSE argument to determine whether to store the result of simulation to a file to location stored as an attribute in sim object.
+#' @return An S4 sim result object with evaluation information.
+#' @name generate_result
+#' @rdname generate_result
 setGeneric("generate_result", function(object, evaluation, write_result) standardGeneric("generate_result"))

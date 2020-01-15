@@ -20,17 +20,17 @@ round_to_nearest <- function(data, divisor, lower) {
 #' @description Convert \code{dataset} to bigger frequency provided by \code{new_freq} using max/avg operators, the rest will be truncated off.
 #' @param dataset A vector of numeric value.
 #' @param new_freq An integer value.
-#' @param mode If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.
+#' @param response If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.
 #' @return The vector of smaller size than input vector if \code{new_freq} is greater than 1.
 #' @keywords internal
-convert_frequency_dataset <- function(dataset, new_freq, mode) {
+convert_frequency_dataset <- function(dataset, new_freq, response) {
   new_dataset <- c()
   window_num <- floor(length(dataset) / new_freq)
   for (i in 1:window_num) {
     from <- (i - 1) * new_freq + 1
     to <- i * new_freq
     new_val <- NULL
-    if (mode == 'max') {
+    if (response == 'max') {
       new_val <- max(dataset[from:to], na.rm = TRUE)
     } else {
       new_val <- mean(dataset[from:to], na.rm = TRUE)
@@ -46,17 +46,17 @@ convert_frequency_dataset <- function(dataset, new_freq, mode) {
 #' @description Convert \code{dataset} to bigger frequency provided by \code{new_freq} using max/avg operators, the rest will be truncated off.
 #' @param dataset A vector of numeric value.
 #' @param new_freq An integer value.
-#' @param mode If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.
+#' @param response If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.
 #' @return The vector of same size of input vector.
 #' @keywords internal
-convert_frequency_dataset_overlapping <- function(dataset, new_freq, mode) {
+convert_frequency_dataset_overlapping <- function(dataset, new_freq, response) {
   new_dataset <- c()
   last_window <- length(dataset) - new_freq + 1
   for (i in 1:last_window) {
     from <- i
     to <- i + new_freq - 1
     new_val <- NULL
-    if (mode == 'max') {
+    if (response == 'max') {
       new_val <- max(dataset[from:to], na.rm = TRUE)
     } else {
       new_val <- mean(dataset[from:to], na.rm = TRUE)
@@ -278,21 +278,21 @@ check_survival <- function(pi_up, actual_obs, granularity) {
 #' @description Get predicting update step given survival informations.
 #' @param survival The survival information of current scheduling survives.
 #' @param window_size The length of predictions.
-#' @param adjust_policy The adjustment policy, \code{TRUE} or \code{FALSE}.
+#' @param adjust_policy The adjustment policy, \code{"back_off"} or \code{"none"}.
 #' @param adjust_switch The previous switch, \code{TRUE} for on and \code{FALSE}.
 #' @param schedule_policy The schedule policy, \code{"dynamic"} or \code{"disjoint"}.
 #' @return A list containing update step and switch information.
 #' @keywords internal
 get_predicting_step <- function(survival, window_size, adjust_policy, adjust_switch, schedule_policy) {
   if (is.na(survival) | survival > 0) {
-    if (adjust_policy & !adjust_switch) {
+    if (adjust_policy == "back_off" & !adjust_switch) {
       adjust_switch <- TRUE
     }
     if (schedule_policy == "dynamic") {
       update <- ifelse(is.na(survival), 1, survival)
     }
   } else {
-    if (adjust_policy & adjust_switch) {
+    if (adjust_policy == "back_off" & adjust_switch) {
       adjust_switch <- FALSE
     }
     if (schedule_policy == "dynamic") {

@@ -1,4 +1,6 @@
 #' @include sim_class.R generics.R
+NULL
+
 
 #' @rdname sim-class
 ar1_sim <- setClass("ar1_sim",
@@ -19,7 +21,7 @@ ar1_sim_result <- setClass("ar1_sim_result",
 setMethod("train_model",
           signature(object = "ar1_sim", trainset_max = "numeric", trainset_avg = "numeric"),
           function(object, trainset_max, trainset_avg) {
-            if (object@mode == "max") {
+            if (object@response == "max") {
               ts_model <- suppressWarnings(tryCatch({
                 stats::arima(x = trainset_max, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
               }, warning = function(w) {
@@ -37,7 +39,7 @@ setMethod("train_model",
               }))
             }
             trained_result <- list("coeffs" = as.numeric(ts_model$coef[1]), "means" = as.numeric(ts_model$coef[2]), "vars" = ts_model$sigma2)
-            return(ar1_sim_process(object, trained_model = trained_result))
+            return(methods::new("ar1_sim_process", object, trained_model = trained_result))
           })
 
 
@@ -54,7 +56,7 @@ setMethod("do_prediction",
             variance <- object@trained_result$vars
 
             # Construct mean
-            if (object@mode == "max") {
+            if (object@response == "max") {
               mu <- rep(last_obs_max, predict_size)
             } else {
               mu <- rep(last_obs_avg, predict_size)
@@ -113,5 +115,5 @@ setMethod("generate_result",
                 utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
               }
             }
-            return(ar1_sim_result(object, result = evaluation, summ = overall_result))
+            return(methods::new("ar1_sim_result", object, result = evaluation, summ = overall_result))
           })

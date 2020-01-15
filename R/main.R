@@ -1,46 +1,49 @@
-#' @include generics.R
+#' @include model_helper.R
+NULL
+
 
 #' Schedule A Job On Given Test Set
 #'
-#' @description Sequantially schedule a given job on given test set.
-#' @param object_process S4 sim object after training.
-#' @param testset_max The test set of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
-#' @param testset_avg The test set of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' Sequantially schedule a given job on given test set.
+#'
+#' @param object_process Hidden S4 sim object after training.
+#' @param testset_max A matrix of size \eqn{n \times m} representing the test set of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param testset_avg A matrix of size \eqn{n \times m} representing the test set of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
 #' @param cpu_required The size of the foreground job.
 #' @return A list containing the resulting scheduling informations.
 #' @keywords internal
 schedule_foreground <- function(object_process, testset_max, testset_avg, cpu_required) {
-  cpu_required <- ifelse(granularity > 0, round_to_nearest(cpu_required, granularity, FALSE), cpu_required)
+  cpu_required <- ifelse(object_process@granularity > 0, round_to_nearest(cpu_required, object_process@granularity, FALSE), cpu_required)
 
   predictions <- c()
   actuals <- c()
 
-  last_time_schedule <- length(testset_max) - 2 * window_size + 1
+  last_time_schedule <- length(testset_max) - 2 * object_process@window_size + 1
 
-  update <- window_size
+  update <- object_process@window_size
   current_end <- 1
 
   adjust_switch <- FALSE
   while (current_end <= last_time_schedule) {
     ## Schedule based on model predictions
-    last_obs_max <- convert_frequency_dataset(testset_max[current_end:(current_end + window_size - 1)], window_size, "max")
-    last_obs_avg <- convert_frequency_dataset(testset_avg[current_end:(current_end + window_size - 1)], window_size, "avg")
+    last_obs_max <- convert_frequency_dataset(testset_max[current_end:(current_end + object_process@window_size - 1)], object_process@window_size, "max")
+    last_obs_avg <- convert_frequency_dataset(testset_avg[current_end:(current_end + object_process@window_size - 1)], object_process@window_size, "avg")
 
     object_process <- do_prediction(object_process, last_obs_max, last_obs_avg, 1, 100 - cpu_required)
     prediction <- check_decision(object_process@predict_result$prob, cut_off_prob)
 
     ## Evalute schedulings based on prediction
-    start_time <- current_end + window_size
-    end_time <- start_time + window_size - 1
-    if (object_process@mode == "max") {
-      actual <- check_actual(testset_max[start_time:end_time], cpu_required, granularity)
+    start_time <- current_end + object_process@window_size
+    end_time <- start_time + object_process@window_size - 1
+    if (object_process@response == "max") {
+      actual <- check_actual(testset_max[start_time:end_time], cpu_required, object_process@granularity)
     } else {
-      actual <- check_actual(testset_avg[start_time:end_time], cpu_required, granularity)
+      actual <- check_actual(testset_avg[start_time:end_time], cpu_required, object_process@granularity)
     }
     actuals <- c(actuals, actual)
 
     ## Update step based on adjustment policy and schedule policy
-    update_info <- get_scheduling_step(prediction, actual, window_size, adjust_policy, adjust_switch, schedule_policy)
+    update_info <- get_scheduling_step(prediction, actual, object_process@window_size, object_process@adjust_policy, adjust_switch, object_process@schedule_policy)
     adjust_switch <- update_info$adjust_switch
     predictions <- c(predictions, update_info$prediction)
     update <- update_info$update
@@ -54,11 +57,12 @@ schedule_foreground <- function(object_process, testset_max, testset_avg, cpu_re
 
 #' Simulation of Scheduling A Job On A Single Trace
 #'
-#' @description Sequantially training and testing by schedulingh a job on a single trace using AR1 Model.
+#' Sequantially training and testing by schedulingh a job on a single trace.
+#'
 #' @param ts_num The corresponding trace/column in \code{dataset}.
-#' @param object The S4 sim object.
-#' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes and avges of CPU information on a machine.
-#' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of maxes and avges of CPU information on a machine.
+#' @param object An S4 sim object.
+#' @param dataset_max A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param dataset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
 #' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
 #' @return A list containing the resulting scheduling informations.
 #' @keywords internal
@@ -73,21 +77,21 @@ svt_scheduleing_sim <- function(ts_num, object, dataset_max, dataset_avg, cpu_re
   correct_unscheduled_num <- c()
 
   current <- 1
-  last_time_update <- length(dataset_max) - update_freq - train_size + 1
+  last_time_update <- length(dataset_max) - object@update_freq - train_size + 1
   train_sig <- TRUE
   while (current <= last_time_update) {
     ## Split into train set and test set
     trainset_max <- dataset_max[current:(current + train_size - 1)]
     trainset_avg <- dataset_avg[current:(current + train_size - 1)]
-    testset_max <- dataset_max[(current + train_size):(current + train_size + update_freq - 1)]
-    testset_avg <- dataset_avg[(current + train_size):(current + train_size + update_freq - 1)]
+    testset_max <- dataset_max[(current + train_size):(current + train_size + object@update_freq - 1)]
+    testset_avg <- dataset_avg[(current + train_size):(current + train_size + object@update_freq - 1)]
 
     ## Convert Frequency for training set
-    new_trainset_max <- convert_frequency_dataset(trainset_max, window_size, "max")
-    new_trainset_avg <- convert_frequency_dataset(trainset_avg, window_size, "avg")
+    new_trainset_max <- convert_frequency_dataset(trainset_max, object@window_size, "max")
+    new_trainset_avg <- convert_frequency_dataset(trainset_avg, object@window_size, "avg")
 
-    starting_points_max <- trainset_max[(train_size - window_size + 1):train_size]
-    starting_points_avg <- trainset_avg[(train_size - window_size + 1):train_size]
+    starting_points_max <- trainset_max[(train_size - object@window_size + 1):train_size]
+    starting_points_avg <- trainset_avg[(train_size - object@window_size + 1):train_size]
 
     ## Train Model
     if (train_sig) {
@@ -111,7 +115,7 @@ svt_scheduleing_sim <- function(ts_num, object, dataset_max, dataset_avg, cpu_re
     correct_unscheduled_num <- c(correct_unscheduled_num, result$correct_unscheduled_num)
 
     ## Update Step
-    current <- current + update_freq
+    current <- current + object@update_freq
   }
 
   scheduled_num <- sum(scheduled_num)
@@ -123,16 +127,18 @@ svt_scheduleing_sim <- function(ts_num, object, dataset_max, dataset_avg, cpu_re
 }
 
 
-#' Simulation of Scheduling A Job With AR1 Model
+#' Simulation of Scheduling A Job
 #'
-#' @description Sequantially training and testing by scheduling a job using AR1 Model.
-#' @param object A vector containing necessary informations or hyperparameters for AR1 model.
-#' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes and avges of CPU information on a machine.
-#' @param dataset_avg A \eqn{n \times m} matrix, with each column is the time series of maxes and avges of CPU information on a machine.
+#' Sequantially training and testing by scheduling a job.
+#'
+#' @param object An S4 sim object.
+#' @param dataset_max A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param dataset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
 #' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
-#' @return
+#' @return A corresponding S4 sim result object.
+#' @importFrom parallel mclapply
 #' @keywords internal
 scheduling_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores, write_result) {
   scheduled_num <- c()
@@ -168,41 +174,41 @@ scheduling_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores
 #' Schedule Jobs Using Predictions On Given Test Set
 #'
 #' @description Sequantially schedule jobs using predictions on provided test set.
-#' @param object_process
-#' @param testset_max
-#' @param testset_avg
-#' @return A list containing the resulting scheduling informations.
+#' @param object_process Hidden S4 sim object after training.
+#' @param testset_max A matrix of size \eqn{n \times m} representing the test set of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param testset_avg A matrix of size \eqn{n \times m} representing the test set of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @return A list containing the resulting prediction informations.
 #' @keywords internal
 predict_model <- function(object_process, testset_max, testset_avg) {
   survivals <- c()
   utilizations <- c()
 
-  last_time_schedule <- length(testset_max) - 2 * window_size + 1
+  last_time_schedule <- length(testset_max) - 2 * object_process@window_size + 1
 
-  update <- window_size
+  update <- object_process@window_size
   current_end <- 1
 
   adjust_switch <- FALSE
   while (current_end <= last_time_schedule) {
     ## Schedule based on model predictions
-    last_obs_max <- convert_frequency_dataset(testset_max[current_end:(current_end + window_size - 1)], window_size, "max")
-    last_obs_avg <- convert_frequency_dataset(testset_avg[current_end:(current_end + window_size - 1)], window_size, "avg")
+    last_obs_max <- convert_frequency_dataset(testset_max[current_end:(current_end + object_process@window_size - 1)], object_process@window_size, "max")
+    last_obs_avg <- convert_frequency_dataset(testset_avg[current_end:(current_end + object_process@window_size - 1)], object_process@window_size, "avg")
 
     object_process <- do_prediction(object_process, last_obs_max, last_obs_avg, 1, NULL)
     pi_up <- compute_pi_up(object_process)
 
     ## Evalute schedulings based on prediction
-    start_time <- current_end + window_size
-    end_time <- start_time + window_size - 1
-    if (object_process@mode == "max") {
-      survival <- check_survival(pi_up, testset_max[start_time:end_time], granularity)
+    start_time <- current_end + object_process@window_size
+    end_time <- start_time + object_process@window_size - 1
+    if (object_process@response == "max") {
+      survival <- check_survival(pi_up, testset_max[start_time:end_time], object_process@granularity)
     } else {
-      survival <- check_survival(pi_up, testset_avg[start_time:end_time], granularity)
+      survival <- check_survival(pi_up, testset_avg[start_time:end_time], object_process@granularity)
     }
-    utilization <- check_utilization(pi_up, survival, granularity)
+    utilization <- check_utilization(pi_up, survival, object_process@granularity)
 
     ## Update step based on adjustment policy and schedule policy
-    update_info <- get_predicting_step(survival, window_size, adjust_policy, adjust_switch, schedule_policy)
+    update_info <- get_predicting_step(survival, object_process@window_size, object_process@adjust_policy, adjust_switch, object_process@schedule_policy)
     adjust_switch <- update_info$adjust_switch
     update <- update_info$update
 
@@ -214,10 +220,10 @@ predict_model <- function(object_process, testset_max, testset_avg) {
   }
 
   overall_survival <- compute_survival(survivals)
-  if (object_process@mode == "max") {
-    overall_utilization <- compute_utilization(utilizations, testset_max[(window_size + 1):(current_end - update + 2 * window_size - 1)], window_size, granularity)
+  if (object_process@response == "max") {
+    overall_utilization <- compute_utilization(utilizations, testset_max[(object_process@window_size + 1):(current_end - update + 2 * object_process@window_size - 1)], object_process@window_size, object_process@granularity)
   } else {
-    overall_utilization <- compute_utilization(utilizations, testset_avg[(window_size + 1):(current_end - update + 2 * window_size - 1)], window_size, granularity)
+    overall_utilization <- compute_utilization(utilizations, testset_avg[(object_process@window_size + 1):(current_end - update + 2 * object_process@window_size - 1)], object_process@window_size, object_process@granularity)
   }
   return(list("sur_num" = overall_survival$numerator, "sur_den" = overall_survival$denominator, "util_num" = overall_utilization$numerator, "util_den" = overall_utilization$denominator))
 }
@@ -227,9 +233,9 @@ predict_model <- function(object_process, testset_max, testset_avg) {
 #'
 #' @description Sequantially training and testing by scheduling jobs based on predictions on a single trace using AR1 Model.
 #' @param ts_num The corresponding trace/column in \code{dataset}.
-#' @param dataset_max A \eqn{n \times m} matrix, with each column is the time series of maxes and avges of CPU information on a machine.
-#' @param dataset_avg
-#' @return
+#' @param testset_max A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param testset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @return A list containing the resulting prediction informations.
 #' @keywords internal
 svt_predicting_sim_ar1 <- function(ts_num, object, dataset_max, dataset_avg) {
   dataset <- dataset[, ts_num]
@@ -240,21 +246,21 @@ svt_predicting_sim_ar1 <- function(ts_num, object, dataset_max, dataset_avg) {
   util_den <- c()
 
   current <- 1
-  last_time_update <- length(dataset_max) - update_freq - train_size + 1
+  last_time_update <- length(dataset_max) - object@update_freq - train_size + 1
   train_sig <- TRUE
   while (current <= last_time_update) {
     ## Split into train set and test set
     trainset_max <- dataset_max[current:(current + train_size - 1)]
     trainset_avg <- dataset_avg[current:(current + train_size - 1)]
-    testset_max <- dataset_max[(current + train_size):(current + train_size + update_freq - 1)]
-    testset_avg <- dataset_avg[(current + train_size):(current + train_size + update_freq - 1)]
+    testset_max <- dataset_max[(current + train_size):(current + train_size + object@update_freq - 1)]
+    testset_avg <- dataset_avg[(current + train_size):(current + train_size + object@update_freq - 1)]
 
     ## Convert Frequency for training set
-    new_trainset_max <- convert_frequency_dataset(trainset_max, window_size, "max")
-    new_trainset_avg <- convert_frequency_dataset(trainset_avg, window_size, "avg")
+    new_trainset_max <- convert_frequency_dataset(trainset_max, object@window_size, "max")
+    new_trainset_avg <- convert_frequency_dataset(trainset_avg, object@window_size, "avg")
 
-    starting_points_max <- trainset_max[(train_size - window_size + 1):train_size]
-    starting_points_avg <- trainset_avg[(train_size - window_size + 1):train_size]
+    starting_points_max <- trainset_max[(train_size - object@window_size + 1):train_size]
+    starting_points_avg <- trainset_avg[(train_size - object@window_size + 1):train_size]
 
     ## Train Model
     if (train_sig) {
@@ -278,7 +284,7 @@ svt_predicting_sim_ar1 <- function(ts_num, object, dataset_max, dataset_avg) {
     util_den <- c(util_den, result$util_den)
 
     ## Update Step
-    current <- current + update_freq
+    current <- current + object@update_freq
   }
 
   sur_num <- sum(sur_num)
@@ -292,12 +298,13 @@ svt_predicting_sim_ar1 <- function(ts_num, object, dataset_max, dataset_avg) {
 #' Simulation of Scheduling Jobs Based On Predictions With AR1 Model
 #'
 #' @description Sequantially training and testing by scheduling a job using AR1 Model.
-#' @param object
-#' @param dataset_max
-#' @param dataset_avg
-#' @param cores
-#' @param write_result
-#' @return
+#' @param object A S4 sim object.
+#' @param testset_max A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param testset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
+#' @param write_result TRUE if the result of the experiment is written to a file.
+#' @return A list containing the resulting prediction informations.
+#' @importFrom parallel mclapply
 #' @keywords internal
 predicting_sim_ar1 <- function(object, dataset_max, dataset_avg, cores, write_result) {
   sur_num <- c()
@@ -328,4 +335,9 @@ predicting_sim_ar1 <- function(object, dataset_max, dataset_avg, cores, write_re
   object_result <- generate_result(object, evaluate_info, write_result)
 
   return(object_result)
+}
+
+
+run_sim <- function(object) {
+
 }

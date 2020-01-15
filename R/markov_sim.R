@@ -1,10 +1,32 @@
 #' @include sim_class.R generics.R
+NULL
+
+
+#' Validity Checker for markov_sim Object
+#'
+#' @param object A markov_sim object
+#' @return \code{TRUE} if the input sim object is valid, vector of error messages otherwise.
+#' @keywords internal
+check_valid_markov_sim <- function(object) {
+  errors <- character()
+  if (any(is.na(object@state_num)) | any(object@state_num %% 1 != 0) | any(object@state_num <= 0)) {
+    msg <- paste0("state_num must only consist positive integers.")
+    errors <- c(errors, msg)
+  }
+  if (length(errors) == 0) {
+    return(TRUE)
+  } else {
+    return(errors)
+  }
+}
+
 
 #' @rdname sim-class
 markov_sim <- setClass("markov_sim",
                        slots = list(state_num = "numeric"),
                        prototype = list(state_num = c(8, 16, 32)),
-                       contains = "sim")
+                       contains = "sim",
+                       validity = check_valid_markov_sim)
 
 markov_sim_process <- setClass("markov_sim_process",
                             slots = list(trained_model = "matrix", predict_result = "list"),
@@ -14,13 +36,13 @@ markov_sim_process <- setClass("markov_sim_process",
 
 markov_sim_result <- setClass("markov_sim_result",
                            slots = list(result = "data.frame", summ = "list"),
-                           contains = "markov_sim_result")
+                           contains = "markov_sim")
 
-
+#' @importFrom methods new
 setMethod("train_model",
           signature(object = "markov_sim", trainset_max = "numeric", trainset_avg = "numeric"),
           function(object, trainset_max, trainset_avg) {
-            if (object@mode == "max") {
+            if (object@response == "max") {
               from_states <- sapply(trainset_max[-length(trainset_max)], find_state_num, state_num)
               to_states <- sapply(trainset_max[-1], find_state_num, state_num)
               uncond_dist <- rep(0, state_num)
@@ -37,11 +59,13 @@ setMethod("train_model",
                 } else {
                   transition[r,] <- transition[r,] / sum(transition[r,])
                 }
+              }
             } else {
               from_states <- sapply(trainset_avg[-length(trainset_avg)], find_state_num, state_num)
               to_states <- sapply(trainset_avg[-1], find_state_num, state_num)
               uncond_dist <- rep(0, state_num)
               transition <- matrix(0, nrow = state_num, ncol = state_num)
+
               for (i in 1:length(from_states)) {
                 from <- from_states[i]
                 to <- to_states[i]
@@ -54,10 +78,11 @@ setMethod("train_model",
                 } else {
                   transition[r,] <- transition[r,] / sum(transition[r,])
                 }
+              }
             }
-            trained_result <- transition
-            return(markov_sim_process(object, trained_model = trained_result))
+            return(methods::new("markov_sim_process", object, trained_model = transition))
           })
+
 
 setMethod("do_prediction",
           signature(object = "markov_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", predict_size = "numeric", level = "numeric"),
@@ -71,7 +96,11 @@ setMethod("do_prediction",
                 parsed_transition[i, i] <- 1
               }
             }
-            from <- find_state_num(last_obs, nrow(object@trained_model))
+            if (response == "max") {
+              from <- find_state_num(last_obs_max, nrow(object@trained_model))
+            } else {
+              from <- find_state_num(last_obs_avg, nrow(object@trained_model))
+            }
             to_states <- data.frame()
             if (predict_size > 1) {
               to_states <- rbind(to_states, final_transition[from,])
@@ -98,12 +127,12 @@ setMethod("do_prediction",
 setMethod("compute_pi_up",
           signature(object = "markov_sim_process"),
           function(object) {
-            compute_pi_up_markov_single <- function(to_states, object@cut_off_prob) {
+            compute_pi_up_markov_single <- function(to_states, cut_off_prob) {
               current_state <- 1
               current_prob <- 0
               while (current_state <= length(to_states)) {
                 current_prob <- current_prob + to_states[current_state]
-                if (current_prob < 1 - prob_cut_off) {
+                if (current_prob < 1 - object@cut_off_prob) {
                   current_state <- current_state + 1
                 }
                 else {
@@ -142,5 +171,5 @@ setMethod("generate_result",
                 utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
               }
             }
-            return(ar1_sim_result(object, result = evaluation, summ = overall_result))
+            return(methods::new("markov_sim_result", object, result = evaluation, summ = overall_result))
           })

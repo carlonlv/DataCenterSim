@@ -8,6 +8,7 @@ Description: The package attaches open source traces from Microsoft Azure Data C
 Depends: R (>= 3.6.0)
 Imports: 
   stats (>= 3.6.0),
+  methods (>= 3.6.1),
   dplyr (>= 0.8.3),
   fs (>= 1.3.1),
   mvtnorm (>= 1.0.11),
@@ -18,14 +19,11 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.0.1
 Collate: 
-    'ar1_logistic_sim.R'
-    'ar1_markov_sim.R'
+    'sim_class.R'
+    'generics.R'
     'ar1_sim.R'
     'data.R'
-    'main_arguments.R'
-    'main_helper.R'
-    'markov_sim.R'
     'model_helper.R'
-    'sim.R'
-    'sim_generic.R'
-    'var1_sim.R'
+    'main.R'
+    'markov_sim.R'
+    'sim_methods.R'

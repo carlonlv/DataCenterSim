@@ -18,7 +18,7 @@ setGeneric("window_size<-", function(object, value) standardGeneric("window_size
 
 #' Getter/Setter for Cut Off Probability
 #'
-#' A cut off probability is the minimum probability allowed to have next observation below a input threshold, or equals to \eqn{\frac{1/2}(1 - Prob)} as \eqn{Prob} stands for Probability in Prediction Interval.
+#' A cut off probability is the minimum probability allowed to have next observation below a input threshold, or equals to \eqn{\frac{1}{2}(1 - Prob)} as \eqn{Prob} stands for Probability in Prediction Interval.
 #'
 #' @param object An S4 sim object
 #' @name cut_off_prob

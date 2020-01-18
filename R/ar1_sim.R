@@ -1,23 +1,26 @@
 #' @include sim_class.R generics.R
 NULL
 
-
 #' @rdname sim-class
+#' @name ar1_sim-class
+#' @export ar1_sim
 ar1_sim <- setClass("ar1_sim",
-                    contains = "sim")
+                    contains = "sim",
+                    prototype = list(name = "AR1"))
 
-
+#' @rdname sim_process-class
 ar1_sim_process <- setClass("ar1_sim_process",
                             slots = list(trained_model = "list", predict_result = "list"),
                             prototype = list(trained_model = list(), predict_result = list()),
                             contains = "ar1_sim")
 
-
+#' @rdname sim_result-class
 ar1_sim_result <- setClass("ar1_sim_result",
                            slots = list(result = "data.frame", summ = "list"),
                            contains = "ar1_sim")
 
 
+#' @describeIn train_model Train AR1 Model specific to ar1_sim object.
 setMethod("train_model",
           signature(object = "ar1_sim", trainset_max = "numeric", trainset_avg = "numeric"),
           function(object, trainset_max, trainset_avg) {
@@ -43,6 +46,7 @@ setMethod("train_model",
           })
 
 
+#' @describeIn do_prediction Do prediction based on trained AR1 Model.
 setMethod("do_prediction",
           signature(object = "ar1_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", predict_size = "numeric", level = "numeric"),
           function(object, last_obs_max, last_obs_avg, predict_size, level) {
@@ -78,6 +82,7 @@ setMethod("do_prediction",
           })
 
 
+#' @describeIn compute_pi_up Compute prediction interval Upper Bound based on trained AR1 Model.
 setMethod("compute_pi_up",
           signature(object = "ar1_sim_process"),
           function(object) {
@@ -90,30 +95,10 @@ setMethod("compute_pi_up",
             return(max(upper_bounds))
           })
 
-
-setMethod("generate_result",
+#' @describeIn get_sim_save Generate ar1_sim_result object from simulation.
+setMethod("get_sim_save",
           signature(object = "ar1_sim", evaluation = "data.frame", write_result = "logical"),
           function(object, evaluation, write_result) {
-            overall_result <- find_overall_evaluation(evaluation$sur_num, evaluation$sur_den, evaluation$util_num, evaluation$util_den)
-
-            print(paste("Avg Survival Rate:", overall_result$avg_score1))
-            print(paste("Agg Survival Rate:", overall_result$agg_score1))
-            print(paste("Avg Utilization Rate:", overall_result$avg_score2))
-            print(paste("Agg Utilization Rate:", overall_result$agg_score2))
-
-            if (write_result) {
-              file_name <- paste("AR1", "Sim:", object@type, "Train:", object@training_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
-              fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
-              param <- c(object@window_size, object@cut_off_prob, object@granularity, object@train_size, object@update_freq, object@tolerance)
-              new_row <- data.frame()
-              new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
-              colnames(new_row) <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance", "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
-              if (!fs::file_exists(fp)) {
-                fs::file_create(fp)
-                utils::write.table(new_row, file = fp, append = FALSE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
-              } else {
-                utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
-              }
-            }
-            return(methods::new("ar1_sim_result", object, result = evaluation, summ = overall_result))
+            gn_result <- generate_result(object, evaluation, write_result)
+            return(methods::new("ar1_sim_result", object, result = gn_result$result, summ = gn_result$summ))
           })

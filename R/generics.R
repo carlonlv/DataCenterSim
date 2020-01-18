@@ -1,6 +1,23 @@
 #' @include sim_class.R
 NULL
 
+#' Getter/Setter for Simulation Type
+#'
+#' A type is the type of simulation, that can only take \code{"predicting"} and \code{"scheduling"}. If \code{"scheduling"} is provided, simulation sequantially training and testing by scheduling a job with job size supplied by cpu_required, if \code{"predicting"} is supplied, sequential training and testing is made by predictions based on previous observations.
+#'
+#' @param object An S4 sim object.
+#' @name type
+#' @rdname type
+#' @export
+setGeneric("type", function(object) standardGeneric("type"))
+
+#' @param value A character value that can either be \code{"predicting"} or \code{"scheduling"}.
+#' @name type<-
+#' @rdname type
+#' @export
+setGeneric("type<-", function(object, value) standardGeneric("type<-"))
+
+
 #' Getter/Setter for Window Size
 #'
 #' A window size is the length of aggregation of observations as an alternative or reduction of extrapolation in forecasting.
@@ -8,11 +25,13 @@ NULL
 #' @param object An S4 sim object.
 #' @name window_size
 #' @rdname window_size
+#' @export
 setGeneric("window_size", function(object) standardGeneric("window_size"))
 
 #' @param value A numeric value that is a postive integer.
 #' @name window_size<-
 #' @rdname window_size
+#' @export
 setGeneric("window_size<-", function(object, value) standardGeneric("window_size<-"))
 
 
@@ -23,11 +42,13 @@ setGeneric("window_size<-", function(object, value) standardGeneric("window_size
 #' @param object An S4 sim object
 #' @name cut_off_prob
 #' @rdname cut_off_prob
+#' @export
 setGeneric("cut_off_prob", function(object) standardGeneric("cut_off_prob"))
 
 #' @param value A numeric value between 0 and 1, exclusive.
 #' @name cut_off_prob<-
 #' @rdname cut_off_prob
+#' @export
 setGeneric("cut_off_prob<-", function(object, value) standardGeneric("cut_off_prob<-"))
 
 
@@ -38,11 +59,13 @@ setGeneric("cut_off_prob<-", function(object, value) standardGeneric("cut_off_pr
 #' @param object An S4 sim object.
 #' @name granularity
 #' @rdname granularity
+#' @export
 setGeneric("granularity", function(object) standardGeneric("granularity"))
 
 #' @param value A numeric value that is beteen 0 and 100, right exclusive.
 #' @name granularity<-
 #' @rdname granularity
+#' @export
 setGeneric("granularity<-", function(object, value) standardGeneric("granularity<-"))
 
 
@@ -53,11 +76,13 @@ setGeneric("granularity<-", function(object, value) standardGeneric("granularity
 #' @param object An S4 sim object
 #' @name train_size
 #' @rdname train_size
+#' @export
 setGeneric("train_size", function(object) standardGeneric("train_size"))
 
 #' @param value A numeric value that is a positive integer.
 #' @name train_size<-
 #' @rdname train_size
+#' @export
 setGeneric("train_size<-", function(object, value) standardGeneric("train_size<-"))
 
 
@@ -68,11 +93,13 @@ setGeneric("train_size<-", function(object, value) standardGeneric("train_size<-
 #' @param object An S4 sim object.
 #' @name update_freq
 #' @rdname update_freq
+#' @export
 setGeneric("update_freq", function(object) standardGeneric("update_freq"))
 
 #' @param value A numeric value that is a positive integer.
 #' @name update_freq<-
 #' @rdname update_freq
+#' @export
 setGeneric("update_freq<-", function(object, value) standardGeneric("update_freq<-"))
 
 
@@ -83,11 +110,13 @@ setGeneric("update_freq<-", function(object, value) standardGeneric("update_freq
 #' @param object An S4 sim object.
 #' @name train_policy
 #' @rdname train_policy
+#' @export
 setGeneric("train_policy", function(object) standardGeneric("train_policy"))
 
 #' @param value A character value that can either be \code{"once"} for offline training, or \code{"fixed"} for online training with fixed frequency, or \code{"dynamic"} for online training based on evalutions.
 #' @name train_policy<-
 #' @rdname train_policy
+#' @export
 setGeneric("train_policy<-", function(object, value) standardGeneric("train_policy<-"))
 
 
@@ -98,11 +127,13 @@ setGeneric("train_policy<-", function(object, value) standardGeneric("train_poli
 #' @param object An S4 sim object.
 #' @name schedule_policy
 #' @rdname schedule_policy
+#' @export
 setGeneric("schedule_policy", function(object) standardGeneric("schedule_policy"))
 
 #' @param value A character value that can either be \code{"disjoint"} for scheduling with fixed frequency, or \code{"dynamic"} for scheduling with dynamic strategy.
 #' @name schedule_policy<-
 #' @rdname schedule_policy
+#' @export
 setGeneric("schedule_policy<-", function(object, value) standardGeneric("schedule_policy<-"))
 
 
@@ -113,11 +144,13 @@ setGeneric("schedule_policy<-", function(object, value) standardGeneric("schedul
 #' @param object An S4 sim object.
 #' @name adjust_policy
 #' @rdname adjust_policy
+#' @export
 setGeneric("adjust_policy", function(object) standardGeneric("adjust_policy"))
 
 #' @param value A character value that can either be \code{"back_off"} for backing off strategy or \code{"none"}.
 #' @name adjust_policy<-
 #' @rdname adjust_policy
+#' @export
 setGeneric("adjust_policy<-", function(object, value) standardGeneric("adjust_policy<-"))
 
 
@@ -128,11 +161,13 @@ setGeneric("adjust_policy<-", function(object, value) standardGeneric("adjust_po
 #' @param object An S4 sim object
 #' @name result_loc
 #' @rdname result_loc
+#' @export
 setGeneric("result_loc", function(object) standardGeneric("result_loc"))
 
 #' @param value A character value of the path to a directory.
 #' @name result_loc<-
 #' @rdname result_loc
+#' @export
 setGeneric("result_loc<-", function(object, value) standardGeneric("result_loc<-"))
 
 
@@ -143,11 +178,13 @@ setGeneric("result_loc<-", function(object, value) standardGeneric("result_loc<-
 #' @param object An S4 sim object
 #' @name tolerance
 #' @rdname tolerance
+#' @export
 setGeneric("tolerance", function(object) standardGeneric("tolerance"))
 
 #' @param value A numeric value that is between 0 and 1, exclusive.
 #' @name tolerance<-
 #' @rdname tolerance
+#' @export
 setGeneric("tolerance<-", function(object, value) standardGeneric("tolerance<-"))
 
 
@@ -158,11 +195,13 @@ setGeneric("tolerance<-", function(object, value) standardGeneric("tolerance<-")
 #' @param object An S4 sim object
 #' @name response
 #' @rdname response
+#' @export
 setGeneric("response", function(object) standardGeneric("response"))
 
 #' @param value A character value that is either \code{"max"} or \code{"avg"}.
 #' @name response<-
 #' @rdname response
+#' @export
 setGeneric("response<-", function(object, value) standardGeneric("response<-"))
 
 
@@ -173,12 +212,22 @@ setGeneric("response<-", function(object, value) standardGeneric("response<-"))
 #' @param object An S4 sim object.
 #' @name state_num
 #' @rdname state_num
+#' @export
 setGeneric("state_num", function(object) standardGeneric("state_num"))
 
 #' @param value A numeric value that is a positive integer.
 #' @name state_num<-
 #' @rdname state_num
+#' @export
 setGeneric("state_num<-", function(object, value) standardGeneric("state_num<-"))
+
+
+
+setGeneric("get_numeric_slots", function(object) standardGeneric("get_numeric_slots"))
+
+
+
+setGeneric("split_to_uni", function(object) standardGeneric("split_to_uni"))
 
 
 #' Train Model
@@ -219,15 +268,12 @@ setGeneric("do_prediction", function(object, last_obs_max, last_obs_avg, predict
 #' @rdname compute_pi_up
 setGeneric("compute_pi_up", function(object) standardGeneric("compute_pi_up"))
 
-
-#' Generate The Result Of Simulation
+#' Generate Simulation Result
 #'
-#' This is a generic function that generates of the output of simulation.
-#'
-#' @param object An S4 sim object.
+#' @param object An S4 sim_result object.
 #' @param evaluation The evaluation dataframe with each row representing each trace, and the columns consists of performance information.
 #' @param write_result A logical TRUE/FALSE argument to determine whether to store the result of simulation to a file to location stored as an attribute in sim object.
-#' @return An S4 sim result object with evaluation information.
-#' @name generate_result
-#' @rdname generate_result
-setGeneric("generate_result", function(object, evaluation, write_result) standardGeneric("generate_result"))
+#' @return An S4 sim_result object.
+#' @name get_sim_save
+#' @rdname get_sim_save
+setGeneric("get_sim_save", function(object, evaluation, write_result) standardGeneric("get_sim_save"))

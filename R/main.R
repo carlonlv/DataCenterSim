@@ -1,7 +1,6 @@
 #' @include model_helper.R
 NULL
 
-
 #' Schedule A Job On Given Test Set
 #'
 #' Sequantially schedule a given job on given test set.
@@ -138,7 +137,6 @@ svt_scheduleing_sim <- function(ts_num, object, dataset_max, dataset_avg, cpu_re
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
 #' @return A corresponding S4 sim result object.
-#' @importFrom parallel mclapply
 #' @keywords internal
 scheduling_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores, write_result) {
   scheduled_num <- c()
@@ -173,7 +171,8 @@ scheduling_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores
 
 #' Schedule Jobs Using Predictions On Given Test Set
 #'
-#' @description Sequantially schedule jobs using predictions on provided test set.
+#' Sequantially schedule jobs using predictions on provided test set.
+#'
 #' @param object_process Hidden S4 sim object after training.
 #' @param testset_max A matrix of size \eqn{n \times m} representing the test set of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
 #' @param testset_avg A matrix of size \eqn{n \times m} representing the test set of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
@@ -231,13 +230,14 @@ predict_model <- function(object_process, testset_max, testset_avg) {
 
 #' Simulation of Scheduling Jobs Based On Predictions On A Single Trace With AR1 Model
 #'
-#' @description Sequantially training and testing by scheduling jobs based on predictions on a single trace using AR1 Model.
+#' Sequantially training and testing by scheduling jobs based on predictions on a single trace using AR1 Model.
+#'
 #' @param ts_num The corresponding trace/column in \code{dataset}.
-#' @param testset_max A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
-#' @param testset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param dataset_max A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param dataset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
 #' @return A list containing the resulting prediction informations.
 #' @keywords internal
-svt_predicting_sim_ar1 <- function(ts_num, object, dataset_max, dataset_avg) {
+svt_predicting_sim <- function(ts_num, object, dataset_max, dataset_avg) {
   dataset <- dataset[, ts_num]
 
   sur_num <- c()
@@ -297,16 +297,16 @@ svt_predicting_sim_ar1 <- function(ts_num, object, dataset_max, dataset_avg) {
 
 #' Simulation of Scheduling Jobs Based On Predictions With AR1 Model
 #'
-#' @description Sequantially training and testing by scheduling a job using AR1 Model.
+#' Sequantially training and testing by scheduling a job using AR1 Model.
+#'
 #' @param object A S4 sim object.
-#' @param testset_max A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
-#' @param testset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param dataset_max A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param dataset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
-#' @return A list containing the resulting prediction informations.
-#' @importFrom parallel mclapply
+#' @return An S4 sim result object.
 #' @keywords internal
-predicting_sim_ar1 <- function(object, dataset_max, dataset_avg, cores, write_result) {
+predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result) {
   sur_num <- c()
   sur_den <- c()
   util_num <- c()
@@ -317,7 +317,7 @@ predicting_sim_ar1 <- function(object, dataset_max, dataset_avg, cores, write_re
 
   ## Do Simulation
   start_time <- proc.time()
-  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim_ar1, object, dataset_max, dataset_avg, mc.cores = cores)
+  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, object, dataset_max, dataset_avg, mc.cores = cores)
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -338,6 +338,23 @@ predicting_sim_ar1 <- function(object, dataset_max, dataset_avg, cores, write_re
 }
 
 
-run_sim <- function(object) {
-
+#' Run Simulation
+#'
+#' The simulation dependes on the \code{type} attribute of the sim object, if \code{"scheduling"} is provided, simulation sequantially training and testing by scheduling a job with job size supplied by \code{cpu_required}, if \code{"predicting"} is supplied, sequential training and testing is made by predictions based on previous observations.
+#'
+#' @param object An S4 sim object.
+#' @param dataset_max A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param dataset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
+#' @param write_result TRUE if the result of the experiment is written to a file.
+#' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine, default value is \code{NULL}.
+#' @return An S4 sim result object.
+#' @export
+run_sim <- function(object, dataset_max, dataset_avg, cores, write_result, cpu_required=NULL) {
+  if (object@type == "scheduling") {
+    object_result <- scheduling_sim(object, dataset_max, dataset_avg, cpu_required, cores, write_result)
+  } else {
+    object_result <- predicting_sim(object, dataset_max, dataset_avg, cores, write_result)
+  }
+  return(object_result)
 }

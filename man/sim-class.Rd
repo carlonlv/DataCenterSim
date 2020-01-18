@@ -15,6 +15,8 @@ An S4 Class to Represent A Simulation.
 \section{Slots}{
 
 \describe{
+\item{\code{name}}{A character that represents the name of the simulation.}
+
 \item{\code{type}}{A character that specify the type of simulation to run, this can either be \code{"scheduling"} or \code{"predicting"}.}
 
 \item{\code{window_size}}{A numeric vector that can only be integers to specify how many observations to be aggregated as one.}

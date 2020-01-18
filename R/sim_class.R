@@ -1,3 +1,6 @@
+#' @include DataCenterSim.R
+NULL
+
 #' Validity Checker for sim Object
 #'
 #' @param object A sim object
@@ -10,6 +13,10 @@ check_valid_sim <- function(object) {
   adjust_policy_choices <- c("back_off", "none")
   response_choices <- c("max", "avg")
   errors <- character()
+  if (length(object@name) != 1 | is.na(object@name)) {
+    msg <- paste0("name must be a length 1 character.")
+    errors <- c(errors, msg)
+  }
   if (length(object@type) != 1 | is.na(object@type) | all(object@type != type_choices)) {
     msg <- paste0("type must be one of ", paste(type_choices, collapse = " "), ".")
     errors <- c(errors, msg)
@@ -68,6 +75,7 @@ check_valid_sim <- function(object) {
 
 #' An S4 Class to Represent A Simulation.
 #'
+#' @slot name A character that represents the name of the simulation.
 #' @slot type A character that specify the type of simulation to run, this can either be \code{"scheduling"} or \code{"predicting"}.
 #' @slot window_size A numeric vector that can only be integers to specify how many observations to be aggregated as one.
 #' @slot cut_off_prob A numeric vector that is the the maximum probability allowed to have next scheduling failing if \code{type = "scheduling"}, and the level of the prediction interval if \code{type = "predicting"}. Default values are \code{0.005, 0.01, 0.1}.
@@ -84,7 +92,8 @@ check_valid_sim <- function(object) {
 #' @rdname sim-class
 #' @exportClass sim
 sim <- setClass("sim",
-                slots = list(type = "character",
+                slots = list(name = "character",
+                             type = "character",
                              window_size = "numeric",
                              cut_off_prob = "numeric",
                              granularity = "numeric",
@@ -96,7 +105,8 @@ sim <- setClass("sim",
                              tolerance = "numeric",
                              response = "character",
                              result_loc = "character"),
-                prototype = list(type = NA_character_,
+                prototype = list(name = NA_character_,
+                                 type = NA_character_,
                                  window_size = c(12),
                                  cut_off_prob = c(0.005, 0.01, 0.1),
                                  granularity = c(3.125, 1.5625, 0),
@@ -106,6 +116,29 @@ sim <- setClass("sim",
                                  schedule_policy = "dynamic",
                                  adjust_policy = "none",
                                  tolerance = c(0.45, 0.5),
-                                 response = NA_character_,
+                                 response = "max",
                                  result_loc = getwd()),
                 validity = check_valid_sim)
+
+
+#' An S4 Class to Represent A Hidden Processing Simulation
+#'
+#' This Class is not created mannually by user, but produced as the result of generic functions: \code{train_model} and \code{do_prediction}. It should extend the corresponding sim object.
+#'
+#' @slot trained_model An additional slot to \code{sim} object, typically a list to store all the information that could represent a trained model. This information should be used in \code{do_prediction} generic function.
+#' @slot predict_result An additional slot to \code{sim} object, typically a list to store all the information about predicted information. This information should be used in \code{compute_pi_up} generic function.
+#' @seealso \code{\link{sim-class}} for super class, \code{\link{train_model}} for producing \code{sim_process} object, \code{\link{do_prediction}} and \code{\link{compute_pi_up}} for use of \code{sim_process} object.
+#' @name sim_process-class
+NULL
+
+
+#' An S4 Class to Represent Result of Simulation
+#'
+#' This Class is not created mannually by user, but produced as the result of the main simulation functions: \code{run_sim}.
+#'
+#' @slot result A dataframe object storing the result of simulation for each trace, each row represents one trace, and the columns represent the performance information.
+#' @slot summ A list representing the summary of all traces, with four elements: average, aggregated score 1 and score 2.
+#' @seealso \code{\link{sim-class}} for super class.
+#' @name sim_result-class
+NULL
+

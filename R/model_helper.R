@@ -375,3 +375,39 @@ find_state_num <- function(obs, state_num) {
   return(state)
 }
 
+
+#' Generate The Result Of Simulation
+#'
+#' @param object A subclass of S4 sim object.
+#' @param evaluation The evaluation dataframe with each row representing each trace, and the columns consists of performance information.
+#' @param write_result A logical TRUE/FALSE argument to determine whether to store the result of simulation to a file to location stored as an attribute in sim object.
+#' @return A list cotaining information needed by S4 sim result object.
+#' @keywords internal
+generate_result <- function(object, evaluation, write_result) {
+  overall_result <- find_overall_evaluation(evaluation$sur_num, evaluation$sur_den, evaluation$util_num, evaluation$util_den)
+
+  print(paste("Avg Survival Rate:", overall_result$avg_score1))
+  print(paste("Agg Survival Rate:", overall_result$agg_score1))
+  print(paste("Avg Utilization Rate:", overall_result$avg_score2))
+  print(paste("Agg Utilization Rate:", overall_result$agg_score2))
+
+  if (write_result) {
+    file_name <- paste(object@name, "Sim:", object@type, "Train:", object@training_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
+    fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
+    param <- c(object@window_size, object@cut_off_prob, object@granularity, object@train_size, object@update_freq, object@tolerance)
+    new_row <- data.frame()
+    new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
+    if (object@type == "scheduling") {
+      colnames(new_row) <- c(names(get_numeric_slots(object)), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
+    } else {
+      colnames(new_row) <- c(names(get_numeric_slots(object)), "avg_survival_rate", "agg_survival_rate", "avg_utilization_rate", "agg_utilization_rate")
+    }
+    if (!fs::file_exists(fp)) {
+      fs::file_create(fp)
+      utils::write.table(new_row, file = fp, append = FALSE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
+    } else {
+      utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
+    }
+  }
+  return(list("result" = evaluation, "summ" = overall_result))
+}

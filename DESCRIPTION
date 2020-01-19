@@ -28,3 +28,4 @@ Collate:
     'main.R'
     'markov_sim.R'
     'sim_methods.R'
+    'var1_sim.R'

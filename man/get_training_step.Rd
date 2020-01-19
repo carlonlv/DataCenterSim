@@ -4,8 +4,14 @@
 \alias{get_training_step}
 \title{Get Training Update Step.}
 \usage{
-get_training_step(training_policy, tolerance, prev_score1, prev_score2,
-  last_score1, last_score2)
+get_training_step(
+  training_policy,
+  tolerance,
+  prev_score1,
+  prev_score2,
+  last_score1,
+  last_score2
+)
 }
 \arguments{
 \item{training_policy}{The training policy, either \code{"once"}, \code{"fixed"} or \code{"dynamic"}.}

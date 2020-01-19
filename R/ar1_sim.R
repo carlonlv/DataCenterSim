@@ -24,21 +24,23 @@ ar1_sim_result <- setClass("ar1_sim_result",
 setMethod("train_model",
           signature(object = "ar1_sim", trainset_max = "numeric", trainset_avg = "numeric"),
           function(object, trainset_max, trainset_avg) {
+            new_trainset_max <- convert_frequency_dataset(trainset_max, object@window_size, "max")
+            new_trainset_avg <- convert_frequency_dataset(trainset_avg, object@window_size, "avg")
             if (object@response == "max") {
               ts_model <- suppressWarnings(tryCatch({
-                stats::arima(x = trainset_max, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
+                stats::arima(x = new_trainset_max, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
               }, warning = function(w) {
-                stats::arima(x = trainset_max, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "BFGS")
+                stats::arima(x = new_trainset_max, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "BFGS")
               }, error = function(cond) {
-                stats::arima(x = trainset_max, order = c(1,0,0), include.mean = TRUE, method = "CSS", optim.control = list(maxit = 2000), optim.method = "CG")
+                stats::arima(x = new_trainset_max, order = c(1,0,0), include.mean = TRUE, method = "CSS", optim.control = list(maxit = 2000), optim.method = "CG")
               }))
             } else {
               ts_model <- suppressWarnings(tryCatch({
-                stats::arima(x = trainset_avg, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
+                stats::arima(x = new_trainset_avg, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
               }, warning = function(w) {
-                stats::arima(x = trainset_avg, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "BFGS")
+                stats::arima(x = new_trainset_avg, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "BFGS")
               }, error = function(cond) {
-                stats::arima(x = trainset_avg, order = c(1,0,0), include.mean = TRUE, method = "CSS", optim.control = list(maxit = 2000), optim.method = "CG")
+                stats::arima(x = new_trainset_avg, order = c(1,0,0), include.mean = TRUE, method = "CSS", optim.control = list(maxit = 2000), optim.method = "CG")
               }))
             }
             trained_result <- list("coeffs" = as.numeric(ts_model$coef[1]), "means" = as.numeric(ts_model$coef[2]), "vars" = ts_model$sigma2)

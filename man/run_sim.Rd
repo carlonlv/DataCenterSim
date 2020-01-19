@@ -4,8 +4,14 @@
 \alias{run_sim}
 \title{Run Simulation}
 \usage{
-run_sim(object, dataset_max, dataset_avg, cores, write_result,
-  cpu_required = NULL)
+run_sim(
+  object,
+  dataset_max,
+  dataset_avg,
+  cores,
+  write_result,
+  cpu_required = NULL
+)
 }
 \arguments{
 \item{object}{An S4 sim object.}

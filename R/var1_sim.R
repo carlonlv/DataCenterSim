@@ -24,15 +24,17 @@ var1_sim_result <- setClass("var1_sim_result",
 setMethod("train_model",
           signature(object = "var1_sim", trainset_max = "numeric", trainset_avg = "numeric"),
           function(object, trainset_max, trainset_avg) {
+            new_trainset_max <- convert_frequency_dataset(trainset_max, object@window_size, "max")
+            new_trainset_avg <- convert_frequency_dataset(trainset_avg, object@window_size, "avg")
             if (object@response == "max") {
               uni_data_matrix <- matrix(nrow = length(trainset_max), ncol = 2)
-              uni_data_matrix[,1] <- trainset_max
-              uni_data_matrix[,2] <- trainset_avg
+              uni_data_matrix[,1] <- new_trainset_max
+              uni_data_matrix[,2] <- new_trainset_avg
               trained_result <- MTS::VAR(uni_data_matrix, p = 1, include.mean = TRUE, output = FALSE)
             } else {
               uni_data_matrix <- matrix(nrow = length(trainset_max), ncol = 2)
-              uni_data_matrix[,1] <- trainset_avg
-              uni_data_matrix[,2] <- trainset_max
+              uni_data_matrix[,1] <- new_trainset_avg
+              uni_data_matrix[,2] <- new_trainset_max
               trained_result <- MTS::VAR(uni_data_matrix, p = 1, include.mean = TRUE, output = FALSE)
             }
             return(methods::new("var1_sim_process", object, trained_model = trained_result))

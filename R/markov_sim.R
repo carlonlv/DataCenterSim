@@ -44,9 +44,11 @@ markov_sim_result <- setClass("markov_sim_result",
 setMethod("train_model",
           signature(object = "markov_sim", trainset_max = "numeric", trainset_avg = "numeric"),
           function(object, trainset_max, trainset_avg) {
+            new_trainset_max <- convert_frequency_dataset_overlapping(trainset_max, object@window_size, "max")
+            new_trainset_avg <- convert_frequency_dataset_overlapping(trainset_avg, object@window_size, "avg")
             if (object@response == "max") {
-              from_states <- sapply(trainset_max[-length(trainset_max)], find_state_num, state_num)
-              to_states <- sapply(trainset_max[-1], find_state_num, state_num)
+              from_states <- sapply(new_trainset_max[-length(new_trainset_max)], find_state_num, state_num)
+              to_states <- sapply(new_trainset_max[-1], find_state_num, state_num)
               uncond_dist <- rep(0, state_num)
               transition <- matrix(0, nrow = state_num, ncol = state_num)
               for (i in 1:length(from_states)) {
@@ -63,8 +65,8 @@ setMethod("train_model",
                 }
               }
             } else {
-              from_states <- sapply(trainset_avg[-length(trainset_avg)], find_state_num, state_num)
-              to_states <- sapply(trainset_avg[-1], find_state_num, state_num)
+              from_states <- sapply(new_trainset_avg[-length(new_trainset_avg)], find_state_num, state_num)
+              to_states <- sapply(new_trainset_avg[-1], find_state_num, state_num)
               uncond_dist <- rep(0, state_num)
               transition <- matrix(0, nrow = state_num, ncol = state_num)
 

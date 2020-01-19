@@ -86,15 +86,12 @@ svt_scheduleing_sim <- function(ts_num, object, dataset_max, dataset_avg, cpu_re
     testset_avg <- dataset_avg[(current + train_size):(current + train_size + object@update_freq - 1)]
 
     ## Convert Frequency for training set
-    new_trainset_max <- convert_frequency_dataset(trainset_max, object@window_size, "max")
-    new_trainset_avg <- convert_frequency_dataset(trainset_avg, object@window_size, "avg")
-
     starting_points_max <- trainset_max[(train_size - object@window_size + 1):train_size]
     starting_points_avg <- trainset_avg[(train_size - object@window_size + 1):train_size]
 
     ## Train Model
     if (train_sig) {
-      object_process <- train_model(object, new_trainset_max, new_trainset_avg)
+      object_process <- train_model(object, trainset_max, trainset_avg)
     }
 
     ## Test Model
@@ -256,15 +253,12 @@ svt_predicting_sim <- function(ts_num, object, dataset_max, dataset_avg) {
     testset_avg <- dataset_avg[(current + train_size):(current + train_size + object@update_freq - 1)]
 
     ## Convert Frequency for training set
-    new_trainset_max <- convert_frequency_dataset(trainset_max, object@window_size, "max")
-    new_trainset_avg <- convert_frequency_dataset(trainset_avg, object@window_size, "avg")
-
     starting_points_max <- trainset_max[(train_size - object@window_size + 1):train_size]
     starting_points_avg <- trainset_avg[(train_size - object@window_size + 1):train_size]
 
     ## Train Model
     if (train_sig) {
-      object_process <- train_model(object, new_trainset_max, new_trainset_avg)
+      object_process <- train_model(object, trainset_max, trainset_avg)
     }
 
     ## Test Model

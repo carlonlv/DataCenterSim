@@ -260,3 +260,6 @@ setGeneric("compute_pi_up", function(object) standardGeneric("compute_pi_up"))
 #' @name get_sim_save
 #' @rdname get_sim_save
 setGeneric("get_sim_save", function(object, evaluation, write_result) standardGeneric("get_sim_save"))
+
+
+setGeneric("plot_sim", function(object) standardGeneric("plot_sim"))

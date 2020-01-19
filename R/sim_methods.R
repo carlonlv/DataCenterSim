@@ -266,3 +266,31 @@ setMethod("split_to_uni",
             }
             return(result)
           })
+
+
+setMethod("plot_sim",
+          signature(object = "sim"),
+          function(object) {
+            file_name <- paste(object@name, "Sim:", object@type, "Train:", object@training_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
+            fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
+            if (object@type == "scheduling") {
+              coln <- c(names(get_numeric_slots(object)), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
+              result <- utils::read.table(fp, quote = "", col.names = coln, row.names = NULL, sep = ",")
+              plt <- ggplot2::ggplot(result, ggplot2::aes(x = result$agg_correct_scheduled_rate, y = result$agg_correct_unscheduled_rate)) +
+                ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(size = result$window_size, shape = result$update_freq, alpha = result$granularity, colour = result$train_size, fill = result$tolerance))
+            } else {
+              coln <- c(names(get_numeric_slots(object)), "avg_survival_rate", "agg_survival_rate", "avg_utilization_rate", "agg_utilization_rate")
+              result <- utils::read.table(fp, quote = "", col.names = coln, row.names = NULL, sep = ",")
+              plt <- ggplot2::ggplot(result, ggplot2::aes(x = result$agg_survival_rate, y = result$agg_utilization_rate)) +
+                ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(size = result$window_size, shape = result$update_freq, alpha = result$granularity, colour = result$train_size, fill = result$tolerance))
+            }
+            plt <- plt +
+              ggplot2::scale_shape_manual(values = 21:25) +
+              ggplot2::scale_colour_manual(values = c("black", "grey", "white")) +
+              ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21))) +
+              ggplot2::geom_vline(xintercept = 0.99, linetype = "dashed", color = "red") +
+              ggplot2::ylab("Utilization") +
+              ggplot2::xlab("Survival Rate") +
+              ggplot2::ggtitle(paste("Model Performance of", file_name))
+            return(plt)
+          })

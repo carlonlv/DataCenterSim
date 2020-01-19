@@ -3,6 +3,8 @@
 \name{response}
 \alias{response}
 \alias{response<-}
+\alias{response,sim-method}
+\alias{response<-,sim,numeric-method}
 \title{Getter/Setter for Response}
 \usage{
 response(object)
@@ -17,6 +19,9 @@ response(object) <- value
 \item{object}{An S4 sim object}
 
 \item{value}{A character value that is either \code{"max"} or \code{"avg"}.}
+}
+\value{
+A character representing response of simulation.
 }
 \description{
 Response describes the type of response variable, the maximum of trace to predict or the average of trace to predict.

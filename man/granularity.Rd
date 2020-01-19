@@ -3,6 +3,8 @@
 \name{granularity}
 \alias{granularity}
 \alias{granularity<-}
+\alias{granularity,sim-method}
+\alias{granularity<-,sim,numeric-method}
 \title{Getter/Setter for Granularity}
 \usage{
 granularity(object)
@@ -17,6 +19,9 @@ granularity(object) <- value
 \item{object}{An S4 sim object.}
 
 \item{value}{A numeric value that is beteen 0 and 100, right exclusive.}
+}
+\value{
+A numeric vector representing granularity of simulation.
 }
 \description{
 Granularity in terms of cores equals to \eqn{100 / Num_of_cores}, as each task can only be dispatched in mutiples of granularity. If CPU resources can (ideally) be dispatched in real numbers, granularity can take input of \code{0}.

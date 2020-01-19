@@ -3,6 +3,8 @@
 \name{tolerance}
 \alias{tolerance}
 \alias{tolerance<-}
+\alias{tolerance,sim-method}
+\alias{tolerance<-,sim,numeric-method}
 \title{Getter/Setter for Tolerance}
 \usage{
 tolerance(object)
@@ -17,6 +19,9 @@ tolerance(object) <- value
 \item{object}{An S4 sim object}
 
 \item{value}{A numeric value that is between 0 and 1, exclusive.}
+}
+\value{
+A numeric vector representing tolerance of simulation.
 }
 \description{
 Tolerance is used for dynamic scheme training policy. It controls the minimum quantile of past evaluation the current evaluation needs to supass, otherwise a retrain signal is sent for step.

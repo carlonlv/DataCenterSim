@@ -3,6 +3,8 @@
 \name{adjust_policy}
 \alias{adjust_policy}
 \alias{adjust_policy<-}
+\alias{adjust_policy,sim-method}
+\alias{adjust_policy<-,sim,character-method}
 \title{Getter/Setter for Adjust Policy}
 \usage{
 adjust_policy(object)
@@ -17,6 +19,9 @@ adjust_policy(object) <- value
 \item{object}{An S4 sim object.}
 
 \item{value}{A character value that can either be \code{"back_off"} for backing off strategy or \code{"none"}.}
+}
+\value{
+A numeric vector representing adjust policy of simulation.
 }
 \description{
 Adjust policy specifies the adjustment scheme for sequential scheduling/prediction failures. \code{"back_off"} enforeces backing off strategy that stops scheduling/predicting after a scheduling/prediction has failed, and resume scheduling/predicting after a scheuling/prediction has survived.

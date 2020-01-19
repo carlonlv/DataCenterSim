@@ -3,6 +3,8 @@
 \name{train_policy}
 \alias{train_policy}
 \alias{train_policy<-}
+\alias{train_policy,sim-method}
+\alias{train_policy<-,sim,character-method}
 \title{Getter/Setter for Training Policy}
 \usage{
 train_policy(object)
@@ -17,6 +19,9 @@ train_policy(object) <- value
 \item{object}{An S4 sim object.}
 
 \item{value}{A character value that can either be \code{"once"} for offline training, or \code{"fixed"} for online training with fixed frequency, or \code{"dynamic"} for online training based on evalutions.}
+}
+\value{
+A character representing training policy of simulation.
 }
 \description{
 Training policy specifies the training scheme, as in offline training, online training with fixed frequency, or online training based on current and previous evaluations.

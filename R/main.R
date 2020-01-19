@@ -164,7 +164,7 @@ scheduling_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores
   schedule_info <- data.frame("scheduled_num" = scheduled_num, "unscheduled_num" = unscheduled_num, "correct_scheduled_num" = correct_scheduled_num, "correct_unscheduled_num" = correct_unscheduled_num)
   rownames(schedule_info) <- ts_names
 
-  object_result <- generate_result(object, schedule_info, write_result)
+  object_result <- get_sim_save(object, schedule_info, write_result)
   return(object_result)
 }
 
@@ -332,7 +332,7 @@ predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result
   evaluate_info <- data.frame("sur_num" = sur_num, "sur_den" = sur_den, "util_num" = util_num, "util_den" = util_den)
   rownames(evaluate_info) <- ts_names
 
-  object_result <- generate_result(object, evaluate_info, write_result)
+  object_result <- get_sim_save(object, evaluate_info, write_result)
 
   return(object_result)
 }
@@ -351,10 +351,11 @@ predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result
 #' @return An S4 sim result object.
 #' @export
 run_sim <- function(object, dataset_max, dataset_avg, cores, write_result, cpu_required=NULL) {
+  uni_lst <- split_to_uni(object)
   if (object@type == "scheduling") {
-    object_result <- scheduling_sim(object, dataset_max, dataset_avg, cpu_required, cores, write_result)
+    object_result <- lapply(uni_lst, scheduling_sim, dataset_max, dataset_avg, cpu_required, cores, write_result)
   } else {
-    object_result <- predicting_sim(object, dataset_max, dataset_avg, cores, write_result)
+    object_result <- lapply(uni_lst, predicting_sim, dataset_max, dataset_avg, cores, write_result)
   }
   return(object_result)
 }

@@ -3,6 +3,8 @@
 \name{cut_off_prob}
 \alias{cut_off_prob}
 \alias{cut_off_prob<-}
+\alias{cut_off_prob,sim-method}
+\alias{cut_off_prob<-,sim,numeric-method}
 \title{Getter/Setter for Cut Off Probability}
 \usage{
 cut_off_prob(object)
@@ -17,6 +19,9 @@ cut_off_prob(object) <- value
 \item{object}{An S4 sim object}
 
 \item{value}{A numeric value between 0 and 1, exclusive.}
+}
+\value{
+A numeric vector representing cut off probability of simulation.
 }
 \description{
 A cut off probability is the minimum probability allowed to have next observation below a input threshold, or equals to \eqn{\frac{1}{2}(1 - Prob)} as \eqn{Prob} stands for Probability in Prediction Interval.

@@ -95,6 +95,7 @@ setMethod("compute_pi_up",
             return(max(upper_bounds))
           })
 
+
 #' @describeIn get_sim_save Generate ar1_sim_result object from simulation.
 setMethod("get_sim_save",
           signature(object = "ar1_sim", evaluation = "data.frame", write_result = "logical"),
@@ -102,3 +103,14 @@ setMethod("get_sim_save",
             gn_result <- generate_result(object, evaluation, write_result)
             return(methods::new("ar1_sim_result", object, result = gn_result$result, summ = gn_result$summ))
           })
+
+
+#' @export
+setAs("ar1_sim_result", "data.frame",
+      function(from) {
+        summ <- from@summ
+        numeric_lst <- get_numeric_slots(from)
+        result_numric <- as.data.frame(numeric_lst)
+        result_summ <- as.data.frame(summ)
+        return(cbind(result_numric, result_summ))
+      })

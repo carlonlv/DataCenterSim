@@ -3,6 +3,8 @@
 \name{schedule_policy}
 \alias{schedule_policy}
 \alias{schedule_policy<-}
+\alias{schedule_policy,sim-method}
+\alias{schedule_policy<-,sim,character-method}
 \title{Getter/Setter for Schedule Policy}
 \usage{
 schedule_policy(object)
@@ -17,6 +19,9 @@ schedule_policy(object) <- value
 \item{object}{An S4 sim object.}
 
 \item{value}{A character value that can either be \code{"disjoint"} for scheduling with fixed frequency, or \code{"dynamic"} for scheduling with dynamic strategy.}
+}
+\value{
+A character vector representing schedule policy of simulation.
 }
 \description{
 Scheduling policy specifies the scheduling scheme, as in scheduling with fixed frequency, or retrying to schedule immediately after a job has failed.

@@ -3,6 +3,8 @@
 \name{update_freq}
 \alias{update_freq}
 \alias{update_freq<-}
+\alias{update_freq,sim-method}
+\alias{update_freq<-,sim,numeric-method}
 \title{Getter/Setter for Update Frequency}
 \usage{
 update_freq(object)
@@ -17,6 +19,9 @@ update_freq(object) <- value
 \item{object}{An S4 sim object.}
 
 \item{value}{A numeric value that is a positive integer.}
+}
+\value{
+A numeric vector representing update frequency of simulation.
 }
 \description{
 Update frequency is the step size of each update in an online simulation with rolling windows, it also serves as the size of (batch) test set after each training step.

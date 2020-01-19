@@ -158,3 +158,14 @@ setMethod("get_sim_save",
             gn_result <- generate_result(object, evaluation, write_result)
             return(methods::new("markov_sim_result", object, result = gn_result$result, summ = gn_result$summ))
           })
+
+
+#' @export
+setAs("markov_sim_result", "data.frame",
+      function(from) {
+        summ <- from@summ
+        numeric_lst <- get_numeric_slots(from)
+        result_numric <- as.data.frame(numeric_lst)
+        result_summ <- as.data.frame(summ)
+        return(cbind(result_numric, result_summ))
+      })

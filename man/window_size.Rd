@@ -3,6 +3,8 @@
 \name{window_size}
 \alias{window_size}
 \alias{window_size<-}
+\alias{window_size,sim-method}
+\alias{window_size<-,sim,numeric-method}
 \title{Getter/Setter for Window Size}
 \usage{
 window_size(object)
@@ -17,6 +19,9 @@ window_size(object) <- value
 \item{object}{An S4 sim object.}
 
 \item{value}{A numeric value that is a postive integer.}
+}
+\value{
+A numeric vector representing window size of simulation.
 }
 \description{
 A window size is the length of aggregation of observations as an alternative or reduction of extrapolation in forecasting.

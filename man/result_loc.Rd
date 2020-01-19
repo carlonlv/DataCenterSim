@@ -3,6 +3,8 @@
 \name{result_loc}
 \alias{result_loc}
 \alias{result_loc<-}
+\alias{result_loc,sim-method}
+\alias{result_loc<-,sim,character-method}
 \title{Getter/Setter for Result Location}
 \usage{
 result_loc(object)
@@ -17,6 +19,9 @@ result_loc(object) <- value
 \item{object}{An S4 sim object}
 
 \item{value}{A character value of the path to a directory.}
+}
+\value{
+A character vector representing result location of simulation.
 }
 \description{
 Result location is a path to a directory you wish to store the result to, the default is the current work directory.

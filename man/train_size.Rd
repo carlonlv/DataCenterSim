@@ -3,6 +3,8 @@
 \name{train_size}
 \alias{train_size}
 \alias{train_size<-}
+\alias{train_size,sim-method}
+\alias{train_size<-,sim,numeric-method}
 \title{Getter/Setter for Traning Size}
 \usage{
 train_size(object)
@@ -17,6 +19,9 @@ train_size(object) <- value
 \item{object}{An S4 sim object}
 
 \item{value}{A numeric value that is a positive integer.}
+}
+\value{
+A numeric vector representing training size of simulation.
 }
 \description{
 Traning size is the amount of observations used to train a model, both in offline training and online training.

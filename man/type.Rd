@@ -3,6 +3,8 @@
 \name{type}
 \alias{type}
 \alias{type<-}
+\alias{type,sim-method}
+\alias{type<-,sim,character-method}
 \title{Getter/Setter for Simulation Type}
 \usage{
 type(object)
@@ -17,6 +19,9 @@ type(object) <- value
 \item{object}{An S4 sim object.}
 
 \item{value}{A character value that can either be \code{"predicting"} or \code{"scheduling"}.}
+}
+\value{
+A character representing type of simulation.
 }
 \description{
 A type is the type of simulation, that can only take \code{"predicting"} and \code{"scheduling"}. If \code{"scheduling"} is provided, simulation sequantially training and testing by scheduling a job with job size supplied by cpu_required, if \code{"predicting"} is supplied, sequential training and testing is made by predictions based on previous observations.

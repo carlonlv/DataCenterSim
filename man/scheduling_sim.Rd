@@ -4,14 +4,8 @@
 \alias{scheduling_sim}
 \title{Simulation of Scheduling A Job}
 \usage{
-scheduling_sim(
-  object,
-  dataset_max,
-  dataset_avg,
-  cpu_required,
-  cores,
-  write_result
-)
+scheduling_sim(object, dataset_max, dataset_avg, cpu_required, cores,
+  write_result)
 }
 \arguments{
 \item{object}{An S4 sim object.}

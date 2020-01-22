@@ -57,9 +57,9 @@ setMethod("do_prediction",
               var_cov <- matrix(var[outer(1:l,1:l,"pmin")],l,l)*phi^dm
               return(var_cov)
             }
-            phi <- object@trained_result$coeffs
-            mean <- object@trained_result$means
-            variance <- object@trained_result$vars
+            phi <- object@trained_model$coeffs
+            mean <- object@trained_model$means
+            variance <- object@trained_model$vars
 
             # Construct mean
             if (object@response == "max") {
@@ -75,7 +75,7 @@ setMethod("do_prediction",
 
             # caclulate probability
             prob <- NULL
-            if (!is.null(level)) {
+            if (!is.na(level)) {
               prob <- 1 - mvtnorm::pmvnorm(lower = rep(0, predict_size), upper = rep(level, predict_size), mean = mu, sigma = varcov)
             }
             predict_result <- list("prob" = as.numeric(prob), "mu" = mu, "varcov" = varcov)
@@ -104,6 +104,21 @@ setMethod("get_sim_save",
           function(object, evaluation, write_result) {
             gn_result <- generate_result(object, evaluation, write_result)
             return(methods::new("ar1_sim_result", object, result = gn_result$result, summ = gn_result$summ))
+          })
+
+
+#' @return A list containing all numeric parameter informations.
+#' @rdname get_numeric_slots
+#' @export
+setMethod("get_numeric_slots",
+          signature(object = "ar1_sim"),
+          function(object) {
+            numeric_slots <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance")
+            numeric_lst <- list()
+            for (i in numeric_slots) {
+              numeric_lst[[i]] <- methods::slot(object, i)
+            }
+            return(numeric_lst)
           })
 
 

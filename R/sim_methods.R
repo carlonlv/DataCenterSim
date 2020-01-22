@@ -3,6 +3,7 @@ NULL
 
 #' @rdname type
 #' @return A character representing type of simulation.
+#' @export
 setMethod("type",
           signature(object = "sim"),
           function(object){
@@ -10,6 +11,7 @@ setMethod("type",
           })
 
 #' @rdname type
+#' @export
 setReplaceMethod("type",
                  signature(object = "sim", value = "character"),
                  function(object, value) {
@@ -21,6 +23,7 @@ setReplaceMethod("type",
 
 #' @rdname window_size
 #' @return A numeric vector representing window size of simulation.
+#' @export
 setMethod("window_size",
           signature(object = "sim"),
           function(object){
@@ -28,6 +31,7 @@ setMethod("window_size",
           })
 
 #' @rdname window_size
+#' @export
 setReplaceMethod("window_size",
           signature(object = "sim", value = "numeric"),
           function(object, value) {
@@ -39,6 +43,7 @@ setReplaceMethod("window_size",
 
 #' @rdname cut_off_prob
 #' @return A numeric vector representing cut off probability of simulation.
+#' @export
 setMethod("cut_off_prob",
           signature(object = "sim"),
           function(object){
@@ -46,6 +51,7 @@ setMethod("cut_off_prob",
           })
 
 #' @rdname cut_off_prob
+#' @export
 setReplaceMethod("cut_off_prob",
                  signature(object = "sim", value = "numeric"),
                  function(object, value) {
@@ -57,6 +63,7 @@ setReplaceMethod("cut_off_prob",
 
 #' @rdname granularity
 #' @return A numeric vector representing granularity of simulation.
+#' @export
 setMethod("granularity",
           signature(object = "sim"),
           function(object){
@@ -64,6 +71,7 @@ setMethod("granularity",
           })
 
 #' @rdname granularity
+#' @export
 setReplaceMethod("granularity",
                  signature(object = "sim", value = "numeric"),
                  function(object, value) {
@@ -75,6 +83,7 @@ setReplaceMethod("granularity",
 
 #' @rdname train_size
 #' @return A numeric vector representing training size of simulation.
+#' @export
 setMethod("train_size",
           signature(object = "sim"),
           function(object){
@@ -82,6 +91,7 @@ setMethod("train_size",
           })
 
 #' @rdname train_size
+#' @export
 setReplaceMethod("train_size",
                  signature(object = "sim", value = "numeric"),
                  function(object, value) {
@@ -93,6 +103,7 @@ setReplaceMethod("train_size",
 
 #' @rdname update_freq
 #' @return A numeric vector representing update frequency of simulation.
+#' @export
 setMethod("update_freq",
           signature(object = "sim"),
           function(object){
@@ -100,6 +111,7 @@ setMethod("update_freq",
           })
 
 #' @rdname update_freq
+#' @export
 setReplaceMethod("update_freq",
                  signature(object = "sim", value = "numeric"),
                  function(object, value) {
@@ -111,6 +123,7 @@ setReplaceMethod("update_freq",
 
 #' @rdname tolerance
 #' @return A numeric vector representing tolerance of simulation.
+#' @export
 setMethod("tolerance",
           signature(object = "sim"),
           function(object){
@@ -118,6 +131,7 @@ setMethod("tolerance",
           })
 
 #' @rdname tolerance
+#' @export
 setReplaceMethod("tolerance",
                  signature(object = "sim", value = "numeric"),
                  function(object, value) {
@@ -129,6 +143,7 @@ setReplaceMethod("tolerance",
 
 #' @rdname response
 #' @return A character representing response of simulation.
+#' @export
 setMethod("response",
           signature(object = "sim"),
           function(object){
@@ -136,6 +151,7 @@ setMethod("response",
           })
 
 #' @rdname response
+#' @export
 setReplaceMethod("response",
                  signature(object = "sim", value = "numeric"),
                  function(object, value) {
@@ -147,6 +163,7 @@ setReplaceMethod("response",
 
 #' @rdname train_policy
 #' @return A character representing training policy of simulation.
+#' @export
 setMethod("train_policy",
           signature(object = "sim"),
           function(object){
@@ -154,6 +171,7 @@ setMethod("train_policy",
           })
 
 #' @rdname train_policy
+#' @export
 setReplaceMethod("train_policy",
                  signature(object = "sim", value = "character"),
                  function(object, value) {
@@ -165,6 +183,7 @@ setReplaceMethod("train_policy",
 
 #' @rdname schedule_policy
 #' @return A character vector representing schedule policy of simulation.
+#' @export
 setMethod("schedule_policy",
           signature(object = "sim"),
           function(object){
@@ -172,6 +191,7 @@ setMethod("schedule_policy",
           })
 
 #' @rdname schedule_policy
+#' @export
 setReplaceMethod("schedule_policy",
                  signature(object = "sim", value = "character"),
                  function(object, value) {
@@ -183,6 +203,7 @@ setReplaceMethod("schedule_policy",
 
 #' @rdname adjust_policy
 #' @return A numeric vector representing adjust policy of simulation.
+#' @export
 setMethod("adjust_policy",
           signature(object = "sim"),
           function(object){
@@ -190,6 +211,7 @@ setMethod("adjust_policy",
           })
 
 #' @rdname adjust_policy
+#' @export
 setReplaceMethod("adjust_policy",
                  signature(object = "sim", value = "character"),
                  function(object, value) {
@@ -201,6 +223,7 @@ setReplaceMethod("adjust_policy",
 
 #' @rdname result_loc
 #' @return A character vector representing result location of simulation.
+#' @export
 setMethod("result_loc",
           signature(object = "sim"),
           function(object){
@@ -208,6 +231,7 @@ setMethod("result_loc",
           })
 
 #' @rdname result_loc
+#' @export
 setReplaceMethod("result_loc",
                  signature(object = "sim", value = "character"),
                  function(object, value) {
@@ -217,29 +241,16 @@ setReplaceMethod("result_loc",
                  })
 
 
-#' @return A list containing all numeric parameter informations.
-#' @rdname get_numeric_slots
-setMethod("get_numeric_slots",
-          signature(object = "sim"),
-          function(object) {
-            numeric_slots <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance")
-            numeric_lst <- list()
-            for (i in numeric_slots) {
-              numeric_lst[[i]] <- methods::slot(object, i)
-            }
-            return(numeric_lst)
-          })
-
-
 #' @return A list containing all the sim objects with uni-length slots
 #' @rdname split_to_uni
+#' @export
 setMethod("split_to_uni",
           signature(object = "sim"),
           function(object) {
             methods::validObject(object)
             result <- list()
-            numeric_lst <- get_numeric_slots(sim)
-            character_slots <- methods::slotNames(object)[-names(numeric_lst)]
+            numeric_lst <- get_numeric_slots(object)
+            character_slots <- setdiff(methods::slotNames(object), names(numeric_lst))
             cmb <- expand.grid(numeric_lst)
             counter <- 1
             for (j in 1:nrow(cmb)) {
@@ -248,7 +259,7 @@ setMethod("split_to_uni",
               error <- FALSE
               for (k in names(numeric_lst)) {
                 tryCatch({
-                  methods::slot(uni, k, check = TRUE) <- info[k]
+                  methods::slot(uni, k, check = TRUE) <- as.numeric(info[k])
                 }, error = function(cond) {
                   error <- TRUE
                 })
@@ -268,29 +279,35 @@ setMethod("split_to_uni",
           })
 
 
+#' @return A plot object
+#' @rdname plot_sim
+#' @export
 setMethod("plot_sim",
           signature(object = "sim"),
           function(object) {
-            file_name <- paste(object@name, "Sim:", object@type, "Train:", object@training_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
+            file_name <- paste(object@name, "Sim:", object@type, "Train:", object@train_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
             fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
+            result <- utils::read.csv(fp)
+            result$window_size_update_freq <- paste(result$window_size, result$update_freq)
             if (object@type == "scheduling") {
-              coln <- c(names(get_numeric_slots(object)), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
-              result <- utils::read.table(fp, quote = "", col.names = coln, row.names = NULL, sep = ",")
               plt <- ggplot2::ggplot(result, ggplot2::aes(x = result$agg_correct_scheduled_rate, y = result$agg_correct_unscheduled_rate)) +
-                ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(size = result$window_size, shape = result$update_freq, alpha = result$granularity, colour = result$train_size, fill = result$tolerance))
+                ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = result$window_size_update_freq, alpha = result$granularity, fill = as.factor(result$train_size), colour = as.factor(result$tolerance))) +
+                ggplot2::ylab("Correct Scheduled Rate") +
+                ggplot2::xlab("Correct Unscheduled Rate")
             } else {
-              coln <- c(names(get_numeric_slots(object)), "avg_survival_rate", "agg_survival_rate", "avg_utilization_rate", "agg_utilization_rate")
-              result <- utils::read.table(fp, quote = "", col.names = coln, row.names = NULL, sep = ",")
               plt <- ggplot2::ggplot(result, ggplot2::aes(x = result$agg_survival_rate, y = result$agg_utilization_rate)) +
-                ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(size = result$window_size, shape = result$update_freq, alpha = result$granularity, colour = result$train_size, fill = result$tolerance))
+                ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = result$window_size_update_freq, alpha = result$granularity, fill = as.factor(result$train_size), colour = as.factor(result$tolerance))) +
+                ggplot2::geom_vline(xintercept = 0.99, linetype = "dashed", color = "red") +
+                ggplot2::ylab("Utilization") +
+                ggplot2::xlab("Survival Rate")
             }
             plt <- plt +
-              ggplot2::scale_shape_manual(values = 21:25) +
-              ggplot2::scale_colour_manual(values = c("black", "grey", "white")) +
+              ggplot2::scale_shape_manual(name = "window_size by update_freq",values = 21:25) +
+              ggplot2::scale_alpha(name = "granularity") +
+              ggplot2::scale_color_brewer(name = "tolerance", palette = "Set1") +
+              ggplot2::scale_fill_brewer(name = "train_size", palette = "Set2") +
               ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21))) +
-              ggplot2::geom_vline(xintercept = 0.99, linetype = "dashed", color = "red") +
-              ggplot2::ylab("Utilization") +
-              ggplot2::xlab("Survival Rate") +
               ggplot2::ggtitle(paste("Model Performance of", file_name))
+            ggplot2::ggsave(fs::path(paste0(object@result_loc, file_name), ext = "png"))
             return(plt)
           })

@@ -70,7 +70,7 @@ convert_frequency_dataset_overlapping <- function(dataset, new_freq, response) {
 #' Get Training Update Step.
 #'
 #' @description Computer training step.
-#' @param training_policy The training policy, either \code{"once"}, \code{"fixed"} or \code{"dynamic"}.
+#' @param train_policy The training policy, either \code{"once"}, \code{"fixed"} or \code{"dynamic"}.
 #' @param tolerance The tolerance level of retrain, the quantile of previous performance.
 #' @param prev_score1 A vector of previous correctly scheduled rate or survival rate.
 #' @param prev_score2 A vector of previous correctly unscheduled rate or utiliztion rate.
@@ -78,10 +78,10 @@ convert_frequency_dataset_overlapping <- function(dataset, new_freq, response) {
 #' @param last_score2 The current correctly unscheduled rate or utilization rate.
 #' @return train signal whether \code{TRUE} if retraining is needed at next update, otherwise \code{FALSE}.
 #' @keywords internal
-get_training_step <- function(training_policy, tolerance, prev_score1, prev_score2, last_score1, last_score2) {
-  if (training_policy == "once") {
+get_training_step <- function(train_policy, tolerance, prev_score1, prev_score2, last_score1, last_score2) {
+  if (train_policy == "once") {
     train_sig <- FALSE
-  } else if (training_policy == "fixed") {
+  } else if (train_policy == "fixed") {
     train_sig <- TRUE
   } else {
     bad_performance_score1 <- last_score1 < stats::quantile(prev_score1, probs = tolerance, na.rm = TRUE)
@@ -144,10 +144,10 @@ check_actual <- function(actual_obs, cpu_required, granularity) {
 #' @keywords internal
 get_scheduling_step <- function(prediction, actual, window_size, adjust_policy, adjust_switch, schedule_policy) {
   if (prediction == 1 & actual == 0) {
-    if (adjust_policy & adjust_switch) {
+    if (adjust_policy == "back_off" & adjust_switch) {
       adjust_switch <- FALSE
       prediction <- NA
-    } else if (adjust_policy & !adjust_switch) {
+    } else if (adjust_policy == "back_off" & !adjust_switch) {
       prediction <- prediction
     } else {
       prediction <- prediction
@@ -156,10 +156,10 @@ get_scheduling_step <- function(prediction, actual, window_size, adjust_policy, 
       update <- window_size
     }
   } else if (prediction == 1 & actual > 0) {
-    if (adjust_policy & !adjust_switch) {
+    if (adjust_policy == "back_off" & !adjust_switch) {
       adjust_switch <- TRUE
       prediction <- prediction
-    } else if (adjust_policy & adjust_switch) {
+    } else if (adjust_policy == "back_off" & adjust_switch) {
       prediction <- NA
     } else {
       prediction <- prediction
@@ -168,10 +168,10 @@ get_scheduling_step <- function(prediction, actual, window_size, adjust_policy, 
       update <- actual
     }
   } else if (prediction == 0 & actual == 0) {
-    if (adjust_policy & !adjust_switch) {
+    if (adjust_policy == "back_off" & !adjust_switch) {
       adjust_switch <- TRUE
       prediction <- prediction
-    } else if (adjust_policy & adjust_switch) {
+    } else if (adjust_policy == "back_off" & adjust_switch) {
       prediction <- NA
     } else {
       prediction <- prediction
@@ -180,10 +180,10 @@ get_scheduling_step <- function(prediction, actual, window_size, adjust_policy, 
       update <- window_size
     }
   } else {
-    if (adjust_policy & adjust_switch) {
+    if (adjust_policy == "back_off" & adjust_switch) {
       adjust_switch <- FALSE
       prediction <- NA
-    } else if (adjust_policy & !adjust_switch) {
+    } else if (adjust_policy == "back_off" & !adjust_switch) {
       prediction <- prediction
     } else {
       prediction <- prediction
@@ -384,15 +384,22 @@ find_state_num <- function(obs, state_num) {
 #' @return A list cotaining information needed by S4 sim result object.
 #' @keywords internal
 generate_result <- function(object, evaluation, write_result) {
-  overall_result <- find_overall_evaluation(evaluation$sur_num, evaluation$sur_den, evaluation$util_num, evaluation$util_den)
-
-  print(paste("Avg Survival Rate:", overall_result$avg_score1))
-  print(paste("Agg Survival Rate:", overall_result$agg_score1))
-  print(paste("Avg Utilization Rate:", overall_result$avg_score2))
-  print(paste("Agg Utilization Rate:", overall_result$agg_score2))
+  if (object@type == "scheduling") {
+    overall_result <- find_overall_evaluation(evaluation$correct_scheduled_num, evaluation$scheduled_num, evaluation$correct_unscheduled_num, evaluation$unscheduled_num)
+    print(paste("Avg Correct Scheduled Rate:", overall_result$avg_score1))
+    print(paste("Agg Correct Scheduled Rate:", overall_result$agg_score1))
+    print(paste("Avg Correct Unscheduled Rate:", overall_result$avg_score2))
+    print(paste("Agg Correct Unscheduled Rate:", overall_result$agg_score2))
+  } else {
+    overall_result <- find_overall_evaluation(evaluation$sur_num, evaluation$sur_den, evaluation$util_num, evaluation$util_den)
+    print(paste("Avg Survival Rate:", overall_result$avg_score1))
+    print(paste("Agg Survival Rate:", overall_result$agg_score1))
+    print(paste("Avg Utilization Rate:", overall_result$avg_score2))
+    print(paste("Agg Utilization Rate:", overall_result$agg_score2))
+  }
 
   if (write_result) {
-    file_name <- paste(object@name, "Sim:", object@type, "Train:", object@training_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
+    file_name <- paste(object@name, "Sim:", object@type, "Train:", object@train_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
     fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
     param <- c(object@window_size, object@cut_off_prob, object@granularity, object@train_size, object@update_freq, object@tolerance)
     new_row <- data.frame()

@@ -4,8 +4,14 @@
 \alias{run_sim}
 \title{Run Simulation}
 \usage{
-run_sim(object, dataset_max, dataset_avg, cores, write_result,
-  cpu_required = NULL)
+run_sim(
+  object,
+  dataset_max,
+  dataset_avg,
+  cpu_required = NULL,
+  cores = parallel::detectCores(),
+  write_result = TRUE
+)
 }
 \arguments{
 \item{object}{An S4 sim object.}
@@ -14,11 +20,11 @@ run_sim(object, dataset_max, dataset_avg, cores, write_result,
 
 \item{dataset_avg}{A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
 
+\item{cpu_required}{A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine, default value is \code{NULL}.}
+
 \item{cores}{The number of threads for parallel programming for multiple traces, not supported for windows users.}
 
 \item{write_result}{TRUE if the result of the experiment is written to a file.}
-
-\item{cpu_required}{A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine, default value is \code{NULL}.}
 }
 \value{
 An S4 sim result object.

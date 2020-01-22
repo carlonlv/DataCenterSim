@@ -21,6 +21,7 @@ check_valid_markov_sim <- function(object) {
 
 
 #' @rdname sim-class
+#' @param state_num A numeric number that represents the number of states in Markov chain.
 #' @export markov_sim
 markov_sim <- setClass("markov_sim",
                        slots = list(state_num = "numeric"),
@@ -47,10 +48,10 @@ setMethod("train_model",
             new_trainset_max <- convert_frequency_dataset_overlapping(trainset_max, object@window_size, "max")
             new_trainset_avg <- convert_frequency_dataset_overlapping(trainset_avg, object@window_size, "avg")
             if (object@response == "max") {
-              from_states <- sapply(new_trainset_max[-length(new_trainset_max)], find_state_num, state_num)
-              to_states <- sapply(new_trainset_max[-1], find_state_num, state_num)
-              uncond_dist <- rep(0, state_num)
-              transition <- matrix(0, nrow = state_num, ncol = state_num)
+              from_states <- sapply(new_trainset_max[-length(new_trainset_max)], find_state_num, object@state_num)
+              to_states <- sapply(new_trainset_max[-1], find_state_num, object@state_num)
+              uncond_dist <- rep(0, object@state_num)
+              transition <- matrix(0, nrow = object@state_num, ncol = object@state_num)
               for (i in 1:length(from_states)) {
                 from <- from_states[i]
                 to <- to_states[i]
@@ -65,10 +66,10 @@ setMethod("train_model",
                 }
               }
             } else {
-              from_states <- sapply(new_trainset_avg[-length(new_trainset_avg)], find_state_num, state_num)
-              to_states <- sapply(new_trainset_avg[-1], find_state_num, state_num)
-              uncond_dist <- rep(0, state_num)
-              transition <- matrix(0, nrow = state_num, ncol = state_num)
+              from_states <- sapply(new_trainset_avg[-length(new_trainset_avg)], find_state_num, object@state_num)
+              to_states <- sapply(new_trainset_avg[-1], find_state_num, object@state_num)
+              uncond_dist <- rep(0, object@state_num)
+              transition <- matrix(0, nrow = object@state_num, ncol = object@state_num)
 
               for (i in 1:length(from_states)) {
                 from <- from_states[i]
@@ -101,7 +102,7 @@ setMethod("do_prediction",
                 parsed_transition[i, i] <- 1
               }
             }
-            if (response == "max") {
+            if (object@response == "max") {
               from <- find_state_num(last_obs_max, nrow(object@trained_model))
             } else {
               from <- find_state_num(last_obs_avg, nrow(object@trained_model))
@@ -119,7 +120,7 @@ setMethod("do_prediction",
 
             # calculate probability
             prob <- NULL
-            if (!is.null(level)) {
+            if (!is.na(level)) {
               to <- find_state_num(level, nrow(object@trained_model))
               prob <- sum(final_transition[from, to:(nrow(object@trained_model))])
             }
@@ -159,6 +160,21 @@ setMethod("get_sim_save",
           function(object, evaluation, write_result) {
             gn_result <- generate_result(object, evaluation, write_result)
             return(methods::new("markov_sim_result", object, result = gn_result$result, summ = gn_result$summ))
+          })
+
+
+#' @return A list containing all numeric parameter informations.
+#' @rdname get_numeric_slots
+#' @export
+setMethod("get_numeric_slots",
+          signature(object = "markov_sim"),
+          function(object) {
+            numeric_slots <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance", "state_num")
+            numeric_lst <- list()
+            for (i in numeric_slots) {
+              numeric_lst[[i]] <- methods::slot(object, i)
+            }
+            return(numeric_lst)
           })
 
 

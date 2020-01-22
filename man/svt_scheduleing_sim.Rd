@@ -7,7 +7,7 @@
 svt_scheduleing_sim(ts_num, object, dataset_max, dataset_avg, cpu_required)
 }
 \arguments{
-\item{ts_num}{The corresponding trace/column in \code{dataset}.}
+\item{ts_num}{The corresponding trace/column in \code{dataset_max} or \code{dataset_avg}.}
 
 \item{object}{An S4 sim object.}
 

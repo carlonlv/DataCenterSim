@@ -14,6 +14,9 @@
 \alias{var1_sim-class}
 \alias{var1_sim}
 \title{An S4 Class to Represent A Simulation.}
+\arguments{
+\item{state_num}{A numeric number that represents the number of states in Markov chain.}
+}
 \description{
 An S4 Class to Represent A Simulation.
 }

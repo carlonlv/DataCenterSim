@@ -102,6 +102,21 @@ setMethod("get_sim_save",
           })
 
 
+#' @return A list containing all numeric parameter informations.
+#' @rdname get_numeric_slots
+#' @export
+setMethod("get_numeric_slots",
+          signature(object = "ar1_markov_sim"),
+          function(object) {
+            numeric_slots <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance", "state_num")
+            numeric_lst <- list()
+            for (i in numeric_slots) {
+              numeric_lst[[i]] <- methods::slot(object, i)
+            }
+            return(numeric_lst)
+          })
+
+
 #' @export
 setAs("ar1_markov_sim_result", "data.frame",
       function(from) {

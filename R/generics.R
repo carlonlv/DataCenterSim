@@ -212,6 +212,15 @@ setGeneric("get_numeric_slots", function(object) standardGeneric("get_numeric_sl
 setGeneric("split_to_uni", function(object) standardGeneric("split_to_uni"))
 
 
+#' Plot Simulation
+#'
+#' @param object An S4 sim objct.
+#' @name plot_sim
+#' @rdname plot_sim
+#' @export
+setGeneric("plot_sim", function(object) standardGeneric("plot_sim"))
+
+
 #' Train Model
 #'
 #' This is a generic function that trains model according to the input object type, with additional arguments supplied by attributes of the object.
@@ -260,6 +269,3 @@ setGeneric("compute_pi_up", function(object) standardGeneric("compute_pi_up"))
 #' @name get_sim_save
 #' @rdname get_sim_save
 setGeneric("get_sim_save", function(object, evaluation, write_result) standardGeneric("get_sim_save"))
-
-
-setGeneric("plot_sim", function(object) standardGeneric("plot_sim"))

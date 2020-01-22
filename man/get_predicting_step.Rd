@@ -4,8 +4,13 @@
 \alias{get_predicting_step}
 \title{Get Update Step For Predicting.}
 \usage{
-get_predicting_step(survival, window_size, adjust_policy, adjust_switch,
-  schedule_policy)
+get_predicting_step(
+  survival,
+  window_size,
+  adjust_policy,
+  adjust_switch,
+  schedule_policy
+)
 }
 \arguments{
 \item{survival}{The survival information of current scheduling survives.}

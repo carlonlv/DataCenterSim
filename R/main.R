@@ -29,7 +29,7 @@ schedule_foreground <- function(object_process, testset_max, testset_avg, cpu_re
     last_obs_avg <- convert_frequency_dataset(testset_avg[current_end:(current_end + object_process@window_size - 1)], object_process@window_size, "avg")
 
     object_process <- do_prediction(object_process, last_obs_max, last_obs_avg, 1, 100 - cpu_required)
-    prediction <- check_decision(object_process@predict_result$prob, cut_off_prob)
+    prediction <- check_decision(object_process@predict_result$prob, object_process@cut_off_prob)
 
     ## Evalute schedulings based on prediction
     start_time <- current_end + object_process@window_size
@@ -58,7 +58,7 @@ schedule_foreground <- function(object_process, testset_max, testset_avg, cpu_re
 #'
 #' Sequantially training and testing by schedulingh a job on a single trace.
 #'
-#' @param ts_num The corresponding trace/column in \code{dataset}.
+#' @param ts_num The corresponding trace/column in \code{dataset_max} or \code{dataset_avg}.
 #' @param object An S4 sim object.
 #' @param dataset_max A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
 #' @param dataset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
@@ -76,18 +76,18 @@ svt_scheduleing_sim <- function(ts_num, object, dataset_max, dataset_avg, cpu_re
   correct_unscheduled_num <- c()
 
   current <- 1
-  last_time_update <- length(dataset_max) - object@update_freq - train_size + 1
+  last_time_update <- length(dataset_max) - object@update_freq - object@train_size + 1
   train_sig <- TRUE
   while (current <= last_time_update) {
     ## Split into train set and test set
-    trainset_max <- dataset_max[current:(current + train_size - 1)]
-    trainset_avg <- dataset_avg[current:(current + train_size - 1)]
-    testset_max <- dataset_max[(current + train_size):(current + train_size + object@update_freq - 1)]
-    testset_avg <- dataset_avg[(current + train_size):(current + train_size + object@update_freq - 1)]
+    trainset_max <- dataset_max[current:(current + object@train_size - 1)]
+    trainset_avg <- dataset_avg[current:(current + object@train_size - 1)]
+    testset_max <- dataset_max[(current + object@train_size):(current + object@train_size + object@update_freq - 1)]
+    testset_avg <- dataset_avg[(current + object@train_size):(current + object@train_size + object@update_freq - 1)]
 
     ## Convert Frequency for training set
-    starting_points_max <- trainset_max[(train_size - object@window_size + 1):train_size]
-    starting_points_avg <- trainset_avg[(train_size - object@window_size + 1):train_size]
+    starting_points_max <- trainset_max[(object@train_size - object@window_size + 1):object@train_size]
+    starting_points_avg <- trainset_avg[(object@train_size - object@window_size + 1):object@train_size]
 
     ## Train Model
     if (train_sig) {
@@ -102,7 +102,7 @@ svt_scheduleing_sim <- function(ts_num, object, dataset_max, dataset_avg, cpu_re
     prev_correct_unscheduled_rate <- correct_unscheduled_num / unscheduled_num
     last_correct_scheduled_rate <- result$correct_scheduled_num / result$scheduled_num
     last_correct_unschedued_rate <- result$correct_unscheduled_num / result$unscheduled_num
-    train_sig <- get_training_step(object@training_policy, object@tolerance, prev_correct_scheduled_rate, prev_correct_unscheduled_rate, last_correct_scheduled_rate, last_correct_unschedued_rate)
+    train_sig <- get_training_step(object@train_policy, object@tolerance, prev_correct_scheduled_rate, prev_correct_unscheduled_rate, last_correct_scheduled_rate, last_correct_unschedued_rate)
 
     ## Update Result
     scheduled_num <- c(scheduled_num, result$scheduled_num)
@@ -146,7 +146,8 @@ scheduling_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores
 
   ## Do Simulation
   start_time <- proc.time()
-  result <- parallel::mclapply(1:length(ts_names), svt_scheduleing_sim, object, dataset_max, dataset_avg, mc.cores = cores)
+  #result <- parallel::mclapply(1:length(ts_names), svt_scheduleing_sim, object, dataset_max, dataset_avg, cpu_required, mc.cores = cores)
+  result <- lapply(1:length(ts_names), svt_scheduleing_sim, object, dataset_max, dataset_avg, cpu_required)
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -190,7 +191,7 @@ predict_model <- function(object_process, testset_max, testset_avg) {
     last_obs_max <- convert_frequency_dataset(testset_max[current_end:(current_end + object_process@window_size - 1)], object_process@window_size, "max")
     last_obs_avg <- convert_frequency_dataset(testset_avg[current_end:(current_end + object_process@window_size - 1)], object_process@window_size, "avg")
 
-    object_process <- do_prediction(object_process, last_obs_max, last_obs_avg, 1, NULL)
+    object_process <- do_prediction(object_process, last_obs_max, last_obs_avg, 1, NA_real_)
     pi_up <- compute_pi_up(object_process)
 
     ## Evalute schedulings based on prediction
@@ -235,7 +236,8 @@ predict_model <- function(object_process, testset_max, testset_avg) {
 #' @return A list containing the resulting prediction informations.
 #' @keywords internal
 svt_predicting_sim <- function(ts_num, object, dataset_max, dataset_avg) {
-  dataset <- dataset[, ts_num]
+  dataset_max <- dataset_max[, ts_num]
+  dataset_avg <- dataset_avg[, ts_num]
 
   sur_num <- c()
   sur_den <- c()
@@ -243,18 +245,18 @@ svt_predicting_sim <- function(ts_num, object, dataset_max, dataset_avg) {
   util_den <- c()
 
   current <- 1
-  last_time_update <- length(dataset_max) - object@update_freq - train_size + 1
+  last_time_update <- length(dataset_max) - object@update_freq - object@train_size + 1
   train_sig <- TRUE
   while (current <= last_time_update) {
     ## Split into train set and test set
-    trainset_max <- dataset_max[current:(current + train_size - 1)]
-    trainset_avg <- dataset_avg[current:(current + train_size - 1)]
-    testset_max <- dataset_max[(current + train_size):(current + train_size + object@update_freq - 1)]
-    testset_avg <- dataset_avg[(current + train_size):(current + train_size + object@update_freq - 1)]
+    trainset_max <- dataset_max[current:(current + object@train_size - 1)]
+    trainset_avg <- dataset_avg[current:(current + object@train_size - 1)]
+    testset_max <- dataset_max[(current + object@train_size):(current + object@train_size + object@update_freq - 1)]
+    testset_avg <- dataset_avg[(current + object@train_size):(current + object@train_size + object@update_freq - 1)]
 
     ## Convert Frequency for training set
-    starting_points_max <- trainset_max[(train_size - object@window_size + 1):train_size]
-    starting_points_avg <- trainset_avg[(train_size - object@window_size + 1):train_size]
+    starting_points_max <- trainset_max[(object@train_size - object@window_size + 1):object@train_size]
+    starting_points_avg <- trainset_avg[(object@train_size - object@window_size + 1):object@train_size]
 
     ## Train Model
     if (train_sig) {
@@ -268,8 +270,8 @@ svt_predicting_sim <- function(ts_num, object, dataset_max, dataset_avg) {
     prev_survival <- sur_num / sur_den
     prev_utilization <- util_num / util_den
     last_survial <- result$sur_num / result$sur_den
-    last_utilization <- result$util_num / result$util_num
-    train_sig <- get_training_step(object@training_policy, object@tolerance, prev_survival, prev_utilization, last_survial, last_utilization)
+    last_utilization <- result$util_num / result$util_den
+    train_sig <- get_training_step(object@train_policy, object@tolerance, prev_survival, prev_utilization, last_survial, last_utilization)
 
     ## Update Result
     sur_num <- c(sur_num, result$sur_num)
@@ -311,7 +313,8 @@ predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result
 
   ## Do Simulation
   start_time <- proc.time()
-  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, object, dataset_max, dataset_avg, mc.cores = cores)
+  #result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, object, dataset_max, dataset_avg, mc.cores = cores)
+  result <- lapply(1:length(ts_names), svt_scheduleing_sim, object, dataset_max, dataset_avg)
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -339,12 +342,12 @@ predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result
 #' @param object An S4 sim object.
 #' @param dataset_max A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
 #' @param dataset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine, default value is \code{NULL}.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
-#' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine, default value is \code{NULL}.
 #' @return An S4 sim result object.
 #' @export
-run_sim <- function(object, dataset_max, dataset_avg, cores, write_result, cpu_required=NULL) {
+run_sim <- function(object, dataset_max, dataset_avg, cpu_required=NULL, cores=parallel::detectCores(), write_result=TRUE) {
   uni_lst <- split_to_uni(object)
   if (object@type == "scheduling") {
     object_result <- lapply(uni_lst, scheduling_sim, dataset_max, dataset_avg, cpu_required, cores, write_result)

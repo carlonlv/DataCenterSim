@@ -4,8 +4,14 @@
 \alias{get_scheduling_step}
 \title{Get Update Step For Schedulings.}
 \usage{
-get_scheduling_step(prediction, actual, window_size, adjust_policy,
-  adjust_switch, schedule_policy)
+get_scheduling_step(
+  prediction,
+  actual,
+  window_size,
+  adjust_policy,
+  adjust_switch,
+  schedule_policy
+)
 }
 \arguments{
 \item{prediction}{The prediction of current scheduling.}

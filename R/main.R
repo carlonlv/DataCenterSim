@@ -65,7 +65,7 @@ schedule_foreground <- function(object_process, testset_max, testset_avg, cpu_re
 #' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
 #' @return A list containing the resulting scheduling informations.
 #' @keywords internal
-svt_scheduleing_sim <- function(ts_num, object, dataset_max, dataset_avg, cpu_required) {
+svt_scheduling_sim <- function(ts_num, object, dataset_max, dataset_avg, cpu_required) {
   dataset_max <- dataset_max[, ts_num]
   dataset_avg <- dataset_avg[, ts_num]
   cpu_required <- cpu_required[ts_num]
@@ -146,8 +146,7 @@ scheduling_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores
 
   ## Do Simulation
   start_time <- proc.time()
-  #result <- parallel::mclapply(1:length(ts_names), svt_scheduleing_sim, object, dataset_max, dataset_avg, cpu_required, mc.cores = cores)
-  result <- lapply(1:length(ts_names), svt_scheduleing_sim, object, dataset_max, dataset_avg, cpu_required)
+  result <- parallel::mclapply(1:length(ts_names), svt_scheduling_sim, object, dataset_max, dataset_avg, cpu_required, mc.cores = cores)
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -313,8 +312,7 @@ predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result
 
   ## Do Simulation
   start_time <- proc.time()
-  #result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, object, dataset_max, dataset_avg, mc.cores = cores)
-  result <- lapply(1:length(ts_names), svt_scheduleing_sim, object, dataset_max, dataset_avg)
+  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, object, dataset_max, dataset_avg, mc.cores = cores)
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -347,7 +345,7 @@ predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result
 #' @param write_result TRUE if the result of the experiment is written to a file.
 #' @return An S4 sim result object.
 #' @export
-run_sim <- function(object, dataset_max, dataset_avg, cpu_required=NULL, cores=parallel::detectCores(), write_result=TRUE) {
+run_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores=parallel::detectCores(), write_result=TRUE) {
   uni_lst <- split_to_uni(object)
   if (object@type == "scheduling") {
     object_result <- lapply(uni_lst, scheduling_sim, dataset_max, dataset_avg, cpu_required, cores, write_result)

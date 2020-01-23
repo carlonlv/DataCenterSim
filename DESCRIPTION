@@ -23,7 +23,7 @@ Collate:
     'DataCenterSim.R'
     'sim_class.R'
     'generics.R'
-    'ar1_markov.sim.R'
+    'ar1_markov_sim.R'
     'ar1_sim.R'
     'data.R'
     'model_helper.R'

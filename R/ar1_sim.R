@@ -44,7 +44,7 @@ setMethod("train_model",
               }))
             }
             trained_result <- list("coeffs" = as.numeric(ts_model$coef[1]), "means" = as.numeric(ts_model$coef[2]), "vars" = ts_model$sigma2)
-            return(methods::new("ar1_sim_process", object, trained_model = trained_result))
+            return(ar1_sim_process(object, trained_model = trained_result))
           })
 
 
@@ -103,7 +103,7 @@ setMethod("get_sim_save",
           signature(object = "ar1_sim", evaluation = "data.frame", write_result = "logical"),
           function(object, evaluation, write_result) {
             gn_result <- generate_result(object, evaluation, write_result)
-            return(methods::new("ar1_sim_result", object, result = gn_result$result, summ = gn_result$summ))
+            return(ar1_sim_result(object, result = gn_result$result, summ = gn_result$summ))
           })
 
 
@@ -123,11 +123,20 @@ setMethod("get_numeric_slots",
 
 
 #' @export
+setAs("ar1_sim", "data.frame",
+      function(from) {
+        numeric_lst <- get_numeric_slots(from)
+        result_numeric <- as.data.frame(numeric_lst)
+        return(result_numeric)
+      })
+
+
+#' @export
 setAs("ar1_sim_result", "data.frame",
       function(from) {
         summ <- from@summ
         numeric_lst <- get_numeric_slots(from)
-        result_numric <- as.data.frame(numeric_lst)
+        result_numeric <- as.data.frame(numeric_lst)
         result_summ <- as.data.frame(summ)
-        return(cbind(result_numric, result_summ))
+        return(cbind(result_numeric, result_summ))
       })

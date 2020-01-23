@@ -8,7 +8,7 @@ run_sim(
   object,
   dataset_max,
   dataset_avg,
-  cpu_required = NULL,
+  cpu_required,
   cores = parallel::detectCores(),
   write_result = TRUE
 )

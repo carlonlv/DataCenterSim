@@ -401,13 +401,13 @@ generate_result <- function(object, evaluation, write_result) {
   if (write_result) {
     file_name <- paste(object@name, "Sim:", object@type, "Train:", object@train_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
     fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
-    param <- c(object@window_size, object@cut_off_prob, object@granularity, object@train_size, object@update_freq, object@tolerance)
+    param <- methods::as(object, "data.frame")
     new_row <- data.frame()
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
     if (object@type == "scheduling") {
-      colnames(new_row) <- c(names(get_numeric_slots(object)), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
+      colnames(new_row) <- c(colnames(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
     } else {
-      colnames(new_row) <- c(names(get_numeric_slots(object)), "avg_survival_rate", "agg_survival_rate", "avg_utilization_rate", "agg_utilization_rate")
+      colnames(new_row) <- c(colnames(param), "avg_survival_rate", "agg_survival_rate", "avg_utilization_rate", "agg_utilization_rate")
     }
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)

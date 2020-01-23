@@ -24,13 +24,9 @@ ar1_markov_sim_result <- setClass("ar1_markov_sim_result",
 setMethod("train_model",
           signature(object = "ar1_markov_sim", trainset_max = "numeric", trainset_avg = "numeric"),
           function(object, trainset_max, trainset_avg) {
-            disjoint_dataset_avg <- convert_frequency_dataset(trainset_avg, object@window_size, "avg")
-            disjoint_dataset_max <- convert_frequency_dataset(trainset_max, object@window_size, "max")
-            overlapping_dataset_avg <- convert_frequency_dataset_overlapping(trainset_avg, object@window_size, "max")
-            overlapping_dataset_max <- convert_frequency_dataset_overlapping(trainset_max, object@window_size, "max")
-            train_markov_avg_to_max <- function(dataset_max, dataset_avg, state_num) {
-              from_states <- sapply(dataset_avg, find_state_num, state_num)
-              to_states <- sapply(dataset_max, find_state_num, state_num)
+            train_markov_from_to <- function(dataset_from, dataset_to, state_num) {
+              from_states <- sapply(dataset_from, find_state_num, state_num)
+              to_states <- sapply(dataset_to, find_state_num, state_num)
               uncond_dist <- rep(0, state_num)
               transition <- matrix(0, nrow = state_num, ncol = state_num)
               for (i in 1:length(from_states)) {
@@ -48,10 +44,20 @@ setMethod("train_model",
               }
               return(transition)
             }
-            trained_ar1 <- train_model(disjoint_dataset_avg)
-            trained_markov <- train_markov_avg_to_max(overlapping_dataset_max, overlapping_dataset_avg, object@state_num)
+            overlapping_dataset_avg <- convert_frequency_dataset_overlapping(trainset_avg, object@window_size, "max")
+            overlapping_dataset_max <- convert_frequency_dataset_overlapping(trainset_max, object@window_size, "max")
+            temp_ar1 <- ar1_sim(object)
+            if (object@response == "max") {
+              temp_ar1@response <- "avg"
+              trained_ar1 <- train_model(temp_ar1, trainset_max, trainset_avg)
+              trained_markov <- train_markov_from_to(overlapping_dataset_max, overlapping_dataset_avg, object@state_num)
+            } else {
+              temp_ar1@response <- "max"
+              trained_ar1 <- train_model(temp_ar1, trainset_max, trainset_avg)
+              trained_markov <- train_markov_from_to(overlapping_dataset_avg, overlapping_dataset_max, object@state_num)
+            }
             trained_result <- list("coeffs" = trained_ar1$coeffs, "means" = trained_ar1$means, "vars" = trained_ar1$vars, "transition" = trained_markov)
-            return(methods::new("ar1_markov_sim_process", object, trained_model = trained_result))
+            return(ar1_markov_sim_process(object, trained_model = trained_result))
           })
 
 
@@ -59,12 +65,24 @@ setMethod("train_model",
 setMethod("do_prediction",
           signature(object = "ar1_markov_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", predict_size = "numeric", level = "numeric"),
           function(object, last_obs_max, last_obs_avg, predict_size, level) {
-            ar_obj <- new("ar1_sim_process",trained_model = list("coeffs" = object@trained_model$coeffs,"means" = object@trained_model$means, "vars" = object@trained_model$vars))
-            mr_obj <- new("markov_sim_process",trained_model = object@trained_model$transition)
-            expected_avgs <- do_prediction(ar_obj,last_obs_avg,last_obs_avg, predict_size, level)$mu
-            markov_predictions <- do_prediction(mr_obj, max(expected_avgs, 0), max(expected_avgs, 0), predict_size, level)
-            predict_result <- list("prob" = markov_predictions$prob, "to_states" = markov_predictions$to_states)
-            object@predict_result <- predict_result
+            temp_ar <- ar1_sim_process(object)
+            temp_ar@trained_model <- list("coeffs" = object@trained_model$coeffs,"means" = object@trained_model$means, "vars" = object@trained_model$vars)
+            temp_mc <- markov_sim_process(object)
+            temp_mc@trained_model <- object@trained_model$transition
+            if (object@response == "max") {
+              temp_ar@response <- "avg"
+              temp_mc@response <- "max"
+              new_ar <- do_prediction(temp_ar, last_obs_max, last_obs_avg, predict_size, NA_real_)
+              new_last_obs_avg <- new_ar@predict_result$mu
+              new_mc <- do_prediction(temp_mc, last_obs_max, max(new_last_obs_avg, 0), predict_size, level)
+            } else {
+              temp_ar@response <- "max"
+              temp_mc@response <- "avg"
+              new_ar <- do_prediction(temp_ar, last_obs_max, last_obs_avg, predict_size, NA_real_)
+              new_last_obs_max <- new_ar@predict_result$mu
+              new_mc <- do_prediction(temp_mc, max(new_last_obs_max, 0), last_obs_avg, predict_size, level)
+            }
+            object@predict_result <- list("prob" = new_mc@predict_result$prob, "to_states" = new_mc@predict_result$to_states)
             return(object)
           })
 
@@ -73,23 +91,8 @@ setMethod("do_prediction",
 setMethod("compute_pi_up",
           signature(object = "ar1_markov_sim_process"),
           function(object) {
-            compute_pi_up_markov_single <- function(to_states, cut_off_prob) {
-              current_state <- 1
-              current_prob <- 0
-              while (current_state <= length(to_states)) {
-                current_prob <- current_prob + to_states[current_state]
-                if (current_prob < 1 - object@cut_off_prob) {
-                  current_state <- current_state + 1
-                }
-                else {
-                  break
-                }
-              }
-              pi_up <- current_state * (100 / length(to_states))
-              return(pi_up)
-            }
-            pi_ups <- apply(object@to_states, 1, compute_pi_up_markov_single, object@cut_off_prob)
-            return(max(pi_ups))
+            pi_up <- compute_pi_up(markov_sim_process(object))
+            return(pi_up)
           })
 
 
@@ -98,7 +101,7 @@ setMethod("get_sim_save",
           signature(object = "ar1_markov_sim", evaluation = "data.frame", write_result = "logical"),
           function(object, evaluation, write_result) {
             gn_result <- generate_result(object, evaluation, write_result)
-            return(methods::new("ar1_markov_sim_result", object, result = gn_result$result, summ = gn_result$summ))
+            return(ar1_markov_sim_result(object, result = gn_result$result, summ = gn_result$summ))
           })
 
 
@@ -118,11 +121,20 @@ setMethod("get_numeric_slots",
 
 
 #' @export
+setAs("ar1_markov_sim", "data.frame",
+      function(from) {
+        numeric_lst <- get_numeric_slots(from)
+        result_numeric <- as.data.frame(numeric_lst)
+        return(result_numeric)
+      })
+
+
+#' @export
 setAs("ar1_markov_sim_result", "data.frame",
       function(from) {
         summ <- from@summ
         numeric_lst <- get_numeric_slots(from)
-        result_numric <- as.data.frame(numeric_lst)
+        result_numeric <- as.data.frame(numeric_lst)
         result_summ <- as.data.frame(summ)
-        return(cbind(result_numric, result_summ))
+        return(cbind(result_numeric, result_summ))
       })

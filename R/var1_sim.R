@@ -27,17 +27,17 @@ setMethod("train_model",
             new_trainset_max <- convert_frequency_dataset(trainset_max, object@window_size, "max")
             new_trainset_avg <- convert_frequency_dataset(trainset_avg, object@window_size, "avg")
             if (object@response == "max") {
-              uni_data_matrix <- matrix(nrow = length(trainset_max), ncol = 2)
+              uni_data_matrix <- matrix(nrow = length(new_trainset_max), ncol = 2)
               uni_data_matrix[,1] <- new_trainset_max
               uni_data_matrix[,2] <- new_trainset_avg
               trained_result <- MTS::VAR(uni_data_matrix, p = 1, include.mean = TRUE, output = FALSE)
             } else {
-              uni_data_matrix <- matrix(nrow = length(trainset_max), ncol = 2)
+              uni_data_matrix <- matrix(nrow = length(new_trainset_avg), ncol = 2)
               uni_data_matrix[,1] <- new_trainset_avg
               uni_data_matrix[,2] <- new_trainset_max
               trained_result <- MTS::VAR(uni_data_matrix, p = 1, include.mean = TRUE, output = FALSE)
             }
-            return(methods::new("var1_sim_process", object, trained_model = trained_result))
+            return(var1_sim_process(object, trained_model = trained_result))
           })
 
 
@@ -47,9 +47,9 @@ setMethod("do_prediction",
           function(object, last_obs_max, last_obs_avg, predict_size, level) {
 
             if (object@response == "max") {
-              mu <- matrix(c(last_obs_max,last_obs_avg),ncol=1)
+              mu <- matrix(c(last_obs_max,last_obs_avg), ncol = 1)
             } else {
-              mu <- matrix(c(last_obs_avg,last_obs_max),ncol=1)
+              mu <- matrix(c(last_obs_avg,last_obs_max), ncol = 1)
             }
             intercept <- object@trained_model$Ph0
             ar_coef <- object@trained_model$Phi
@@ -87,9 +87,9 @@ setMethod("compute_pi_up",
           function(object) {
             mu <- object@predict_result$mu
             varcov <- object@predict_result$varcov
-            upper_bounds <- rep(NA, length(mu))
-            for (i in 1:length(mu)) {
-              upper_bounds[i] <- min(mu[i] + stats::qnorm((1 - object@cut_off_prob)) * sqrt(varcov[i,i]), 100)
+            upper_bounds <- rep(NA, ncol(mu))
+            for (i in 1:ncol(mu)) {
+              upper_bounds[i] <- min(mu[1, i] + stats::qnorm(1 - object@cut_off_prob) * sqrt(varcov[i, i]), 100)
             }
             return(max(upper_bounds))
           })
@@ -100,7 +100,7 @@ setMethod("get_sim_save",
           signature(object = "var1_sim", evaluation = "data.frame", write_result = "logical"),
           function(object, evaluation, write_result) {
             gn_result <- generate_result(object, evaluation, write_result)
-            return(methods::new("var1_sim_result", object, result = gn_result$result, summ = gn_result$summ))
+            return(var1_sim_result(object, result = gn_result$result, summ = gn_result$summ))
           })
 
 
@@ -120,11 +120,20 @@ setMethod("get_numeric_slots",
 
 
 #' @export
+setAs("var1_sim", "data.frame",
+      function(from) {
+        numeric_lst <- get_numeric_slots(from)
+        result_numeric <- as.data.frame(numeric_lst)
+        return(result_numeric)
+      })
+
+
+#' @export
 setAs("var1_sim_result", "data.frame",
       function(from) {
         summ <- from@summ
         numeric_lst <- get_numeric_slots(from)
-        result_numric <- as.data.frame(numeric_lst)
+        result_numeric <- as.data.frame(numeric_lst)
         result_summ <- as.data.frame(summ)
-        return(cbind(result_numric, result_summ))
+        return(cbind(result_numeric, result_summ))
       })

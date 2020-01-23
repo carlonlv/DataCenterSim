@@ -85,7 +85,7 @@ setMethod("train_model",
                 }
               }
             }
-            return(methods::new("markov_sim_process", object, trained_model = transition))
+            return(markov_sim_process(object, trained_model = transition))
           })
 
 
@@ -95,7 +95,7 @@ setMethod("do_prediction",
           function(object, last_obs_max, last_obs_avg, predict_size, level) {
             final_transition <- object@trained_model
             parsed_transition <- object@trained_model
-            if (!is.null(level)) {
+            if (!is.na(level)) {
               level_state <- find_state_num(level, nrow(object@trained_model))
               for (i in level_state:nrow(object@trained_model)) {
                 parsed_transition[i,] <- rep(0, nrow(object@trained_model))
@@ -149,7 +149,7 @@ setMethod("compute_pi_up",
               pi_up <- current_state * (100 / length(to_states))
               return(pi_up)
             }
-            pi_ups <- apply(object@to_states, 1, compute_pi_up_markov_single, object@cut_off_prob)
+            pi_ups <- apply(object@predict_result$to_states, 1, compute_pi_up_markov_single, object@cut_off_prob)
             return(max(pi_ups))
           })
 
@@ -159,7 +159,7 @@ setMethod("get_sim_save",
           signature(object = "markov_sim", evaluation = "data.frame", write_result = "logical"),
           function(object, evaluation, write_result) {
             gn_result <- generate_result(object, evaluation, write_result)
-            return(methods::new("markov_sim_result", object, result = gn_result$result, summ = gn_result$summ))
+            return(markov_sim_result(object, result = gn_result$result, summ = gn_result$summ))
           })
 
 
@@ -179,11 +179,20 @@ setMethod("get_numeric_slots",
 
 
 #' @export
+setAs("markov_sim", "data.frame",
+      function(from) {
+        numeric_lst <- get_numeric_slots(from)
+        result_numeric <- as.data.frame(numeric_lst)
+        return(result_numeric)
+      })
+
+
+#' @export
 setAs("markov_sim_result", "data.frame",
       function(from) {
         summ <- from@summ
         numeric_lst <- get_numeric_slots(from)
-        result_numric <- as.data.frame(numeric_lst)
+        result_numeric <- as.data.frame(numeric_lst)
         result_summ <- as.data.frame(summ)
-        return(cbind(result_numric, result_summ))
+        return(cbind(result_numeric, result_summ))
       })

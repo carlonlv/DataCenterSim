@@ -39,13 +39,14 @@ schedule_foreground <- function(object_process, testset_max, testset_avg, cpu_re
     } else {
       actual <- check_actual(testset_avg[start_time:end_time], cpu_required, object_process@granularity)
     }
-    actuals <- c(actuals, actual)
 
     ## Update step based on adjustment policy and schedule policy
     update_info <- get_scheduling_step(prediction, actual, object_process@window_size, object_process@adjust_policy, adjust_switch, object_process@schedule_policy)
     adjust_switch <- update_info$adjust_switch
     predictions <- c(predictions, update_info$prediction)
     update <- update_info$update
+
+    actuals <- c(actuals, actual)
 
     current_end <- current_end + update
   }
@@ -201,16 +202,14 @@ predict_model <- function(object_process, testset_max, testset_avg) {
     } else {
       survival <- check_survival(pi_up, testset_avg[start_time:end_time], object_process@granularity)
     }
-    utilization <- check_utilization(pi_up, survival, object_process@granularity)
 
     ## Update step based on adjustment policy and schedule policy
     update_info <- get_predicting_step(survival, object_process@window_size, object_process@adjust_policy, adjust_switch, object_process@schedule_policy)
     adjust_switch <- update_info$adjust_switch
+    survivals <- c(survivals, update_info$survival)
     update <- update_info$update
 
-    ## Store results
-    survivals <- c(survivals, survival)
-    utilizations <- c(utilizations, utilization)
+    utilizations <- c(utilizations, check_utilization(pi_up, survival, object_process@granularity))
 
     current_end <- current_end + update
   }

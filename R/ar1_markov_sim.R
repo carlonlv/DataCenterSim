@@ -1,12 +1,34 @@
 #' @include sim_class.R generics.R
 NULL
 
+#' Validity Checker for markov_sim Object
+#'
+#' @param object A markov_sim object
+#' @return \code{TRUE} if the input sim object is valid, vector of error messages otherwise.
+#' @keywords internal
+check_valid_ar1_markov_sim <- function(object) {
+  errors <- character()
+  if (any(is.na(object@state_num)) | any(object@state_num %% 1 != 0) | any(object@state_num <= 0)) {
+    msg <- paste0("state_num must only consist positive integers.")
+    errors <- c(errors, msg)
+  }
+  if (length(errors) == 0) {
+    return(TRUE)
+  } else {
+    return(errors)
+  }
+}
+
+
 #' @rdname sim-class
-#' @name ar1_markov_sim-class
+#' @param state_num A numeric number that represents the number of states in Markov chain.
 #' @export ar1_markov_sim
 ar1_markov_sim <- setClass("ar1_markov_sim",
-                    contains = "sim",
-                    prototype = list(name = "ar1_markov"))
+                           slots = list(state_num = "numeric"),
+                           prototype = list(name = "AR1_Markov",
+                                            state_num = c(8, 16, 32)),
+                           contains = "sim",
+                           validity = check_valid_ar1_markov_sim)
 
 #' @rdname sim_process-class
 ar1_markov_sim_process <- setClass("ar1_markov_sim_process",

@@ -27,7 +27,8 @@ markov_sim <- setClass("markov_sim",
                        slots = list(state_num = "numeric"),
                        prototype = list(name = "Markov",
                                         state_num = c(8, 16, 32)),
-                       contains = "sim")
+                       contains = "sim",
+                       validity = check_valid_markov_sim)
 
 #' @rdname sim_process-class
 markov_sim_process <- setClass("markov_sim_process",

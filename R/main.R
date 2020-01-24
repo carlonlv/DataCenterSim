@@ -312,7 +312,8 @@ predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result
 
   ## Do Simulation
   start_time <- proc.time()
-  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, object, dataset_max, dataset_avg, mc.cores = cores)
+  #result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, object, dataset_max, dataset_avg, mc.cores = cores)
+  result <- lapply(1:length(ts_names), svt_predicting_sim, object, dataset_max, dataset_avg)
   end_time <- proc.time()
   print(end_time - start_time)
 

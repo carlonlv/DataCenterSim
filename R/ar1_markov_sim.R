@@ -192,7 +192,7 @@ setMethod("plot_sim",
               ggplot2::scale_alpha(name = "granularity") +
               ggplot2::scale_color_brewer(name = "tolerance", palette = "Set1") +
               ggplot2::scale_fill_brewer(name = "train_size", palette = "Set2") +
-              ggplot2::scale_size(range = c(1, 4), trans = "log2") +
+              ggplot2::scale_size(name = "state_num", range = c(1, 4), trans = "log2") +
               ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21))) +
               ggplot2::ggtitle(paste("Model Performance of", file_name))
             ggplot2::ggsave(fs::path(paste0(object@result_loc, file_name), ext = "png"))

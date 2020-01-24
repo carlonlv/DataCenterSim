@@ -72,11 +72,11 @@ setMethod("train_model",
             if (object@response == "max") {
               temp_ar1@response <- "avg"
               trained_ar1 <- train_model(temp_ar1, trainset_max, trainset_avg)
-              trained_markov <- train_markov_from_to(overlapping_dataset_max, overlapping_dataset_avg, object@state_num)
+              trained_markov <- train_markov_from_to(overlapping_dataset_avg, overlapping_dataset_max, object@state_num)
             } else {
               temp_ar1@response <- "max"
               trained_ar1 <- train_model(temp_ar1, trainset_max, trainset_avg)
-              trained_markov <- train_markov_from_to(overlapping_dataset_avg, overlapping_dataset_max, object@state_num)
+              trained_markov <- train_markov_from_to(overlapping_dataset_max, overlapping_dataset_avg, object@state_num)
             }
             trained_result <- list("coeffs" = trained_ar1@trained_model$coeffs, "means" = trained_ar1@trained_model$means, "vars" = trained_ar1@trained_model$vars, "transition" = trained_markov)
             return(ar1_markov_sim_process(object, trained_model = trained_result))
@@ -96,13 +96,13 @@ setMethod("do_prediction",
               temp_mc@response <- "max"
               new_ar <- do_prediction(temp_ar, last_obs_max, last_obs_avg, predict_size, NA_real_)
               new_last_obs_avg <- new_ar@predict_result$mu
-              new_mc <- do_prediction(temp_mc, last_obs_max, max(new_last_obs_avg, 0), predict_size, level)
+              new_mc <- do_prediction(temp_mc, max(new_last_obs_avg, 0), max(new_last_obs_avg, 0), predict_size, level)
             } else {
               temp_ar@response <- "max"
               temp_mc@response <- "avg"
               new_ar <- do_prediction(temp_ar, last_obs_max, last_obs_avg, predict_size, NA_real_)
               new_last_obs_max <- new_ar@predict_result$mu
-              new_mc <- do_prediction(temp_mc, max(new_last_obs_max, 0), last_obs_avg, predict_size, level)
+              new_mc <- do_prediction(temp_mc, max(new_last_obs_max, 0), max(new_last_obs_max, 0), predict_size, level)
             }
             object@predict_result <- list("prob" = new_mc@predict_result$prob, "to_states" = new_mc@predict_result$to_states)
             return(object)

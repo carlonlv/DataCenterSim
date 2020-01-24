@@ -78,7 +78,7 @@ setMethod("train_model",
               trained_ar1 <- train_model(temp_ar1, trainset_max, trainset_avg)
               trained_markov <- train_markov_from_to(overlapping_dataset_avg, overlapping_dataset_max, object@state_num)
             }
-            trained_result <- list("coeffs" = trained_ar1$coeffs, "means" = trained_ar1$means, "vars" = trained_ar1$vars, "transition" = trained_markov)
+            trained_result <- list("coeffs" = trained_ar1@trained_model$coeffs, "means" = trained_ar1@trained_model$means, "vars" = trained_ar1@trained_model$vars, "transition" = trained_markov)
             return(ar1_markov_sim_process(object, trained_model = trained_result))
           })
 
@@ -113,7 +113,10 @@ setMethod("do_prediction",
 setMethod("compute_pi_up",
           signature(object = "ar1_markov_sim_process"),
           function(object) {
-            pi_up <- compute_pi_up(markov_sim_process(object))
+            temp_markov_sim_process <- markov_sim_process(object)
+            temp_markov_sim_process@trained_model <- object@trained_model$transition
+            temp_markov_sim_process@predict_result <- object@predict_result
+            pi_up <- compute_pi_up(temp_markov_sim_process)
             return(pi_up)
           })
 

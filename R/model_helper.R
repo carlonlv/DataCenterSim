@@ -144,52 +144,44 @@ check_actual <- function(actual_obs, cpu_required, granularity) {
 #' @keywords internal
 get_scheduling_step <- function(prediction, actual, window_size, adjust_policy, adjust_switch, schedule_policy) {
   if (prediction == 1 & actual == 0) {
+    if (schedule_policy == "dynamic") {
+      update <- window_size
+    }
     if (adjust_policy == "back_off" & adjust_switch) {
       adjust_switch <- FALSE
       prediction <- NA
-    } else if (adjust_policy == "back_off" & !adjust_switch) {
-      prediction <- prediction
-    } else {
-      prediction <- prediction
-    }
-    if (schedule_policy == "dynamic") {
-      update <- window_size
+      if (schedule_policy == "dynamic") {
+        update <- 1
+      }
     }
   } else if (prediction == 1 & actual > 0) {
-    if (adjust_policy == "back_off" & !adjust_switch) {
-      adjust_switch <- TRUE
-      prediction <- prediction
-    } else if (adjust_policy == "back_off" & adjust_switch) {
-      prediction <- NA
-    } else {
-      prediction <- prediction
-    }
     if (schedule_policy == "dynamic") {
       update <- actual
     }
-  } else if (prediction == 0 & actual == 0) {
     if (adjust_policy == "back_off" & !adjust_switch) {
       adjust_switch <- TRUE
-      prediction <- prediction
     } else if (adjust_policy == "back_off" & adjust_switch) {
       prediction <- NA
-    } else {
-      prediction <- prediction
     }
+  } else if (prediction == 0 & actual == 0) {
     if (schedule_policy == "dynamic") {
-      update <- window_size
+      update <- 1
+    }
+    if (adjust_policy == "back_off" & !adjust_switch) {
+      adjust_switch <- TRUE
+    } else if (adjust_policy == "back_off" & adjust_switch) {
+      prediction <- NA
     }
   } else {
+    if (schedule_policy == "dynamic") {
+      update <- actual
+    }
     if (adjust_policy == "back_off" & adjust_switch) {
       adjust_switch <- FALSE
       prediction <- NA
-    } else if (adjust_policy == "back_off" & !adjust_switch) {
-      prediction <- prediction
-    } else {
-      prediction <- prediction
-    }
-    if (schedule_policy == "dynamic") {
-      update <- actual
+      if (schedule_policy == "dynamic") {
+        update <- 1
+      }
     }
   }
   return(list("adjust_switch" = adjust_switch, "prediction" = prediction, "update" = update))
@@ -285,21 +277,27 @@ check_survival <- function(pi_up, actual_obs, granularity) {
 #' @keywords internal
 get_predicting_step <- function(survival, window_size, adjust_policy, adjust_switch, schedule_policy) {
   if (is.na(survival) | survival > 0) {
-    if (adjust_policy == "back_off" & !adjust_switch) {
-      adjust_switch <- TRUE
-    }
     if (schedule_policy == "dynamic") {
       update <- ifelse(is.na(survival), 1, survival)
     }
-  } else {
-    if (adjust_policy == "back_off" & adjust_switch) {
-      adjust_switch <- FALSE
+    if (adjust_policy == "back_off" & !adjust_switch) {
+      adjust_switch <- TRUE
+    } else if (adjust_policy == "back_off" & adjust_switch) {
+      survival <- NA
     }
+  } else {
     if (schedule_policy == "dynamic") {
       update <- window_size
     }
+    if (adjust_policy == "back_off" & adjust_switch) {
+      adjust_switch <- FALSE
+      survival <- NA
+      if (schedule_policy == "dynamic") {
+        update <- 1
+      }
+    }
   }
-  return(list("adjust_switch" = adjust_switch, "update" = update))
+  return(list("adjust_switch" = adjust_switch, "update" = update, "survival" = survival))
 }
 
 

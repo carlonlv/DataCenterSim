@@ -61,11 +61,11 @@ check_valid_sim <- function(object) {
     msg <- paste0("tolerance1 and tolerance2 cannot only be NAs.")
     errors <- c(errors, msg)
   }
-  if (!all(is.na(object@tolerance1)) & (any(object@tolerance1 <= 0) | any(object@tolerance1 >= 1))) {
+  if (any(object@tolerance1 <= 0, na.rm = TRUE) | any(object@tolerance1 >= 1, na.rm = TRUE)) {
     msg <- paste0("tolerance1 must only consist numeric values within 0 and 1, exclusively, or NA.")
     errors <- c(errors, msg)
   }
-  if (!all(is.na(object@tolerance2)) & (any(object@tolerance2 <= 0) | any(object@tolerance2 >= 1))) {
+  if (any(object@tolerance2 <= 0, na.rm = TRUE) | any(object@tolerance2 >= 1, na.rm = TRUE)) {
     msg <- paste0("tolerance2 must only consist numeric values within 0 and 1, exclusively, or NA.")
     errors <- c(errors, msg)
   }

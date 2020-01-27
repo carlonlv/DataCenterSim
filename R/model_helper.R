@@ -95,10 +95,14 @@ get_training_step <- function(train_policy, tolerance1, tolerance2, prev_score1,
       bad_performance_score1 <- is.na(last_score1) | last_score1 == 0 | last_score1 < stats::quantile(prev_score1, probs = tolerance1, na.rm = TRUE)
       bad_performance_score2 <- is.na(last_score2) | last_score2 == 0 | last_score2 < stats::quantile(prev_score2, probs = tolerance2, na.rm = TRUE)
     }
-    if (bad_performance_score1 | bad_performance_score2) {
-      train_sig <- TRUE
-    } else {
+    if (is.na(bad_performance_score1) | is.na(bad_performance_score2)) {
       train_sig <- FALSE
+    } else {
+      if (bad_performance_score1 | bad_performance_score2) {
+        train_sig <- TRUE
+      } else {
+        train_sig <- FALSE
+      }
     }
   }
   return(train_sig)

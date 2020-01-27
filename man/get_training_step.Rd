@@ -6,7 +6,8 @@
 \usage{
 get_training_step(
   train_policy,
-  tolerance,
+  tolerance1,
+  tolerance2,
   prev_score1,
   prev_score2,
   last_score1,
@@ -16,7 +17,9 @@ get_training_step(
 \arguments{
 \item{train_policy}{The training policy, either \code{"once"}, \code{"fixed"} or \code{"dynamic"}.}
 
-\item{tolerance}{The tolerance level of retrain, the quantile of previous performance.}
+\item{tolerance1}{The tolerance level of retrain, the quantile of previous performance of score 1.}
+
+\item{tolerance2}{The tolerance level of retrain, the quantile of previous performance of score 2.}
 
 \item{prev_score1}{A vector of previous correctly scheduled rate or survival rate.}
 

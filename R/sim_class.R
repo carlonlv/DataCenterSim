@@ -57,8 +57,16 @@ check_valid_sim <- function(object) {
     msg <- paste0("result_loc does not exist.")
     errors <- c(errors, msg)
   }
-  if (any(is.na(object@tolerance)) | any(object@tolerance <= 0) | any(object@tolerance >= 1)) {
-    msg <- paste0("tolerance must only consist numeric values within 0 and 1, exclusively.")
+  if (all(is.na(object@tolerance1)) & all(is.na(object@tolerance2))) {
+    msg <- paste0("tolerance1 and tolerance2 cannot only be NAs.")
+    errors <- c(errors, msg)
+  }
+  if (!all(is.na(object@tolerance1)) | any(object@tolerance1 <= 0) | any(object@tolerance1 >= 1)) {
+    msg <- paste0("tolerance1 must only consist numeric values within 0 and 1, exclusively, or NA.")
+    errors <- c(errors, msg)
+  }
+  if (!all(is.na(object@tolerance2)) | any(object@tolerance2 <= 0) | any(object@tolerance2 >= 1)) {
+    msg <- paste0("tolerance2 must only consist numeric values within 0 and 1, exclusively, or NA.")
     errors <- c(errors, msg)
   }
   if (length(object@response) != 1 | is.na(object@response) |  all(object@response != response_choices)) {
@@ -85,7 +93,8 @@ check_valid_sim <- function(object) {
 #' @slot train_policy A character that specify the training policy, this can either be \code{"once"}, \code{"fixed"} and \code{dynamic}. Default value is \code{"fixed"}.
 #' @slot schedule_policy A character that specify the scheduling policy, this can either be \code{"disjoint"} or \code{"dynamic"}. Default value is \code{"dynamic"}.
 #' @slot adjust_policy A character that specify the adjustment policy, this can either be \code{"back_off"} or \code{"none"}. Defaut is \code{"none"}.
-#' @slot tolerance A numeric vector that specify the minimum quantile of past performance needs to be achieved, otherwise, re-train signal will be sent.
+#' @slot tolerance1 A numeric vector that specify the minimum quantile of past performance needs to be achieved for score1, otherwise, re-train signal will be sent.
+#' @slot tolerance2 A numeric vector that specify the minimum quantile of past performance needs to be achieved for score2, otherwise, re-train signal will be sent.
 #' @slot response A character that specify the targeting trace to be tested on, this can either be \code{"max"} or \code{"avg"} for max traces and average traces respectively.
 #' @slot result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @name sim-class
@@ -102,7 +111,8 @@ sim <- setClass("sim",
                              train_policy = "character",
                              schedule_policy = "character",
                              adjust_policy = "character",
-                             tolerance = "numeric",
+                             tolerance1 = "numeric",
+                             tolerance2 = "numeric",
                              response = "character",
                              result_loc = "character"),
                 prototype = list(name = NA_character_,
@@ -115,7 +125,8 @@ sim <- setClass("sim",
                                  train_policy = "fixed",
                                  schedule_policy = "dynamic",
                                  adjust_policy = "none",
-                                 tolerance = c(0.45, 0.5),
+                                 tolerance1 = c(0.45, 0.5),
+                                 tolerance2 = c(0.5, NA_real_),
                                  response = "max",
                                  result_loc = getwd()),
                 validity = check_valid_sim)
@@ -141,4 +152,3 @@ NULL
 #' @seealso \code{\link{sim-class}} for super class.
 #' @name sim_result-class
 NULL
-

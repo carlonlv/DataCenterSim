@@ -113,7 +113,7 @@ setMethod("get_sim_save",
 setMethod("get_numeric_slots",
           signature(object = "ar1_sim"),
           function(object) {
-            numeric_slots <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance")
+            numeric_slots <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance1", "tolerance2")
             numeric_lst <- list()
             for (i in numeric_slots) {
               numeric_lst[[i]] <- methods::slot(object, i)

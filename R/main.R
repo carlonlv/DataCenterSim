@@ -103,7 +103,7 @@ svt_scheduling_sim <- function(ts_num, object, dataset_max, dataset_avg, cpu_req
     prev_correct_unscheduled_rate <- correct_unscheduled_num / unscheduled_num
     last_correct_scheduled_rate <- result$correct_scheduled_num / result$scheduled_num
     last_correct_unschedued_rate <- result$correct_unscheduled_num / result$unscheduled_num
-    train_sig <- get_training_step(object@train_policy, object@tolerance, prev_correct_scheduled_rate, prev_correct_unscheduled_rate, last_correct_scheduled_rate, last_correct_unschedued_rate)
+    train_sig <- get_training_step(object@train_policy, object@tolerance1, object@tolerance2, prev_correct_scheduled_rate, prev_correct_unscheduled_rate, last_correct_scheduled_rate, last_correct_unschedued_rate)
 
     ## Update Result
     scheduled_num <- c(scheduled_num, result$scheduled_num)
@@ -269,7 +269,7 @@ svt_predicting_sim <- function(ts_num, object, dataset_max, dataset_avg) {
     prev_utilization <- util_num / util_den
     last_survial <- result$sur_num / result$sur_den
     last_utilization <- result$util_num / result$util_den
-    train_sig <- get_training_step(object@train_policy, object@tolerance, prev_survival, prev_utilization, last_survial, last_utilization)
+    train_sig <- get_training_step(object@train_policy, object@tolerance1, object@tolerance2, prev_survival, prev_utilization, last_survial, last_utilization)
 
     ## Update Result
     sur_num <- c(sur_num, result$sur_num)

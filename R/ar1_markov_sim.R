@@ -136,7 +136,7 @@ setMethod("get_sim_save",
 setMethod("get_numeric_slots",
           signature(object = "ar1_markov_sim"),
           function(object) {
-            numeric_slots <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance", "state_num")
+            numeric_slots <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance1", "tolerance2", "state_num")
             numeric_lst <- list()
             for (i in numeric_slots) {
               numeric_lst[[i]] <- methods::slot(object, i)
@@ -163,38 +163,3 @@ setAs("ar1_markov_sim_result", "data.frame",
         result_summ <- as.data.frame(summ)
         return(cbind(result_numeric, result_summ))
       })
-
-
-#' @return A plot object
-#' @rdname plot_sim
-#' @export
-setMethod("plot_sim",
-          signature(object = "ar1_markov_sim"),
-          function(object) {
-            file_name <- paste(object@name, "Sim:", object@type, "Train:", object@train_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
-            fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
-            result <- utils::read.csv(fp)
-            result$window_size_update_freq <- paste(result$window_size, result$update_freq)
-            if (object@type == "scheduling") {
-              plt <- ggplot2::ggplot(result, ggplot2::aes(x = result$agg_correct_scheduled_rate, y = result$agg_correct_unscheduled_rate)) +
-                ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(size = result$state_num, shape = result$window_size_update_freq, alpha = result$granularity, fill = as.factor(result$train_size), colour = as.factor(result$tolerance))) +
-                ggplot2::ylab("Correct Scheduled Rate") +
-                ggplot2::xlab("Correct Unscheduled Rate")
-            } else {
-              plt <- ggplot2::ggplot(result, ggplot2::aes(x = result$agg_survival_rate, y = result$agg_utilization_rate)) +
-                ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(size = result$state_num, shape = result$window_size_update_freq, alpha = result$granularity, fill = as.factor(result$train_size), colour = as.factor(result$tolerance))) +
-                ggplot2::geom_vline(xintercept = 0.99, linetype = "dashed", color = "red") +
-                ggplot2::ylab("Utilization") +
-                ggplot2::xlab("Survival Rate")
-            }
-            plt <- plt +
-              ggplot2::scale_shape_manual(name = "window_size by update_freq",values = 21:25) +
-              ggplot2::scale_alpha(name = "granularity") +
-              ggplot2::scale_color_brewer(name = "tolerance", palette = "Set1") +
-              ggplot2::scale_fill_brewer(name = "train_size", palette = "Set2") +
-              ggplot2::scale_size(name = "state_num", range = c(1, 4), trans = "log2") +
-              ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21))) +
-              ggplot2::ggtitle(paste("Model Performance of", file_name))
-            ggplot2::ggsave(fs::path(paste0(object@result_loc, file_name), ext = "png"))
-            return(plt)
-          })

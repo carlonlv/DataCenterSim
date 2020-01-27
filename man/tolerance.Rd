@@ -2,27 +2,42 @@
 % Please edit documentation in R/generics.R, R/sim_methods.R
 \name{tolerance}
 \alias{tolerance}
-\alias{tolerance<-}
-\alias{tolerance,sim-method}
-\alias{tolerance<-,sim,numeric-method}
+\alias{tolerance1}
+\alias{tolerance1<-}
+\alias{tolerance2}
+\alias{tolerance2<-}
+\alias{tolerance1,sim-method}
+\alias{tolerance1<-,sim,numeric-method}
+\alias{tolerance2,sim-method}
+\alias{tolerance2<-,sim,numeric-method}
 \title{Getter/Setter for Tolerance}
 \usage{
-tolerance(object)
+tolerance1(object)
 
-tolerance(object) <- value
+tolerance1(object) <- value
 
-\S4method{tolerance}{sim}(object)
+tolerance2(object)
 
-\S4method{tolerance}{sim,numeric}(object) <- value
+tolerance2(object) <- value
+
+\S4method{tolerance1}{sim}(object)
+
+\S4method{tolerance1}{sim,numeric}(object) <- value
+
+\S4method{tolerance2}{sim}(object)
+
+\S4method{tolerance2}{sim,numeric}(object) <- value
 }
 \arguments{
 \item{object}{An S4 sim object}
 
-\item{value}{A numeric value that is between 0 and 1, exclusive.}
+\item{value}{A numeric value that is between 0 and 1, exclusive or NA_real_.}
 }
 \value{
-A numeric vector representing tolerance of simulation.
+A numeric vector representing tolerance1 of score1.
+
+A numeric vector representing tolerance2 of score2.
 }
 \description{
-Tolerance is used for dynamic scheme training policy. It controls the minimum quantile of past evaluation the current evaluation needs to supass, otherwise a retrain signal is sent for step.
+Tolerance is used for dynamic scheme training policy. It controls the minimum quantile of past evaluation the current evaluation needs to supass, otherwise a retrain signal is sent for step. Evaluations consist of two scores, when \code{type} equals to \code{scheduling}, score1 corresponds to correct_scheduled_rate, score2 corresponds to correct_unscheduled_rate, when \code{type} equals \code{predicting}, score1 corresponds to survival_rate, and score2 corresponds to utilization_rate.
 }

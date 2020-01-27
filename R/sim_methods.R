@@ -122,20 +122,40 @@ setReplaceMethod("update_freq",
 
 
 #' @rdname tolerance
-#' @return A numeric vector representing tolerance of simulation.
+#' @return A numeric vector representing tolerance1 of score1.
 #' @export
-setMethod("tolerance",
+setMethod("tolerance1",
           signature(object = "sim"),
           function(object){
-            return(object@tolerance)
+            return(object@tolerance1)
           })
 
 #' @rdname tolerance
 #' @export
-setReplaceMethod("tolerance",
+setReplaceMethod("tolerance1",
                  signature(object = "sim", value = "numeric"),
                  function(object, value) {
-                   object@tolerance <- value
+                   object@tolerance1 <- value
+                   methods::validObject(object)
+                   return(object)
+                 })
+
+
+#' @rdname tolerance
+#' @return A numeric vector representing tolerance2 of score2.
+#' @export
+setMethod("tolerance2",
+          signature(object = "sim"),
+          function(object){
+            return(object@tolerance2)
+          })
+
+#' @rdname tolerance
+#' @export
+setReplaceMethod("tolerance2",
+                 signature(object = "sim", value = "numeric"),
+                 function(object, value) {
+                   object@tolerance2 <- value
                    methods::validObject(object)
                    return(object)
                  })
@@ -289,14 +309,18 @@ setMethod("plot_sim",
             fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
             result <- utils::read.csv(fp)
             result$window_size_update_freq <- paste(result$window_size, result$update_freq)
+            result$tolerance <- paste(result$tolerance1, result$tolerance2)
+
             if (object@type == "scheduling") {
               plt <- ggplot2::ggplot(result, ggplot2::aes(x = result$agg_correct_scheduled_rate, y = result$agg_correct_unscheduled_rate)) +
-                ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = result$window_size_update_freq, alpha = result$granularity, fill = as.factor(result$train_size), colour = as.factor(result$tolerance))) +
+                ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = result$window_size_update_freq, alpha = result$granularity, fill = as.factor(result$train_size), color = as.factor(result$tolerance))) +
+                ggplot2::stat_ellipse(aes(linetype = as.factor(result$cut_off_prob)), type = "norm") +
                 ggplot2::ylab("Correct Scheduled Rate") +
                 ggplot2::xlab("Correct Unscheduled Rate")
             } else {
               plt <- ggplot2::ggplot(result, ggplot2::aes(x = result$agg_survival_rate, y = result$agg_utilization_rate)) +
-                ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = result$window_size_update_freq, alpha = result$granularity, fill = as.factor(result$train_size), colour = as.factor(result$tolerance))) +
+                ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = result$window_size_update_freq, alpha = result$granularity, fill = as.factor(result$train_size), color = as.factor(result$tolerance))) +
+                ggplot2::stat_ellipse(aes(linetype = as.factor(result$cut_off_prob)), type = "norm") +
                 ggplot2::geom_vline(xintercept = 0.99, linetype = "dashed", color = "red") +
                 ggplot2::ylab("Utilization") +
                 ggplot2::xlab("Survival Rate")
@@ -305,9 +329,9 @@ setMethod("plot_sim",
               ggplot2::scale_shape_manual(name = "window_size by update_freq",values = 21:25) +
               ggplot2::scale_alpha(name = "granularity") +
               ggplot2::scale_color_brewer(name = "tolerance", palette = "Set1") +
-              ggplot2::scale_fill_brewer(name = "train_size", palette = "Set2") +
+              ggplot2::scale_fill_brewer(name = "train_size", palette = "Set3") +
               ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21))) +
               ggplot2::ggtitle(paste("Model Performance of", file_name))
-            ggplot2::ggsave(fs::path(paste0(object@result_loc, file_name), ext = "png"))
+            ggplot2::ggsave(fs::path(paste0(object@result_loc, file_name), ext = "png"), width = 5, height = 5)
             return(plt)
           })

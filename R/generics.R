@@ -150,21 +150,32 @@ setGeneric("result_loc", function(object) standardGeneric("result_loc"))
 #' @export
 setGeneric("result_loc<-", function(object, value) standardGeneric("result_loc<-"))
 
-
 #' Getter/Setter for Tolerance
 #'
-#' Tolerance is used for dynamic scheme training policy. It controls the minimum quantile of past evaluation the current evaluation needs to supass, otherwise a retrain signal is sent for step.
+#' Tolerance is used for dynamic scheme training policy. It controls the minimum quantile of past evaluation the current evaluation needs to supass, otherwise a retrain signal is sent for step. Evaluations consist of two scores, when \code{type} equals to \code{scheduling}, score1 corresponds to correct_scheduled_rate, score2 corresponds to correct_unscheduled_rate, when \code{type} equals \code{predicting}, score1 corresponds to survival_rate, and score2 corresponds to utilization_rate.
 #'
 #' @param object An S4 sim object
+#' @name tolerance
+NULL
+
 #' @rdname tolerance
 #' @export
-setGeneric("tolerance", function(object) standardGeneric("tolerance"))
+setGeneric("tolerance1", function(object) standardGeneric("tolerance1"))
 
-#' @param value A numeric value that is between 0 and 1, exclusive.
+#' @param value A numeric value that is between 0 and 1, exclusive or NA_real_.
 #' @rdname tolerance
 #' @export
-setGeneric("tolerance<-", function(object, value) standardGeneric("tolerance<-"))
+setGeneric("tolerance1<-", function(object, value) standardGeneric("tolerance1<-"))
 
+
+#' @rdname tolerance
+#' @export
+setGeneric("tolerance2", function(object) standardGeneric("tolerance2"))
+
+#' @param value A numeric value that is between 0 and 1, exclusive or NA_real_.
+#' @rdname tolerance
+#' @export
+setGeneric("tolerance2<-", function(object, value) standardGeneric("tolerance2<-"))
 
 #' Getter/Setter for Response
 #'

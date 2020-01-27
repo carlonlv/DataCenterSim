@@ -43,7 +43,9 @@ An S4 Class to Represent A Simulation.
 
 \item{\code{adjust_policy}}{A character that specify the adjustment policy, this can either be \code{"back_off"} or \code{"none"}. Defaut is \code{"none"}.}
 
-\item{\code{tolerance}}{A numeric vector that specify the minimum quantile of past performance needs to be achieved, otherwise, re-train signal will be sent.}
+\item{\code{tolerance1}}{A numeric vector that specify the minimum quantile of past performance needs to be achieved for score1, otherwise, re-train signal will be sent.}
+
+\item{\code{tolerance2}}{A numeric vector that specify the minimum quantile of past performance needs to be achieved for score2, otherwise, re-train signal will be sent.}
 
 \item{\code{response}}{A character that specify the targeting trace to be tested on, this can either be \code{"max"} or \code{"avg"} for max traces and average traces respectively.}
 

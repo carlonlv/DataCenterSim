@@ -71,29 +71,34 @@ convert_frequency_dataset_overlapping <- function(dataset, new_freq, response) {
 #'
 #' @description Computer training step.
 #' @param train_policy The training policy, either \code{"once"}, \code{"fixed"} or \code{"dynamic"}.
-#' @param tolerance The tolerance level of retrain, the quantile of previous performance.
+#' @param tolerance1 The tolerance level of retrain, the quantile of previous performance of score 1.
+#' @param tolerance2 The tolerance level of retrain, the quantile of previous performance of score 2.
 #' @param prev_score1 A vector of previous correctly scheduled rate or survival rate.
 #' @param prev_score2 A vector of previous correctly unscheduled rate or utiliztion rate.
 #' @param last_score1 The current correctly scheduled rate or survival rate.
 #' @param last_score2 The current correctly unscheduled rate or utilization rate.
 #' @return train signal whether \code{TRUE} if retraining is needed at next update, otherwise \code{FALSE}.
 #' @keywords internal
-get_training_step <- function(train_policy, tolerance, prev_score1, prev_score2, last_score1, last_score2) {
+get_training_step <- function(train_policy, tolerance1, tolerance2, prev_score1, prev_score2, last_score1, last_score2) {
   if (train_policy == "once") {
     train_sig <- FALSE
   } else if (train_policy == "fixed") {
     train_sig <- TRUE
   } else {
-    bad_performance_score1 <- last_score1 < stats::quantile(prev_score1, probs = tolerance, na.rm = TRUE)
-    bad_performance_score2 <- last_score2 < stats::quantile(prev_score2, probs = tolerance, na.rm = TRUE)
-    if (is.na(bad_performance_score1 | bad_performance_score2)) {
+    if (is.na(tolerance1)) {
+      bad_performance_score1 <- FALSE
+      bad_performance_score2 <- is.na(last_score2) | last_score2 == 0 | last_score2 < stats::quantile(prev_score2, probs = tolerance2, na.rm = TRUE)
+    } else if (is.na(tolerance2)) {
+      bad_performance_score1 <- is.na(last_score1) | last_score1 == 0 | last_score1 < stats::quantile(prev_score1, probs = tolerance1, na.rm = TRUE)
+      bad_performance_score2 <- FALSE
+    } else {
+      bad_performance_score1 <- is.na(last_score1) | last_score1 == 0 | last_score1 < stats::quantile(prev_score1, probs = tolerance1, na.rm = TRUE)
+      bad_performance_score2 <- is.na(last_score2) | last_score2 == 0 | last_score2 < stats::quantile(prev_score2, probs = tolerance2, na.rm = TRUE)
+    }
+    if (bad_performance_score1 | bad_performance_score2) {
       train_sig <- TRUE
     } else {
-      if (bad_performance_score1 | bad_performance_score2) {
-        train_sig <- TRUE
-      } else {
-        train_sig <- FALSE
-      }
+      train_sig <- FALSE
     }
   }
   return(train_sig)

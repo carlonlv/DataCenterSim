@@ -249,10 +249,10 @@ setMethod("plot_sim",
               ggplot2::scale_size(name = "state_num", guide = ggplot2::guide_legend(ncol = 2), range = c(1, 4)) +
               ggplot2::scale_linetype(name = "cut_off_prob", guide = ggplot2::guide_legend(ncol = 2)) +
               ggplot2::scale_shape_manual(name = "window_size by update_freq", values = 21:25, guide = ggplot2::guide_legend(ncol = 2)) +
-              ggplot2::scale_alpha(name = "granularity", guide = ggplot2::guide_legend(ncol = 2)) +
+              ggplot2::scale_alpha_discrete(name = "granularity", guide = ggplot2::guide_legend(ncol = 2)) +
               ggplot2::scale_fill_brewer(name = "train_size", palette = "Set3") +
               ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2)) +
               ggplot2::ggtitle(paste("Model Performance of", file_name))
-            ggplot2::ggsave(fs::path(paste0(object@result_loc, file_name), ext = "png"), width = 5, height = 5)
+            ggplot2::ggsave(fs::path(paste0(object@result_loc, file_name), ext = "png"), width = 12, height = 7)
             return(plt)
           })

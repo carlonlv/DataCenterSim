@@ -2,4 +2,5 @@
 #' @importFrom parallel mclapply
 #' @importFrom dplyr filter
 #' @import ggplot2
+#' @importFrom sn psn
 NULL

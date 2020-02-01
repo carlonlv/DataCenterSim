@@ -92,32 +92,15 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained Markov Model.
 setMethod("do_prediction",
-          signature(object = "markov_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", predict_size = "numeric", level = "numeric"),
-          function(object, last_obs_max, last_obs_avg, predict_size, level) {
+          signature(object = "markov_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
+          function(object, last_obs_max, last_obs_avg, level) {
             final_transition <- object@trained_model
-            parsed_transition <- object@trained_model
-            if (!is.na(level)) {
-              level_state <- find_state_num(level, nrow(object@trained_model))
-              for (i in level_state:nrow(object@trained_model)) {
-                parsed_transition[i,] <- rep(0, nrow(object@trained_model))
-                parsed_transition[i, i] <- 1
-              }
-            }
             if (object@response == "max") {
               from <- find_state_num(last_obs_max, nrow(object@trained_model))
             } else {
               from <- find_state_num(last_obs_avg, nrow(object@trained_model))
             }
-            to_states <- data.frame()
-            if (predict_size > 1) {
-              to_states <- rbind(to_states, final_transition[from,])
-              for (i in 1:(predict_size - 1)) {
-                final_transition <- final_transition %*% parsed_transition
-                to_states <- rbind(to_states, final_transition[from,])
-              }
-            } else {
-              to_states <- rbind(to_states, final_transition[from,])
-            }
+            to_states <- final_transition[from,]
 
             # calculate probability
             prob <- NULL
@@ -135,23 +118,20 @@ setMethod("do_prediction",
 setMethod("compute_pi_up",
           signature(object = "markov_sim_process"),
           function(object) {
-            compute_pi_up_markov_single <- function(to_states, cut_off_prob) {
-              current_state <- 1
-              current_prob <- 0
-              while (current_state <= length(to_states)) {
-                current_prob <- current_prob + to_states[current_state]
-                if (current_prob < 1 - object@cut_off_prob) {
-                  current_state <- current_state + 1
-                }
-                else {
-                  break
-                }
+            to_states <- object@predict_result$to_states
+            current_state <- 1
+            current_prob <- 0
+            while (current_state <= length(to_states)) {
+              current_prob <- current_prob + to_states[current_state]
+              if (current_prob < 1 - object@cut_off_prob) {
+                current_state <- current_state + 1
               }
-              pi_up <- current_state * (100 / length(to_states))
-              return(pi_up)
+              else {
+                break
+              }
             }
-            pi_ups <- apply(object@predict_result$to_states, 1, compute_pi_up_markov_single, object@cut_off_prob)
-            return(max(pi_ups))
+            pi_up <- current_state * (100 / length(to_states))
+            return(pi_up)
           })
 
 

@@ -252,12 +252,11 @@ setGeneric("train_model", function(object, trainset_max, trainset_avg) standardG
 #' @param object An S4 sim process object with trained model information.
 #' @param last_obs_max A numeric value representing the last observation of maximum.
 #' @param last_obs_avg A numeric value representing the last observation of average.
-#' @param predict_size The number of window sizes to predict forword.
 #' @param level The level in \eqn{Pr(Y_{t+1}|Y_{t}) \leq level} to be computed.
 #' @return The same S4 process object with prediction information.
 #' @name do_prediction
 #' @rdname do_prediction
-setGeneric("do_prediction", function(object, last_obs_max, last_obs_avg, predict_size, level) standardGeneric("do_prediction"))
+setGeneric("do_prediction", function(object, last_obs_max, last_obs_avg, level) standardGeneric("do_prediction"))
 
 
 #' Compute Prediction Interval Upper Bound

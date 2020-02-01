@@ -5,8 +5,10 @@ NULL
 #' @name ar1_sim-class
 #' @export ar1_sim
 ar1_sim <- setClass("ar1_sim",
+                    slots = list(res_dist = "character"),
                     contains = "sim",
-                    prototype = list(name = "AR1"))
+                    prototype = list(name = "AR1",
+                                     res_dist = "norm"))
 
 #' @rdname sim_process-class
 ar1_sim_process <- setClass("ar1_sim_process",
@@ -27,58 +29,103 @@ setMethod("train_model",
             new_trainset_max <- convert_frequency_dataset(trainset_max, object@window_size, "max")
             new_trainset_avg <- convert_frequency_dataset(trainset_avg, object@window_size, "avg")
             if (object@response == "max") {
-              ts_model <- suppressWarnings(tryCatch({
-                stats::arima(x = new_trainset_max, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
+              mean_x <- mean(new_trainset_max)
+              x_dot <- new_trainset_max - mean_x
+
+              phi <- suppressWarnings(tryCatch({
+                ts_model <- stats::arima(x = new_trainset_max, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
+                as.numeric(ts_model$coef[1])
               }, warning = function(w) {
-                stats::arima(x = new_trainset_max, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "BFGS")
+                phi_num <- sample_moment_lag(x_dot, k = 1, r = 1, s = 1)
+                phi_den <- sample_moment_lag(x_dot, k = 0, r = 1, s = 1)
+                phi <- phi_num / phi_den
               }, error = function(cond) {
-                stats::arima(x = new_trainset_max, order = c(1,0,0), include.mean = TRUE, method = "CSS", optim.control = list(maxit = 2000), optim.method = "CG")
+                phi_num <- sample_moment_lag(x_dot, k = 1, r = 1, s = 1)
+                phi_den <- sample_moment_lag(x_dot, k = 0, r = 1, s = 1)
+                phi <- phi_num / phi_den
               }))
             } else {
-              ts_model <- suppressWarnings(tryCatch({
-                stats::arima(x = new_trainset_avg, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
+              mean_x <- mean(new_trainset_avg)
+              x_dot <- new_trainset_avg - mean_x
+              phi <- suppressWarnings(tryCatch({
+                ts_model <- stats::arima(x = new_trainset_avg, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
+                as.numeric(ts_model$coef[1])
               }, warning = function(w) {
-                stats::arima(x = new_trainset_avg, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "BFGS")
+                phi_num <- sample_moment_lag(x_dot, k = 1, r = 1, s = 1)
+                phi_den <- sample_moment_lag(x_dot, k = 0, r = 1, s = 1)
+                phi <- phi_num / phi_den
               }, error = function(cond) {
-                stats::arima(x = new_trainset_avg, order = c(1,0,0), include.mean = TRUE, method = "CSS", optim.control = list(maxit = 2000), optim.method = "CG")
+                phi_num <- sample_moment_lag(x_dot, k = 1, r = 1, s = 1)
+                phi_den <- sample_moment_lag(x_dot, k = 0, r = 1, s = 1)
+                phi <- phi_num / phi_den
               }))
             }
-            trained_result <- list("coeffs" = as.numeric(ts_model$coef[1]), "means" = as.numeric(ts_model$coef[2]), "vars" = ts_model$sigma2)
+
+            fitted_x <- phi * x_dot[-length(x_dot)]
+            res <- x_dot[-1] - fitted_x
+
+            if (object@res_dist == "norm") {
+              # mu parameter
+              mu <- mean_x * (1 - phi)
+              # sigma parameter
+              sigma2 <- stats::var(res)
+
+              trained_result <- list("phi" = phi, "mu" = mu, "sigma2" = sigma2)
+            } else {
+              skew_res <- sample_moment_lag(res, k = 0, r = 3, s = 0) / (sample_moment_lag(res, k = 0, r = 2, s = 0) ^ (3/2))
+              abs_skew_res <- min(abs(skew_res), 0.99)
+
+              # alpha parameter
+              delta <- sign(skew_res) * sqrt((pi / 2) * (abs_skew_res^(2/3)) / ((abs_skew_res ^ (2/3)) + (2 - 0.5 * pi) ^ (2/3)))
+              alpha <- delta / sqrt(1 - delta ^ 2)
+
+              # omega parameter
+              omega2 <- sample_moment_lag(res, k = 0, r = 2, s = 0) / (1 - 2 / pi * delta ^ (2))
+              omega <- sqrt(omega2)
+
+              # xi parameter
+              xi <- mean_x * (1 - phi) - sqrt(pi / 2) * omega * delta
+
+              trained_result <- list("phi" = phi, "xi" = xi, "omega" = omega, "alpha" = alpha)
+            }
             return(ar1_sim_process(object, trained_model = trained_result))
           })
 
 
 #' @describeIn do_prediction Do prediction based on trained AR1 Model.
 setMethod("do_prediction",
-          signature(object = "ar1_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", predict_size = "numeric", level = "numeric"),
-          function(object, last_obs_max, last_obs_avg, predict_size, level) {
-            calculate_var_cov_matrix <- function(var, l, phi) {
-              dm = abs(outer(1:l,1:l,"-"))
-              var_cov <- matrix(var[outer(1:l,1:l,"pmin")],l,l)*phi^dm
-              return(var_cov)
-            }
-            phi <- object@trained_model$coeffs
-            mean <- object@trained_model$means
-            variance <- object@trained_model$vars
-
-            # Construct mean
-            if (object@response == "max") {
-              mu <- rep(last_obs_max, predict_size)
-            } else {
-              mu <- rep(last_obs_avg, predict_size)
-            }
-            mu <- mu * phi^(1:predict_size) + (1 - phi^(1:predict_size)) * mean
-
-            # Construct Var-cov matrix
-            var <- cumsum((phi^2)^(0:(predict_size - 1)))*variance
-            varcov <- calculate_var_cov_matrix(var, predict_size, phi)
-
+          signature(object = "ar1_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
+          function(object, last_obs_max, last_obs_avg, level) {
             # caclulate probability
-            prob <- NULL
-            if (!is.na(level)) {
-              prob <- 1 - mvtnorm::pmvnorm(lower = rep(0, predict_size), upper = rep(level, predict_size), mean = mu, sigma = varcov)
+            if (object@response == "max") {
+              if (object@res_dist == "norm") {
+                mu <- object@trained_model$mu + object@trained_model$phi * last_obs_max
+              } else {
+                xi <- object@trained_model$xi + object@trained_model$phi * last_obs_max
+              }
+            } else {
+              if (object@res_dist == "norm") {
+                mu <- object@trained_model$mu + object@trained_model$phi * last_obs_avg
+              } else {
+                xi <- object@trained_model$xi + object@trained_model$phi * last_obs_avg
+              }
             }
-            predict_result <- list("prob" = as.numeric(prob), "mu" = mu, "varcov" = varcov)
+            if (object@res_dist == "norm") {
+              sd <- sqrt(object@trained_model$sigma2)
+              prob <- NULL
+              if (!is.na(level)) {
+                prob <- 1 - stats::pnorm(q = level, mean = mu, sd = sd)
+              }
+              predict_result <- list("prob" = as.numeric(prob), "mean" = mu, "sd" = sd)
+            } else {
+              omega <- object@trained_model$omega
+              alpha <- object@trained_model$alpha
+              prob <- NULL
+              if (!is.na(level)) {
+                prob <- 1 - sn::psn(x = level, xi = xi, omega = omega, alpha = alpha)
+              }
+              predict_result <- list("prob" = as.numeric(prob), "xi" = xi, "omega" = omega, "alpha" = alpha)
+            }
             object@predict_result <- predict_result
             return(object)
           })
@@ -88,13 +135,17 @@ setMethod("do_prediction",
 setMethod("compute_pi_up",
           signature(object = "ar1_sim_process"),
           function(object) {
-            mu <- object@predict_result$mu
-            varcov <- object@predict_result$varcov
-            upper_bounds <- rep(NA, length(mu))
-            for (i in 1:length(mu)) {
-              upper_bounds[i] <- min(mu[i] + stats::qnorm((1 - object@cut_off_prob)) * sqrt(varcov[i,i]), 100)
+            if (object@res_dist == "norm") {
+              mu <- object@predict_result$mean
+              sd <- object@predict_result$sd
+              upper_bounds <- min(stats::qnorm(1 - object@cut_off_prob, mean = mu, sd = sd), 100)
+            } else {
+              xi <- object@predict_result$xi
+              omega <- object@predict_result$omega
+              alpha <- object@predict_result$alpha
+              upper_bounds <- min(sn::qsn(1 - object@cut_off_prob, xi = xi, omega = omega, alpha = alpha), 100)
             }
-            return(max(upper_bounds))
+            return(upper_bounds)
           })
 
 

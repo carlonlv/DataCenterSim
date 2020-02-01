@@ -3,21 +3,21 @@
 %   R/markov_sim.R, R/var1_sim.R
 \name{do_prediction}
 \alias{do_prediction}
-\alias{do_prediction,ar1_markov_sim_process,numeric,numeric,numeric,numeric-method}
-\alias{do_prediction,ar1_sim_process,numeric,numeric,numeric,numeric-method}
-\alias{do_prediction,markov_sim_process,numeric,numeric,numeric,numeric-method}
-\alias{do_prediction,var1_sim_process,numeric,numeric,numeric,numeric-method}
+\alias{do_prediction,ar1_markov_sim_process,numeric,numeric,numeric-method}
+\alias{do_prediction,ar1_sim_process,numeric,numeric,numeric-method}
+\alias{do_prediction,markov_sim_process,numeric,numeric,numeric-method}
+\alias{do_prediction,var1_sim_process,numeric,numeric,numeric-method}
 \title{Do Prediction}
 \usage{
-do_prediction(object, last_obs_max, last_obs_avg, predict_size, level)
+do_prediction(object, last_obs_max, last_obs_avg, level)
 
-\S4method{do_prediction}{ar1_markov_sim_process,numeric,numeric,numeric,numeric}(object, last_obs_max, last_obs_avg, predict_size, level)
+\S4method{do_prediction}{ar1_markov_sim_process,numeric,numeric,numeric}(object, last_obs_max, last_obs_avg, level)
 
-\S4method{do_prediction}{ar1_sim_process,numeric,numeric,numeric,numeric}(object, last_obs_max, last_obs_avg, predict_size, level)
+\S4method{do_prediction}{ar1_sim_process,numeric,numeric,numeric}(object, last_obs_max, last_obs_avg, level)
 
-\S4method{do_prediction}{markov_sim_process,numeric,numeric,numeric,numeric}(object, last_obs_max, last_obs_avg, predict_size, level)
+\S4method{do_prediction}{markov_sim_process,numeric,numeric,numeric}(object, last_obs_max, last_obs_avg, level)
 
-\S4method{do_prediction}{var1_sim_process,numeric,numeric,numeric,numeric}(object, last_obs_max, last_obs_avg, predict_size, level)
+\S4method{do_prediction}{var1_sim_process,numeric,numeric,numeric}(object, last_obs_max, last_obs_avg, level)
 }
 \arguments{
 \item{object}{An S4 sim process object with trained model information.}
@@ -25,8 +25,6 @@ do_prediction(object, last_obs_max, last_obs_avg, predict_size, level)
 \item{last_obs_max}{A numeric value representing the last observation of maximum.}
 
 \item{last_obs_avg}{A numeric value representing the last observation of average.}
-
-\item{predict_size}{The number of window sizes to predict forword.}
 
 \item{level}{The level in \eqn{Pr(Y_{t+1}|Y_{t}) \leq level} to be computed.}
 }
@@ -38,12 +36,12 @@ This is a generic function that do prediction according to the input object type
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{object = ar1_markov_sim_process,last_obs_max = numeric,last_obs_avg = numeric,predict_size = numeric,level = numeric}: Do prediction based on trained AR1-Markov Model.
+\item \code{object = ar1_markov_sim_process,last_obs_max = numeric,last_obs_avg = numeric,level = numeric}: Do prediction based on trained AR1-Markov Model.
 
-\item \code{object = ar1_sim_process,last_obs_max = numeric,last_obs_avg = numeric,predict_size = numeric,level = numeric}: Do prediction based on trained AR1 Model.
+\item \code{object = ar1_sim_process,last_obs_max = numeric,last_obs_avg = numeric,level = numeric}: Do prediction based on trained AR1 Model.
 
-\item \code{object = markov_sim_process,last_obs_max = numeric,last_obs_avg = numeric,predict_size = numeric,level = numeric}: Do prediction based on trained Markov Model.
+\item \code{object = markov_sim_process,last_obs_max = numeric,last_obs_avg = numeric,level = numeric}: Do prediction based on trained Markov Model.
 
-\item \code{object = var1_sim_process,last_obs_max = numeric,last_obs_avg = numeric,predict_size = numeric,level = numeric}: Do prediction based on trained VAR Model.
+\item \code{object = var1_sim_process,last_obs_max = numeric,last_obs_avg = numeric,level = numeric}: Do prediction based on trained VAR Model.
 }}
 

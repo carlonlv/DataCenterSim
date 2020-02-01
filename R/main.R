@@ -28,7 +28,7 @@ schedule_foreground <- function(object_process, testset_max, testset_avg, cpu_re
     last_obs_max <- convert_frequency_dataset(testset_max[current_end:(current_end + object_process@window_size - 1)], object_process@window_size, "max")
     last_obs_avg <- convert_frequency_dataset(testset_avg[current_end:(current_end + object_process@window_size - 1)], object_process@window_size, "avg")
 
-    object_process <- do_prediction(object_process, last_obs_max, last_obs_avg, 1, 100 - cpu_required)
+    object_process <- do_prediction(object_process, last_obs_max, last_obs_avg, 100 - cpu_required)
     prediction <- check_decision(object_process@predict_result$prob, object_process@cut_off_prob)
 
     ## Evalute schedulings based on prediction
@@ -191,7 +191,7 @@ predict_model <- function(object_process, testset_max, testset_avg) {
     last_obs_max <- convert_frequency_dataset(testset_max[current_end:(current_end + object_process@window_size - 1)], object_process@window_size, "max")
     last_obs_avg <- convert_frequency_dataset(testset_avg[current_end:(current_end + object_process@window_size - 1)], object_process@window_size, "avg")
 
-    object_process <- do_prediction(object_process, last_obs_max, last_obs_avg, 1, NA_real_)
+    object_process <- do_prediction(object_process, last_obs_max, last_obs_avg, NA_real_)
     pi_up <- compute_pi_up(object_process)
 
     ## Evalute schedulings based on prediction

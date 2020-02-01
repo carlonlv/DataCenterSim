@@ -43,8 +43,8 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained VAR Model.
 setMethod("do_prediction",
-          signature(object = "var1_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", predict_size = "numeric", level = "numeric"),
-          function(object, last_obs_max, last_obs_avg, predict_size, level) {
+          signature(object = "var1_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
+          function(object, last_obs_max, last_obs_avg, level) {
 
             if (object@response == "max") {
               mu <- matrix(c(last_obs_max,last_obs_avg), ncol = 1)
@@ -55,27 +55,16 @@ setMethod("do_prediction",
             ar_coef <- object@trained_model$Phi
             sample_var <- object@trained_model$Sigma
 
-            for (h in 1:predict_size) {
-              mu <- matrix(intercept, nrow = 2, ncol = 1) + ar_coef %*% mu
-            }
+            mu <- matrix(intercept, nrow = 2, ncol = 1) + ar_coef %*% mu
 
-            if (predict_size == 1) {
-              varcov <- sample_var
-            } else {
-              forecast_var <- list()
-              forecast_var[[1]] <- sample_var
-              for (h in 2:predict_size) {
-                temp_coef <- matrixcalc::matrix.power(ar_coef, h - 1)
-                forecast_var[[h]] <- forecast_var[[h - 1]] + temp_coef %*% sample_var %*% t(temp_coef)
-              }
-              varcov <- forecast_var[[predict_size]]
-            }
+            varcov <- sample_var
+
             # caclulate probability
             prob <- NULL
             if (!is.na(level)) {
-              prob <- 1 - mvtnorm::pmvnorm(lower = rep(0, predict_size), upper = rep(level, predict_size), mean = mu, sigma = varcov)
+              prob <- 1 - stats::pnorm(level, mean = mu[1, 1], sd = varcov[1, 1])
             }
-            predict_result <- list("prob" = as.numeric(prob), "mu" = mu, "varcov" = varcov)
+            predict_result <- list("prob" = as.numeric(prob), "mu" = mu[1, 1], "sd" = sqrt(varcov[1, 1]))
             object@predict_result <- predict_result
             return(object)
           })
@@ -86,11 +75,8 @@ setMethod("compute_pi_up",
           signature(object = "var1_sim_process"),
           function(object) {
             mu <- object@predict_result$mu
-            varcov <- object@predict_result$varcov
-            upper_bounds <- rep(NA, ncol(mu))
-            for (i in 1:ncol(mu)) {
-              upper_bounds[i] <- min(mu[1, i] + stats::qnorm(1 - object@cut_off_prob) * sqrt(varcov[i, i]), 100)
-            }
+            var <- object@predict_result$var
+            upper_bounds <- min(stats::qnorm(1 - object@cut_off_prob, mean = mu, sd = sqrt(var)))
             return(max(upper_bounds))
           })
 

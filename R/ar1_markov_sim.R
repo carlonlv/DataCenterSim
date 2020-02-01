@@ -85,8 +85,8 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained AR1-Markov Model.
 setMethod("do_prediction",
-          signature(object = "ar1_markov_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", predict_size = "numeric", level = "numeric"),
-          function(object, last_obs_max, last_obs_avg, predict_size, level) {
+          signature(object = "ar1_markov_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
+          function(object, last_obs_max, last_obs_avg, level) {
             temp_ar <- ar1_sim_process(object)
             temp_ar@trained_model <- list("coeffs" = object@trained_model$coeffs,"means" = object@trained_model$means, "vars" = object@trained_model$vars)
             temp_mc <- markov_sim_process(object)
@@ -94,15 +94,15 @@ setMethod("do_prediction",
             if (object@response == "max") {
               temp_ar@response <- "avg"
               temp_mc@response <- "max"
-              new_ar <- do_prediction(temp_ar, last_obs_max, last_obs_avg, predict_size, NA_real_)
+              new_ar <- do_prediction(temp_ar, last_obs_max, last_obs_avg, NA_real_)
               new_last_obs_avg <- new_ar@predict_result$mu
-              new_mc <- do_prediction(temp_mc, max(new_last_obs_avg, 0), max(new_last_obs_avg, 0), predict_size, level)
+              new_mc <- do_prediction(temp_mc, max(new_last_obs_avg, 0), max(new_last_obs_avg, 0), level)
             } else {
               temp_ar@response <- "max"
               temp_mc@response <- "avg"
-              new_ar <- do_prediction(temp_ar, last_obs_max, last_obs_avg, predict_size, NA_real_)
+              new_ar <- do_prediction(temp_ar, last_obs_max, last_obs_avg, NA_real_)
               new_last_obs_max <- new_ar@predict_result$mu
-              new_mc <- do_prediction(temp_mc, max(new_last_obs_max, 0), max(new_last_obs_max, 0), predict_size, level)
+              new_mc <- do_prediction(temp_mc, max(new_last_obs_max, 0), max(new_last_obs_max, 0), level)
             }
             object@predict_result <- list("prob" = new_mc@predict_result$prob, "to_states" = new_mc@predict_result$to_states)
             return(object)

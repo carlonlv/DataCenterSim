@@ -425,3 +425,21 @@ generate_result <- function(object, evaluation, write_result) {
   }
   return(list("result" = evaluation, "summ" = overall_result))
 }
+
+
+#' Calculate Sample Covariance in Time Series
+#'
+#' This function calculates \eqn{\frac{1}{n} \sum_{i=1}^{n-k}(x_i - \bar{x})^r(x_{i+k} - \bar{x})^s}, a numeric estimator for \eqn{E[(X_t - E[X_t])^r(X_{t+k} - E[X_{t+k}])^s]}
+#'
+#' @param dataset An observed dataset.
+#' @param k lag
+#' @param r power
+#' @return A numeric value calculated
+#' @keywords internal
+sample_moment_lag <- function(dataset, k, r, s) {
+  n <- length(dataset)
+  term1 <- (dataset[1:(n - k)] - mean(dataset)) ^ r
+  term2 <- (dataset[(1 + k):n] - mean(dataset)) ^ s
+  result <- (term1 %*% term2) / n
+  return(result[1,1])
+}

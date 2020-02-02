@@ -300,12 +300,12 @@ setMethod("split_to_uni",
 
 
 #' @return A plot object
-#' @rdname plot_sim
+#' @rdname plot_sim_overall
 #' @export
-setMethod("plot_sim",
+setMethod("plot_sim_overall",
           signature(object = "sim"),
           function(object) {
-            file_name <- paste(object@name, "Sim:", object@type, "Train:", object@train_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
+            file_name <- unlist(get_character_slots(object))
             fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
             result <- utils::read.csv(fp)
 

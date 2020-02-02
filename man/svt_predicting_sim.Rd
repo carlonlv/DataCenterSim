@@ -4,7 +4,7 @@
 \alias{svt_predicting_sim}
 \title{Simulation of Scheduling Jobs Based On Predictions On A Single Trace With AR1 Model}
 \usage{
-svt_predicting_sim(ts_num, object, dataset_max, dataset_avg)
+svt_predicting_sim(ts_num, object, dataset_max, dataset_avg, do_plot)
 }
 \arguments{
 \item{ts_num}{The corresponding trace/column in \code{dataset}.}
@@ -12,6 +12,8 @@ svt_predicting_sim(ts_num, object, dataset_max, dataset_avg)
 \item{dataset_max}{A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
 
 \item{dataset_avg}{A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
+
+\item{do_plot}{A logical value TRUE/FALSE to plot tracewise performance.}
 }
 \value{
 A list containing the resulting prediction informations.

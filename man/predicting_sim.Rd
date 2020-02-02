@@ -4,7 +4,14 @@
 \alias{predicting_sim}
 \title{Simulation of Scheduling Jobs Based On Predictions With AR1 Model}
 \usage{
-predicting_sim(object, dataset_max, dataset_avg, cores, write_result)
+predicting_sim(
+  object,
+  dataset_max,
+  dataset_avg,
+  cores,
+  write_result,
+  plot_type
+)
 }
 \arguments{
 \item{object}{A S4 sim object.}
@@ -16,6 +23,8 @@ predicting_sim(object, dataset_max, dataset_avg, cores, write_result)
 \item{cores}{The number of threads for parallel programming for multiple traces, not supported for windows users.}
 
 \item{write_result}{TRUE if the result of the experiment is written to a file.}
+
+\item{plot_type}{A character that can be one of "overall", "tracewise", "paramwise" or "none".}
 }
 \value{
 An S4 sim result object.

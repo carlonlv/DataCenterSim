@@ -215,6 +215,14 @@ setGeneric("state_num<-", function(object, value) standardGeneric("state_num<-")
 setGeneric("get_numeric_slots", function(object) standardGeneric("get_numeric_slots"))
 
 
+#' Get The Character Parameters
+#'
+#' @param object An S4 sim object
+#' @rdname get_character_slots
+#' @export
+setGeneric("get_character_slots", function(object) standardGeneric("get_character_slots"))
+
+
 #' Split A Sim Object Into Sim Objects With Length 1 Slots
 #'
 #' @param object An S4 sim object
@@ -223,13 +231,33 @@ setGeneric("get_numeric_slots", function(object) standardGeneric("get_numeric_sl
 setGeneric("split_to_uni", function(object) standardGeneric("split_to_uni"))
 
 
-#' Plot Simulation
+#' Plot Simulation Result Type Overall
 #'
-#' @param object An S4 sim objct.
-#' @name plot_sim
-#' @rdname plot_sim
-#' @export
-setGeneric("plot_sim", function(object) standardGeneric("plot_sim"))
+#' Plot overall result for simulation with each datapoint corresponds to average scores of all traces with one configuration.
+#' @param object An S4 sim object
+#' @rdname plot_sim_overall
+setGeneric("plot_sim_overall", function(object) standardGeneric("plot_sim_overall"))
+
+
+#' Plot Simulation Result Type Tracewise
+#'
+#' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
+#' @param object An S4 sim object.
+#' @param trainset A dataframe with two columns each representing training set of maximum and training set of average.
+#' @param testset A dataframe with two columns each representing test set of maximum and test set of average.
+#' @param prev_score A dataframe with two columns each representing the score 1 and score 2 from past evaluation.s
+#' @param last_score A numeric vector of length 2 each representing score 1 and score 2 of current evaluation.
+#' @param decision A list representing the decisions made by current algorithm.
+#' @rdname plot_sim_tracewise
+setGeneric("plot_sim_tracewise", function(object, trainset, testset, prev_score, last_score, decision) standardGeneric("plot_sim_tracewise"))
+
+
+#' Plot Simulation Result Type Tracewise
+#'
+#' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
+#' @param object An S4 sim object.
+#' @rdname plot_sim_paramwise
+setGeneric("plot_sim_paramwise", function(object) standardGeneric("plot_sim_paramwise"))
 
 
 #' Train Model

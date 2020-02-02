@@ -4,14 +4,16 @@
 \alias{predict_model}
 \title{Schedule Jobs Using Predictions On Given Test Set}
 \usage{
-predict_model(object_process, testset_max, testset_avg)
+predict_model(object_process, testset_max, testset_avg, do_plot)
 }
 \arguments{
 \item{object_process}{Hidden S4 sim object after training.}
 
-\item{testset_max}{A matrix of size \eqn{n \times m} representing the test set of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
+\item{testset_max}{A numeric vector representing the test set of maximum, with the initial amount of test set that equals to window size are from training set.}
 
-\item{testset_avg}{A matrix of size \eqn{n \times m} representing the test set of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
+\item{testset_avg}{A numeric vector representing the test set of average, with the initial amount of test set that equals to window size are from training set.}
+
+\item{do_plot}{A logiical value}
 }
 \value{
 A list containing the resulting prediction informations.

@@ -10,7 +10,8 @@ scheduling_sim(
   dataset_avg,
   cpu_required,
   cores,
-  write_result
+  write_result,
+  plot_type
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ scheduling_sim(
 \item{cores}{The number of threads for parallel programming for multiple traces, not supported for windows users.}
 
 \item{write_result}{TRUE if the result of the experiment is written to a file.}
+
+\item{plot_type}{A character that can be one of "overall", "tracewise", "paramwise" or "none".}
 }
 \value{
 A corresponding S4 sim result object.

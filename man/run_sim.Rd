@@ -10,7 +10,8 @@ run_sim(
   dataset_avg,
   cpu_required,
   cores = parallel::detectCores(),
-  write_result = TRUE
+  write_result = TRUE,
+  plot_type
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ run_sim(
 \item{cores}{The number of threads for parallel programming for multiple traces, not supported for windows users.}
 
 \item{write_result}{TRUE if the result of the experiment is written to a file.}
+
+\item{plot_type}{A character that can be one of "overall", "tracewise", "paramwise" or "none".}
 }
 \value{
 An S4 sim result object.

@@ -1,12 +1,35 @@
 #' @include sim_class.R generics.R
 NULL
 
+#' Validity Checker for var1_sim Object
+#'
+#' @param object A var1_sim object
+#' @return \code{TRUE} if the input sim object is valid, vector of error messages otherwise.
+#' @keywords internal
+check_valid_var1_sim <- function(object) {
+  errors <- character()
+  res_dist_choices <- c("norm", "skew_norm")
+  if (length(object@res_dist) != 1 | is.na(object@res_dist) |  all(object@res_dist != res_dist_choices)) {
+    msg <- paste0("train_policy must be one of ", paste(res_dist_choices, collapse = " "), ".")
+    errors <- c(errors, msg)
+  }
+  if (length(errors) == 0) {
+    return(TRUE)
+  } else {
+    return(errors)
+  }
+}
+
+
 #' @rdname sim-class
 #' @name var1_sim-class
 #' @export var1_sim
 var1_sim <- setClass("var1_sim",
-                    contains = "sim",
-                    prototype = list(name = "VAR1"))
+                     slots = list(res_dist = "character"),
+                     contains = "sim",
+                     prototype = list(name = "VAR1",
+                                      res_dist = "norm"),
+                     validity = check_valid_var1_sim)
 
 #' @rdname sim_process-class
 var1_sim_process <- setClass("var1_sim_process",

@@ -1,6 +1,27 @@
 #' @include sim_class.R generics.R
 NULL
 
+
+#' Validity Checker for ar1_sim Object
+#'
+#' @param object A ar1_sim object
+#' @return \code{TRUE} if the input sim object is valid, vector of error messages otherwise.
+#' @keywords internal
+check_valid_ar1_sim <- function(object) {
+  errors <- character()
+  res_dist_choices <- c("norm", "skew_norm")
+  if (length(object@res_dist) != 1 | is.na(object@res_dist) |  all(object@res_dist != res_dist_choices)) {
+    msg <- paste0("train_policy must be one of ", paste(res_dist_choices, collapse = " "), ".")
+    errors <- c(errors, msg)
+  }
+  if (length(errors) == 0) {
+    return(TRUE)
+  } else {
+    return(errors)
+  }
+}
+
+
 #' @rdname sim-class
 #' @name ar1_sim-class
 #' @export ar1_sim
@@ -8,7 +29,8 @@ ar1_sim <- setClass("ar1_sim",
                     slots = list(res_dist = "character"),
                     contains = "sim",
                     prototype = list(name = "AR1",
-                                     res_dist = "norm"))
+                                     res_dist = "norm"),
+                    validity = check_valid_ar1_sim)
 
 #' @rdname sim_process-class
 ar1_sim_process <- setClass("ar1_sim_process",
@@ -165,6 +187,21 @@ setMethod("get_numeric_slots",
           signature(object = "ar1_sim"),
           function(object) {
             numeric_slots <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance1", "tolerance2")
+            numeric_lst <- list()
+            for (i in numeric_slots) {
+              numeric_lst[[i]] <- methods::slot(object, i)
+            }
+            return(numeric_lst)
+          })
+
+
+#' @return A list containing all character parameter informations.
+#' @rdname get_character_slots
+#' @export
+setMethod("get_character_slots",
+          signature(object = "ar1_sim"),
+          function(object) {
+            numeric_slots <- c("name", "type", "train_policy", "schedule_policy", "adjust_policy", "response", "res_dist")
             numeric_lst <- list()
             for (i in numeric_slots) {
               numeric_lst[[i]] <- methods::slot(object, i)

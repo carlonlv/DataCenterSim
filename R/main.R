@@ -6,8 +6,8 @@ NULL
 #' Sequantially schedule a given job on given test set.
 #'
 #' @param object_process Hidden S4 sim object after training.
-#' @param testset_max A matrix of size \eqn{n \times m} representing the test set of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
-#' @param testset_avg A matrix of size \eqn{n \times m} representing the test set of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param testset_max A numeric vector representing the test set of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param testset_avg A numeric vector representing the test set of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
 #' @param cpu_required The size of the foreground job.
 #' @return A list containing the resulting scheduling informations.
 #' @keywords internal
@@ -134,9 +134,10 @@ svt_scheduling_sim <- function(ts_num, object, dataset_max, dataset_avg, cpu_req
 #' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
+#' @param plot_type A character that can be one of "overall", "tracewise", "paramwise" or "none".
 #' @return A corresponding S4 sim result object.
 #' @keywords internal
-scheduling_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores, write_result) {
+scheduling_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores, write_result, plot_type) {
   scheduled_num <- c()
   unscheduled_num <- c()
   correct_scheduled_num <- c()
@@ -172,13 +173,16 @@ scheduling_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores
 #' Sequantially schedule jobs using predictions on provided test set.
 #'
 #' @param object_process Hidden S4 sim object after training.
-#' @param testset_max A matrix of size \eqn{n \times m} representing the test set of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
-#' @param testset_avg A matrix of size \eqn{n \times m} representing the test set of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param testset_max A numeric vector representing the test set of maximum, with the initial amount of test set that equals to window size are from training set.
+#' @param testset_avg A numeric vector representing the test set of average, with the initial amount of test set that equals to window size are from training set.
+#' @param do_plot A logiical value
 #' @return A list containing the resulting prediction informations.
 #' @keywords internal
-predict_model <- function(object_process, testset_max, testset_avg) {
+predict_model <- function(object_process, testset_max, testset_avg, do_plot) {
   survivals <- c()
   utilizations <- c()
+
+  info <- data.frame()
 
   last_time_schedule <- length(testset_max) - 2 * object_process@window_size + 1
 
@@ -211,6 +215,13 @@ predict_model <- function(object_process, testset_max, testset_avg) {
 
     utilizations <- c(utilizations, check_utilization(pi_up, survival, object_process@granularity))
 
+    ## Store information for plotting
+    if (do_plot) {
+      for (i in 1:update) {
+        info <- rbind(info, c(pi_up, adjust_switch))
+      }
+    }
+
     current_end <- current_end + update
   }
 
@@ -220,7 +231,10 @@ predict_model <- function(object_process, testset_max, testset_avg) {
   } else {
     overall_utilization <- compute_utilization(utilizations, testset_avg[(object_process@window_size + 1):(current_end - update + 2 * object_process@window_size - 1)], object_process@window_size, object_process@granularity)
   }
-  return(list("sur_num" = overall_survival$numerator, "sur_den" = overall_survival$denominator, "util_num" = overall_utilization$numerator, "util_den" = overall_utilization$denominator))
+  if (do_plot) {
+    colnames(info) <- c("pi_up", "adjust_switch")
+  }
+  return(list("sur_num" = overall_survival$numerator, "sur_den" = overall_survival$denominator, "util_num" = overall_utilization$numerator, "util_den" = overall_utilization$denominator, "info" = info))
 }
 
 
@@ -231,9 +245,10 @@ predict_model <- function(object_process, testset_max, testset_avg) {
 #' @param ts_num The corresponding trace/column in \code{dataset}.
 #' @param dataset_max A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
 #' @param dataset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param do_plot A logical value TRUE/FALSE to plot tracewise performance.
 #' @return A list containing the resulting prediction informations.
 #' @keywords internal
-svt_predicting_sim <- function(ts_num, object, dataset_max, dataset_avg) {
+svt_predicting_sim <- function(ts_num, object, dataset_max, dataset_avg, do_plot) {
   dataset_max <- dataset_max[, ts_num]
   dataset_avg <- dataset_avg[, ts_num]
 
@@ -262,7 +277,7 @@ svt_predicting_sim <- function(ts_num, object, dataset_max, dataset_avg) {
     }
 
     ## Test Model
-    result <- predict_model(object_process, c(starting_points_max, testset_max), c(starting_points_avg, testset_avg))
+    result <- predict_model(object_process, c(starting_points_max, testset_max), c(starting_points_avg, testset_avg), do_plot)
 
     ## Update Training Timestamp
     prev_survival <- sur_num / sur_den
@@ -276,6 +291,16 @@ svt_predicting_sim <- function(ts_num, object, dataset_max, dataset_avg) {
     sur_den <- c(sur_den, result$sur_den)
     util_num <- c(util_num, result$util_num)
     util_den <- c(util_den, result$util_den)
+
+    ## Do plot
+    if (do_plot) {
+      trainset <- data.frame("trainset_max" = trainset_max, "trainset_avg" = trainset_avg)
+      testset <- data.frame("testset_max" = testset_max, "testset_avg" = testset_avg)
+      prev_score <- data.frame("prev_score1" = prev_survival, "prev_score2" = prev_utilization)
+      last_score <- c(last_survial, last_utilization)
+      iter <- (current - 1) / object@update_freq + 1
+      plot_sim_tracewise(object, trainset, testset, prev_score, last_score, list("train_decision" = list("train_sig" = train_sig, "iter" = iter), "test_decision" = result$info))
+    }
 
     ## Update Step
     current <- current + object@update_freq
@@ -298,9 +323,10 @@ svt_predicting_sim <- function(ts_num, object, dataset_max, dataset_avg) {
 #' @param dataset_avg A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
+#' @param plot_type A character that can be one of "overall", "tracewise", "paramwise" or "none".
 #' @return An S4 sim result object.
 #' @keywords internal
-predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result) {
+predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result, plot_type) {
   sur_num <- c()
   sur_den <- c()
   util_num <- c()
@@ -311,7 +337,7 @@ predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result
 
   ## Do Simulation
   start_time <- proc.time()
-  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, object, dataset_max, dataset_avg, mc.cores = cores)
+  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE), mc.cores = cores)
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -327,7 +353,9 @@ predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result
   rownames(evaluate_info) <- ts_names
 
   object_result <- get_sim_save(object, evaluate_info, write_result)
-
+  if (plot_type == "paramwise") {
+    plot_sim_paramwise(object)
+  }
   return(object_result)
 }
 
@@ -342,14 +370,21 @@ predicting_sim <- function(object, dataset_max, dataset_avg, cores, write_result
 #' @param cpu_required A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine, default value is \code{NULL}.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_result TRUE if the result of the experiment is written to a file.
+#' @param plot_type A character that can be one of "overall", "tracewise", "paramwise" or "none".
 #' @return An S4 sim result object.
 #' @export
-run_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores=parallel::detectCores(), write_result=TRUE) {
+run_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores=parallel::detectCores(), write_result=TRUE, plot_type) {
+  if (!(plot_type %in% c("overall", "tracewise", "paramwise", "none"))) {
+    stop("plot_type must be one of overall, tracewise, paramwise and none.")
+  }
   uni_lst <- split_to_uni(object)
   if (object@type == "scheduling") {
-    object_result <- lapply(uni_lst, scheduling_sim, dataset_max, dataset_avg, cpu_required, cores, write_result)
+    object_result <- lapply(uni_lst, scheduling_sim, dataset_max, dataset_avg, cpu_required, cores, write_result, plot_type)
   } else {
-    object_result <- lapply(uni_lst, predicting_sim, dataset_max, dataset_avg, cores, write_result)
+    object_result <- lapply(uni_lst, predicting_sim, dataset_max, dataset_avg, cores, write_result, plot_type)
+  }
+  if (plot_type == "overall") {
+    plot_sim_overall(object)
   }
   return(object_result)
 }

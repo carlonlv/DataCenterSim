@@ -406,7 +406,7 @@ generate_result <- function(object, evaluation, write_result) {
   }
 
   if (write_result) {
-    file_name <- paste(object@name, "Sim:", object@type, "Train:", object@train_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
+    file_name <- paste(unlist(get_character_slots(object)), collapse = " ")
     fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
     param <- methods::as(object, "data.frame")
     new_row <- data.frame()

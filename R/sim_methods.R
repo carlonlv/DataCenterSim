@@ -311,7 +311,7 @@ setMethod("plot_sim_overall",
               ggplot2::ggtitle(paste("Model Performance"))
 
             file_name <- unlist(get_character_slots(object))
-            fp <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name), ext = "png")
+            fp <- fs::path(paste0(object@result_loc, "overall_plots/", file_name), ext = "png")
             ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
             return(plt)
           })
@@ -325,37 +325,43 @@ setMethod("plot_sim_paramwise",
             if (object@type == "scheduling") {
               trace_score1 <- score$correct_scheduled_num / score$scheduled_num
               trace_score2 <- score$correct_unscheduled_num / score$unscheduled_num
-              trace_score <- c(trace_score1, trace_score2)
-              score1_or_score2 <- c(rep("correct_scheduled_rate", length(trace_score1)), rep("correct_unscheduled_rate", length(trace_score2)))
-              msg1 <- paste("The Overall Correct Scheduled Rate is", summ$avg_score1)
-              msg2 <- paste("The Overall Correct Unscheduled Rate is", summ$avg_score2)
-              under_performed_score1 <- sum(trace_score1 < object@cut_off_prob) / nrow(score)
-              under_performed_score2 <- sum(trace_score2 < object@cut_off_prob) / nrow(score)
-              msg3 <- paste(under_performed_score1, "percent of traces underperformed on Correct Scheduled Rate.")
-              msg4 <- paste(under_performed_score2, "percent of traces underperformed on Correct Unscheduled Rate.")
+              msg1 <- paste("The Agg Overall Correct scheduled and unscheduled Rate are", summ$agg_score1, summ$agg_score2)
+              msg2 <- paste("The Avg Overall Correct scheduled and unscheduled Rate are", summ$avg_score1, summ$avg_score2)
+              under_performed_score1 <- sum(trace_score1 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
+              under_performed_score2 <- sum(trace_score2 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
+              msg3 <- paste(under_performed_score1, "of traces underperformed on Correct Scheduled Rate.")
+              msg4 <- paste(under_performed_score2, "of traces underperformed on Correct Unscheduled Rate.")
             } else {
               trace_score1 <- score$sur_num / score$sur_den
               trace_score2 <- score$util_num / score$util_den
-              trace_score <- c(trace_score1, trace_score2)
-              score1_or_score2 <- c(rep("survival_rate", length(trace_score1)), rep("utilization_rate", length(trace_score2)))
-              msg1 <- paste("The Overall Survival Rate is", summ$avg_score1)
-              msg2 <- paste("The Overall Utilization Rate is", summ$avg_score2)
-              under_performed_score1 <- sum(trace_score1 < object@cut_off_prob) / nrow(score)
-              under_performed_score2 <- sum(trace_score2 < object@cut_off_prob) / nrow(score)
-              msg3 <- paste(under_performed_score1, "percent of traces underperformed on Survival Rate.")
-              msg4 <- paste(under_performed_score2, "percent of traces underperformed on Utilization Rate.")
+              msg1 <- paste("The Agg Overall Survival and Utilization Rate are", summ$agg_score1, summ$agg_score2)
+              msg2 <- paste("The Avg Overall Survival and Utilization Rate are", summ$avg_score1, summ$avg_score2)
+              under_performed_score1 <- sum(trace_score1 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
+              under_performed_score2 <- sum(trace_score2 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
+              msg3 <- paste(under_performed_score1, "of traces underperformed on Survival Rate.")
+              msg4 <- paste(under_performed_score2, "of traces underperformed on Utilization Rate.")
             }
-
-            result <- data.frame("trace_score" = trace_score, "score1_or_score2" = score1_or_score2)
-            plt <- ggplot2::ggplot(result, aes(x = result$trace_score, color = factor(score1_or_score2))) +
-              ggplot2::geom_histogram(fill = "white", position = "dodge") +
-              ggplot2::theme(legend.position = "none") +
-              ggplot2::ggtitle("") +
-              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4))
-
             file_name <- paste(unlist(get_character_slots(object)), collapse = " ")
-            fp <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name, " index ", index), ext = "png")
-            ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
+
+            result1 <- data.frame("score" = trace_score1)
+            plt1 <- ggplot2::ggplot(result1, aes(x = result1$score, color = "red")) +
+              ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE) +
+              ggplot2::theme(legend.position = "none") +
+              ggplot2::ggtitle(paste("Histogram of Performance of param index", index, "on Score1")) +
+              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4)) +
+              ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple")
+            fp1 <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name, " index ", index, "Score1"), ext = "png")
+            ggplot2::ggsave(fp1, plot = plt1, width = 12, height = 7)
+
+            result2 <- data.frame("score" = trace_score2)
+            plt2 <- ggplot2::ggplot(result2, aes(x = result2$score, color = "blue")) +
+              ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE) +
+              ggplot2::theme(legend.position = "none") +
+              ggplot2::ggtitle(paste("Histogram of Performance of param index", index, "on Score2")) +
+              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4)) +
+              ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple")
+            fp2 <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name, " index ", index, "Score2"), ext = "png")
+            ggplot2::ggsave(fp2, plot = plt2, width = 12, height = 7)
           })
 
 
@@ -384,8 +390,8 @@ setMethod("plot_sim_tracewise",
               msg2 <- paste("No historical score to compare with on score1.")
               msg3 <- paste("No historical score to compare with on score2.")
             } else {
-              msg2 <- paste("Current batch has performance exceeding", sum(last_score[1] < prev_score$prev_score1) / nrow(prev_score), "on score 1.")
-              msg3 <- paste("Current batch has performance exceeding", sum(last_score[2] < prev_score$prev_score2) / nrow(prev_score), "on score 2.")
+              msg2 <- paste("Current batch has performance not failing", sum(last_score[1] >= prev_score$prev_score1, na.rm = TRUE) / nrow(prev_score), "on score 1.")
+              msg3 <- paste("Current batch has performance not failing", sum(last_score[2] >= prev_score$prev_score2, na.rm = TRUE) / nrow(prev_score), "on score 2.")
             }
             msg4 <- paste("Based on tolerance level of", object@tolerance1, object@tolerance2, "the training signal is", train_decision$train_sig, "for next iteration.")
 
@@ -404,3 +410,12 @@ setMethod("plot_sim_tracewise",
             fp <- fs::path(paste0(object@result_loc, "tracewise_plots/", file_name, " index ", index, " trace ", trace_name, " iter ", train_decision$iter), ext = "png")
             ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
           })
+
+
+#' @export
+setAs("sim", "data.frame",
+      function(from) {
+        numeric_lst <- get_numeric_slots(from)
+        result_numeric <- as.data.frame(numeric_lst)
+        return(result_numeric)
+      })

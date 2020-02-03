@@ -74,6 +74,8 @@ schedule_foreground <- function(object, trained_result, testset_max, testset_avg
 #' @return A list containing the resulting scheduling informations.
 #' @keywords internal
 svt_scheduling_sim <- function(ts_num, index, object, dataset_max, dataset_avg, cpu_required, do_plot) {
+  trace_name <- colnames(dataset_max)[ts_num]
+
   dataset_max <- dataset_max[, ts_num]
   dataset_avg <- dataset_avg[, ts_num]
   cpu_required <- cpu_required[ts_num]
@@ -87,25 +89,25 @@ svt_scheduling_sim <- function(ts_num, index, object, dataset_max, dataset_avg, 
   last_time_update <- length(dataset_max) - object@update_freq - object@train_size + 1
   train_sig <- TRUE
   while (current <= last_time_update) {
-    ## Get test set
-    testset_max <- dataset_max[(current + object@train_size):(current + object@train_size + object@update_freq - 1)]
-    testset_avg <- dataset_avg[(current + object@train_size):(current + object@train_size + object@update_freq - 1)]
-
-    ## Convert Frequency for training set
-    if (object@reg_num == 0) {
-      starting_points_max <- NULL
-      starting_points_avg <- NULL
-    } else {
-      starting_points_max <- dataset_max[(current + object@train_size - object@reg_num * object@window_size):(current + object@train_size - 1)]
-      starting_points_max <- dataset_avg[(current + object@train_size - object@reg_num * object@window_size):(current + object@train_size - 1)]
-    }
-
     ## Train Model
     if (train_sig) {
       # Get training set
       trainset_max <- dataset_max[current:(current + object@train_size - 1)]
       trainset_avg <- dataset_avg[current:(current + object@train_size - 1)]
       trained_result <- train_model(object, trainset_max, trainset_avg)
+    }
+
+    ## Get test set
+    testset_max <- dataset_max[(current + object@train_size):(current + object@train_size + object@update_freq - 1)]
+    testset_avg <- dataset_avg[(current + object@train_size):(current + object@train_size + object@update_freq - 1)]
+
+    ## Get starting observations for scheduling
+    if (object@reg_num == 0) {
+      starting_points_max <- NULL
+      starting_points_avg <- NULL
+    } else {
+      starting_points_max <- dataset_max[(current + object@train_size - object@reg_num * object@window_size):(current + object@train_size - 1)]
+      starting_points_max <- dataset_avg[(current + object@train_size - object@reg_num * object@window_size):(current + object@train_size - 1)]
     }
 
     ## Test Model
@@ -126,7 +128,6 @@ svt_scheduling_sim <- function(ts_num, index, object, dataset_max, dataset_avg, 
 
     ## Do plot
     if (do_plot) {
-      trace_name <- colnames(dataset_max)[ts_num]
       trainset <- data.frame("trainset_max" = trainset_max, "trainset_avg" = trainset_avg)
       testset <- data.frame("testset_max" = testset_max, "testset_avg" = testset_avg)
       prev_score <- data.frame("prev_score1" = prev_correct_scheduled_rate, "prev_score2" = prev_correct_unscheduled_rate)
@@ -174,8 +175,8 @@ scheduling_sim <- function(index, uni_lst, dataset_max, dataset_avg, cpu_require
 
   ## Do Simulation
   start_time <- proc.time()
-  #result <- parallel::mclapply(1:length(ts_names), svt_scheduling_sim, index, object, dataset_max, dataset_avg, cpu_required, mc.cores = cores)
-  result <- lapply(1:length(ts_names), svt_scheduling_sim, index, object, dataset_max, dataset_avg, cpu_required, mc.cores = cores)
+  result <- parallel::mclapply(1:length(ts_names), svt_scheduling_sim, index, object, dataset_max, dataset_avg, cpu_required, mc.cores = cores)
+  #result <- lapply(1:length(ts_names), svt_scheduling_sim, index, object, dataset_max, dataset_avg, cpu_required, mc.cores = cores)
 
   end_time <- proc.time()
   print(end_time - start_time)
@@ -268,6 +269,11 @@ predict_model <- function(object, trained_result, testset_max, testset_avg, do_p
     overall_utilization <- compute_utilization(utilizations, testset_avg[(object@window_size + 1):(current_end - update + 2 * object@window_size - 1)], object@window_size, object@granularity)
   }
   if (do_plot) {
+    if (nrow(info) < object@update_freq) {
+      for (i in 1:(object@update_freq - nrow(info))) {
+        info <- rbind(info, c(NA, NA))
+      }
+    }
     colnames(info) <- c("pi_up", "adjust_switch")
   }
   return(list("sur_num" = overall_survival$numerator, "sur_den" = overall_survival$denominator, "util_num" = overall_utilization$numerator, "util_den" = overall_utilization$denominator, "info" = info))
@@ -286,6 +292,8 @@ predict_model <- function(object, trained_result, testset_max, testset_avg, do_p
 #' @return A list containing the resulting prediction informations.
 #' @keywords internal
 svt_predicting_sim <- function(ts_num, index, object, dataset_max, dataset_avg, do_plot) {
+  trace_name <- colnames(dataset_max)[ts_num]
+
   dataset_max <- dataset_max[, ts_num]
   dataset_avg <- dataset_avg[, ts_num]
 
@@ -298,25 +306,25 @@ svt_predicting_sim <- function(ts_num, index, object, dataset_max, dataset_avg, 
   last_time_update <- length(dataset_max) - object@update_freq - object@train_size + 1
   train_sig <- TRUE
   while (current <= last_time_update) {
-    ## Get test set
-    testset_max <- dataset_max[(current + object@train_size):(current + object@train_size + object@update_freq - 1)]
-    testset_avg <- dataset_avg[(current + object@train_size):(current + object@train_size + object@update_freq - 1)]
-
-    ## Convert Frequency for training set
-    if (object@reg_num == 0) {
-      starting_points_max <- NULL
-      starting_points_avg <- NULL
-    } else {
-      starting_points_max <- dataset_max[(current + object@train_size - object@reg_num * object@window_size):(current + object@train_size - 1)]
-      starting_points_max <- dataset_avg[(current + object@train_size - object@reg_num * object@window_size):(current + object@train_size - 1)]
-    }
-
     ## Train Model
     if (train_sig) {
       # Get training set
       trainset_max <- dataset_max[current:(current + object@train_size - 1)]
       trainset_avg <- dataset_avg[current:(current + object@train_size - 1)]
       trained_result <- train_model(object, trainset_max, trainset_avg)
+    }
+
+    ## Get test set
+    testset_max <- dataset_max[(current + object@train_size):(current + object@train_size + object@update_freq - 1)]
+    testset_avg <- dataset_avg[(current + object@train_size):(current + object@train_size + object@update_freq - 1)]
+
+    ## Get starting observations for predicting
+    if (object@reg_num == 0) {
+      starting_points_max <- NULL
+      starting_points_avg <- NULL
+    } else {
+      starting_points_max <- dataset_max[(current + object@train_size - object@reg_num * object@window_size):(current + object@train_size - 1)]
+      starting_points_avg <- dataset_avg[(current + object@train_size - object@reg_num * object@window_size):(current + object@train_size - 1)]
     }
 
     ## Test Model
@@ -337,7 +345,6 @@ svt_predicting_sim <- function(ts_num, index, object, dataset_max, dataset_avg, 
 
     ## Do plot
     if (do_plot) {
-      trace_name <- colnames(dataset_max)[ts_num]
       trainset <- data.frame("trainset_max" = trainset_max, "trainset_avg" = trainset_avg)
       testset <- data.frame("testset_max" = testset_max, "testset_avg" = testset_avg)
       prev_score <- data.frame("prev_score1" = prev_survival, "prev_score2" = prev_utilization)
@@ -383,8 +390,8 @@ predicting_sim <- function(index, uni_lst, dataset_max, dataset_avg, cores, writ
 
   ## Do Simulation
   start_time <- proc.time()
-  #result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, index, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE), mc.cores = cores)
-  result <- lapply(1:length(ts_names), svt_predicting_sim, index, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE))
+  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, index, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE), mc.cores = cores)
+  #result <- lapply(1:length(ts_names), svt_predicting_sim, index, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE))
   end_time <- proc.time()
   print(end_time - start_time)
 

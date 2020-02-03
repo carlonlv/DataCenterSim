@@ -3,19 +3,22 @@
 %   R/sim_methods.R
 \name{plot_sim_overall}
 \alias{plot_sim_overall}
-\alias{plot_sim_overall,sim-method}
+\alias{plot_sim_overall,sim,ANY-method}
+\alias{plot_sim_overall,sim,data.frame-method}
 \title{Plot Simulation Result Type Overall}
 \usage{
-plot_sim_overall(object)
+plot_sim_overall(object, overall_summ)
 
-\S4method{plot_sim_overall}{sim}(object)
+\S4method{plot_sim_overall}{sim,ANY}(object)
 
-\S4method{plot_sim_overall}{sim}(object)
+\S4method{plot_sim_overall}{sim,ANY}(object)
 
-\S4method{plot_sim_overall}{sim}(object)
+\S4method{plot_sim_overall}{sim,data.frame}(object, overall_summ)
 }
 \arguments{
 \item{object}{An S4 sim object}
+
+\item{overall_summ}{A dataframe with each row representing a parameter setting, and the performance of such setting.}
 }
 \value{
 A plot object

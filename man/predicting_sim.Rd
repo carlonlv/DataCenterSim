@@ -5,7 +5,8 @@
 \title{Simulation of Scheduling Jobs Based On Predictions With AR1 Model}
 \usage{
 predicting_sim(
-  object,
+  index,
+  uni_lst,
   dataset_max,
   dataset_avg,
   cores,
@@ -14,7 +15,9 @@ predicting_sim(
 )
 }
 \arguments{
-\item{object}{A S4 sim object.}
+\item{index}{A numeric number representing the index of current parameter setting.}
+
+\item{uni_lst}{The list of uni-length S4 sim objects.}
 
 \item{dataset_max}{A numeric vector representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
 

@@ -2,15 +2,17 @@
 % Please edit documentation in R/generics.R, R/sim_methods.R
 \name{plot_sim_paramwise}
 \alias{plot_sim_paramwise}
-\alias{plot_sim_paramwise,sim,data.frame,list-method}
+\alias{plot_sim_paramwise,sim,numeric,data.frame,list-method}
 \title{Plot Simulation Result Type Tracewise}
 \usage{
-plot_sim_paramwise(object, score, summ)
+plot_sim_paramwise(object, index, score, summ)
 
-\S4method{plot_sim_paramwise}{sim,data.frame,list}(object, score, summ)
+\S4method{plot_sim_paramwise}{sim,numeric,data.frame,list}(object, index, score, summ)
 }
 \arguments{
 \item{object}{An S4 sim object.}
+
+\item{index}{A numeric number representing the index of current parameter setting.}
 
 \item{score}{A dataframe representing score1 and score2 for each trace.}
 

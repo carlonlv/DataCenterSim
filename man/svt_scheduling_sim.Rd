@@ -6,6 +6,7 @@
 \usage{
 svt_scheduling_sim(
   ts_num,
+  index,
   object,
   dataset_max,
   dataset_avg,
@@ -15,6 +16,8 @@ svt_scheduling_sim(
 }
 \arguments{
 \item{ts_num}{The corresponding trace/column in \code{dataset_max} or \code{dataset_avg}.}
+
+\item{index}{A numeric number representing the index of current parameter setting.}
 
 \item{object}{An S4 sim object.}
 

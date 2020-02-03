@@ -2,15 +2,37 @@
 % Please edit documentation in R/generics.R, R/sim_methods.R
 \name{plot_sim_tracewise}
 \alias{plot_sim_tracewise}
-\alias{plot_sim_tracewise,sim,data.frame,data.frame,data.frame,numeric,list-method}
+\alias{plot_sim_tracewise,sim,numeric,character,data.frame,data.frame,data.frame,numeric,list-method}
 \title{Plot Simulation Result Type Tracewise}
 \usage{
-plot_sim_tracewise(object, trainset, testset, prev_score, last_score, decision)
+plot_sim_tracewise(
+  object,
+  index,
+  trace_name,
+  trainset,
+  testset,
+  prev_score,
+  last_score,
+  decision
+)
 
-\S4method{plot_sim_tracewise}{sim,data.frame,data.frame,data.frame,numeric,list}(object, trainset, testset, prev_score, last_score, decision)
+\S4method{plot_sim_tracewise}{sim,numeric,character,data.frame,data.frame,data.frame,numeric,list}(
+  object,
+  index,
+  trace_name,
+  trainset,
+  testset,
+  prev_score,
+  last_score,
+  decision
+)
 }
 \arguments{
 \item{object}{An S4 sim object.}
+
+\item{index}{A numeric number representing the index of current parameter setting.}
+
+\item{trace_name}{A character representation of name of current trace.}
 
 \item{trainset}{A dataframe with two columns each representing training set of maximum and training set of average.}
 

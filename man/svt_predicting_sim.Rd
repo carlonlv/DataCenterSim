@@ -4,10 +4,12 @@
 \alias{svt_predicting_sim}
 \title{Simulation of Scheduling Jobs Based On Predictions On A Single Trace With AR1 Model}
 \usage{
-svt_predicting_sim(ts_num, object, dataset_max, dataset_avg, do_plot)
+svt_predicting_sim(ts_num, index, object, dataset_max, dataset_avg, do_plot)
 }
 \arguments{
 \item{ts_num}{The corresponding trace/column in \code{dataset}.}
+
+\item{index}{A numeric number representing the index of current parameter setting.}
 
 \item{dataset_max}{A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
 

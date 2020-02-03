@@ -264,43 +264,39 @@ setReplaceMethod("result_loc",
 #' @return A plot object
 #' @rdname plot_sim_overall
 setMethod("plot_sim_overall",
-          signature(object = "sim"),
-          function(object) {
-            file_name <- unlist(get_character_slots(object))
-            fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
-            result <- utils::read.csv(fp)
-
-            result$window_size_update_freq <- paste(result$window_size, result$update_freq)
+          signature(object = "sim", overall_summ = "data.frame"),
+          function(object, overall_summ) {
+            overall_summ$window_size_update_freq <- paste(overall_summ$window_size, overall_summ$update_freq)
             if (object@type == "scheduling") {
               if (object@train_policy == "dynamic") {
-                result$tolerance <- paste(result$tolerance1, result$tolerance2)
-                plt <- ggplot2::ggplot(result, ggplot2::aes(x = result$agg_correct_scheduled_rate, y = result$agg_correct_unscheduled_rate)) +
-                  ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = result$window_size_update_freq, alpha = as.factor(result$granularity), fill = as.factor(result$train_size), color = as.factor(result$tolerance))) +
-                  ggplot2::stat_ellipse(aes(linetype = as.factor(result$cut_off_prob)), type = "norm") +
+                overall_summ$tolerance <- paste(overall_summ$tolerance1, overall_summ$tolerance2)
+                plt <- ggplot2::ggplot(overall_summ, ggplot2::aes(x = overall_summ$agg_correct_scheduled_rate, y = overall_summ$agg_correct_unscheduled_rate)) +
+                  ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = overall_summ$window_size_update_freq, alpha = as.factor(overall_summ$granularity), fill = as.factor(overall_summ$train_size), color = as.factor(overall_summ$tolerance))) +
+                  ggplot2::stat_ellipse(aes(linetype = as.factor(overall_summ$cut_off_prob)), type = "norm") +
                   ggplot2::ylab("Correct Scheduled Rate") +
                   ggplot2::xlab("Correct Unscheduled Rate") +
                   ggplot2::scale_color_brewer(name = "tolerance", palette = "Set1", guide = ggplot2::guide_legend(ncol = 2))
               } else {
-                plt <- ggplot2::ggplot(result, ggplot2::aes(x = result$agg_correct_scheduled_rate, y = result$agg_correct_unscheduled_rate)) +
-                  ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = result$window_size_update_freq, alpha = as.factor(result$granularity), fill = as.factor(result$train_size))) +
-                  ggplot2::stat_ellipse(aes(linetype = as.factor(result$cut_off_prob)), type = "norm") +
+                plt <- ggplot2::ggplot(overall_summ, ggplot2::aes(x = overall_summ$agg_correct_scheduled_rate, y = overall_summ$agg_correct_unscheduled_rate)) +
+                  ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = overall_summ$window_size_update_freq, alpha = as.factor(overall_summ$granularity), fill = as.factor(overall_summ$train_size))) +
+                  ggplot2::stat_ellipse(aes(linetype = as.factor(overall_summ$cut_off_prob)), type = "norm") +
                   ggplot2::ylab("Correct Scheduled Rate") +
                   ggplot2::xlab("Correct Unscheduled Rate")
               }
             } else {
               if (object@train_policy == "dynamic") {
-                result$tolerance <- paste(result$tolerance1, result$tolerance2)
-                plt <- ggplot2::ggplot(result, ggplot2::aes(x = result$agg_survival_rate, y = result$agg_utilization_rate)) +
-                  ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = result$window_size_update_freq, alpha = as.factor(result$granularity), fill = as.factor(result$train_size), color = as.factor(result$tolerance))) +
-                  ggplot2::stat_ellipse(aes(linetype = as.factor(result$cut_off_prob)), type = "norm") +
+                overall_summ$tolerance <- paste(overall_summ$tolerance1, overall_summ$tolerance2)
+                plt <- ggplot2::ggplot(overall_summ, ggplot2::aes(x = overall_summ$agg_survival_rate, y = overall_summ$agg_utilization_rate)) +
+                  ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = overall_summ$window_size_update_freq, alpha = as.factor(overall_summ$granularity), fill = as.factor(overall_summ$train_size), color = as.factor(overall_summ$tolerance))) +
+                  ggplot2::stat_ellipse(aes(linetype = as.factor(overall_summ$cut_off_prob)), type = "norm") +
                   ggplot2::geom_vline(xintercept = 0.99, linetype = "dashed", color = "red") +
                   ggplot2::ylab("Utilization") +
                   ggplot2::xlab("Survival Rate") +
                   ggplot2::scale_color_brewer(name = "tolerance", palette = "Set1", guide = ggplot2::guide_legend(ncol = 2))
               } else {
-                plt <- ggplot2::ggplot(result, ggplot2::aes(x = result$agg_survival_rate, y = result$agg_utilization_rate)) +
-                  ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = result$window_size_update_freq, alpha = as.factor(result$granularity), fill = as.factor(result$train_size))) +
-                  ggplot2::stat_ellipse(aes(linetype = as.factor(result$cut_off_prob)), type = "norm") +
+                plt <- ggplot2::ggplot(overall_summ, ggplot2::aes(x = overall_summ$agg_survival_rate, y = overall_summ$agg_utilization_rate)) +
+                  ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = overall_summ$window_size_update_freq, alpha = as.factor(overall_summ$granularity), fill = as.factor(overall_summ$train_size))) +
+                  ggplot2::stat_ellipse(aes(linetype = as.factor(overall_summ$cut_off_prob)), type = "norm") +
                   ggplot2::geom_vline(xintercept = 0.99, linetype = "dashed", color = "red") +
                   ggplot2::ylab("Utilization") +
                   ggplot2::xlab("Survival Rate")
@@ -312,17 +308,62 @@ setMethod("plot_sim_overall",
               ggplot2::scale_alpha_discrete(name = "granularity", guide = ggplot2::guide_legend(ncol = 2)) +
               ggplot2::scale_fill_brewer(name = "train_size", palette = "Set3") +
               ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2)) +
-              ggplot2::ggtitle(paste("Model Performance of", file_name))
-            ggplot2::ggsave(fs::path(paste0(object@result_loc, file_name), ext = "png"), width = 12, height = 7)
+              ggplot2::ggtitle(paste("Model Performance"))
+
+            file_name <- unlist(get_character_slots(object))
+            fp <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name), ext = "png")
+            ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
             return(plt)
+          })
+
+
+#' @rdname plot_sim_paramwise
+#' @export
+setMethod("plot_sim_paramwise",
+          signature(object = "sim", index = "numeric", score = "data.frame", summ = "list"),
+          function(object, index, score, summ) {
+            if (object@type == "scheduling") {
+              trace_score1 <- score$correct_scheduled_num / score$scheduled_num
+              trace_score2 <- score$correct_unscheduled_num / score$unscheduled_num
+              trace_score <- c(trace_score1, trace_score2)
+              score1_or_score2 <- c(rep("correct_scheduled_rate", length(trace_score1)), rep("correct_unscheduled_rate", length(trace_score2)))
+              msg1 <- paste("The Overall Correct Scheduled Rate is", summ$avg_score1)
+              msg2 <- paste("The Overall Correct Unscheduled Rate is", summ$avg_score2)
+              under_performed_score1 <- sum(trace_score1 < object@cut_off_prob) / nrow(score)
+              under_performed_score2 <- sum(trace_score2 < object@cut_off_prob) / nrow(score)
+              msg3 <- paste(under_performed_score1, "percent of traces underperformed on Correct Scheduled Rate.")
+              msg4 <- paste(under_performed_score2, "percent of traces underperformed on Correct Unscheduled Rate.")
+            } else {
+              trace_score1 <- score$sur_num / score$sur_den
+              trace_score2 <- score$util_num / score$util_den
+              trace_score <- c(trace_score1, trace_score2)
+              score1_or_score2 <- c(rep("survival_rate", length(trace_score1)), rep("utilization_rate", length(trace_score2)))
+              msg1 <- paste("The Overall Survival Rate is", summ$avg_score1)
+              msg2 <- paste("The Overall Utilization Rate is", summ$avg_score2)
+              under_performed_score1 <- sum(trace_score1 < object@cut_off_prob) / nrow(score)
+              under_performed_score2 <- sum(trace_score2 < object@cut_off_prob) / nrow(score)
+              msg3 <- paste(under_performed_score1, "percent of traces underperformed on Survival Rate.")
+              msg4 <- paste(under_performed_score2, "percent of traces underperformed on Utilization Rate.")
+            }
+
+            result <- data.frame("trace_score" = trace_score, "score1_or_score2" = score1_or_score2)
+            plt <- ggplot2::ggplot(result, aes(x = result$trace_score, color = factor(score1_or_score2))) +
+              ggplot2::geom_histogram(fill = "white", position = "dodge") +
+              ggplot2::theme(legend.position = "none") +
+              ggplot2::ggtitle("") +
+              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4))
+
+            file_name <- paste(unlist(get_character_slots(object)), collapse = " ")
+            fp <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name, " index ", index), ext = "png")
+            ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
           })
 
 
 #' @rdname plot_sim_tracewise
 #' @export
 setMethod("plot_sim_tracewise",
-          signature(object = "sim", trainset = "data.frame", testset = "data.frame", prev_score = "data.frame", last_score = "numeric", decision = "list"),
-          function(object, trainset, testset, prev_score, last_score, decision) {
+          signature(object = "sim", index = "numeric", trace_name = "character", trainset = "data.frame", testset = "data.frame", prev_score = "data.frame", last_score = "numeric", decision = "list"),
+          function(object, index, trace_name, trainset, testset, prev_score, last_score, decision) {
             if (object@response == "max") {
               target_dataset <- c(utils::tail(trainset$trainset_max, 4 * nrow(testset)), testset$testset_max)
             } else {
@@ -356,51 +397,10 @@ setMethod("plot_sim_tracewise",
               ggplot2::xlab("Time (minutes)") +
               ggplot2::ylab("Cpu (percent)") +
               ggplot2::theme(legend.position = "none") +
-              ggplot2::ggtitle(paste("Diagnostic Plot at Iteration", train_decision$iter)) +
+              ggplot2::ggtitle(paste("Diagnostic Plot of", trace_name, "at Iteration", train_decision$iter)) +
               ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4))
 
             file_name <- paste(unlist(get_character_slots(object)), collapse = " ")
-            fp <- fs::path(paste0(object@result_loc, "tracewise_plots/", file_name, "_iter_", train_decision$iter), ext = "png")
-            ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
-          })
-
-
-#' @rdname plot_sim_paramwise
-#' @export
-setMethod("plot_sim_paramwise",
-          signature(object = "sim", score = "data.frame", summ = "list"),
-          function(object, score, summ) {
-            if (object@type == "scheduling") {
-              trace_score1 <- score$correct_scheduled_num / score$scheduled_num
-              trace_score2 <- score$correct_unscheduled_num / score$unscheduled_num
-              trace_score <- c(trace_score1, trace_score2)
-              score1_or_score2 <- c(rep("correct_scheduled_rate", length(trace_score1)), rep("correct_unscheduled_rate", length(trace_score2)))
-              msg1 <- paste("The Overall Correct Scheduled Rate is", summ$avg_score1)
-              msg2 <- paste("The Overall Correct Unscheduled Rate is", summ$avg_score2)
-              under_performed_score1 <- sum(trace_score1 < object@cut_off_prob) / nrow(score)
-              under_performed_score2 <- sum(trace_score2 < object@cut_off_prob) / nrow(score)
-              msg3 <- paste(under_performed_score1, "percent of traces underperformed on Correct Scheduled Rate.")
-              msg4 <- paste(under_performed_score2, "percent of traces underperformed on Correct Unscheduled Rate.")
-            } else {
-              trace_score1 <- score$sur_num / score$sur_den
-              trace_score2 <- score$util_num / score$util_den
-              trace_score <- c(trace_score1, trace_score2)
-              score1_or_score2 <- c(rep("survival_rate", length(trace_score1)), rep("utilization_rate", length(trace_score2)))
-              msg1 <- paste("The Overall Survival Rate is", summ$avg_score1)
-              msg2 <- paste("The Overall Utilization Rate is", summ$avg_score2)
-              under_performed_score1 <- sum(trace_score1 < object@cut_off_prob) / nrow(score)
-              under_performed_score2 <- sum(trace_score2 < object@cut_off_prob) / nrow(score)
-              msg3 <- paste(under_performed_score1, "percent of traces underperformed on Survival Rate.")
-              msg4 <- paste(under_performed_score2, "percent of traces underperformed on Utilization Rate.")
-            }
-
-            result <- data.frame("trace_score" = trace_score, "score1_or_score2" = score1_or_score2)
-            plt <- ggplot(result, aes(x = result$trace_score, color = factor(score1_or_score2))) +
-              geom_histogram(fill = "white", position = "dodge") +
-              theme(legend.position = "none") +
-              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4))
-
-            file_name <- paste(unlist(get_character_slots(object)), collapse = " ")
-            fp <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name), ext = "png")
+            fp <- fs::path(paste0(object@result_loc, "tracewise_plots/", file_name, " index ", index, " trace ", trace_name, " iter ", train_decision$iter), ext = "png")
             ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
           })

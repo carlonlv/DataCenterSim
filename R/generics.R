@@ -242,31 +242,35 @@ setGeneric("get_character_slots", function(object) standardGeneric("get_characte
 #'
 #' Plot overall result for simulation with each datapoint corresponds to average scores of all traces with one configuration.
 #' @param object An S4 sim object
+#' @param overall_summ A dataframe with each row representing a parameter setting, and the performance of such setting.
 #' @rdname plot_sim_overall
-setGeneric("plot_sim_overall", function(object) standardGeneric("plot_sim_overall"))
+setGeneric("plot_sim_overall", function(object, overall_summ) standardGeneric("plot_sim_overall"))
 
 
 #' Plot Simulation Result Type Tracewise
 #'
 #' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
 #' @param object An S4 sim object.
+#' @param index A numeric number representing the index of current parameter setting.
+#' @param trace_name A character representation of name of current trace.
 #' @param trainset A dataframe with two columns each representing training set of maximum and training set of average.
 #' @param testset A dataframe with two columns each representing test set of maximum and test set of average.
 #' @param prev_score A dataframe with two columns each representing the score 1 and score 2 from past evaluation.s
 #' @param last_score A numeric vector of length 2 each representing score 1 and score 2 of current evaluation.
 #' @param decision A list representing the decisions made by current algorithm.
 #' @rdname plot_sim_tracewise
-setGeneric("plot_sim_tracewise", function(object, trainset, testset, prev_score, last_score, decision) standardGeneric("plot_sim_tracewise"))
+setGeneric("plot_sim_tracewise", function(object, index, trace_name, trainset, testset, prev_score, last_score, decision) standardGeneric("plot_sim_tracewise"))
 
 
 #' Plot Simulation Result Type Tracewise
 #'
 #' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
 #' @param object An S4 sim object.
+#' @param index A numeric number representing the index of current parameter setting.
 #' @param score A dataframe representing score1 and score2 for each trace.
 #' @param summ A list containing summary of simulation result.
 #' @rdname plot_sim_paramwise
-setGeneric("plot_sim_paramwise", function(object, score, summ) standardGeneric("plot_sim_paramwise"))
+setGeneric("plot_sim_paramwise", function(object, index, score, summ) standardGeneric("plot_sim_paramwise"))
 
 
 #' Train Model

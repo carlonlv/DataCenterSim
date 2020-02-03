@@ -14,7 +14,7 @@ generate_result(object, evaluation, write_result)
 \item{write_result}{A logical TRUE/FALSE argument to determine whether to store the result of simulation to a file to location stored as an attribute in sim object.}
 }
 \value{
-A list cotaining information needed by S4 sim result object.
+A list consists of summary of simulation result.
 }
 \description{
 Generate The Result Of Simulation

@@ -4,18 +4,27 @@
 \alias{svt_scheduling_sim}
 \title{Simulation of Scheduling A Job On A Single Trace}
 \usage{
-svt_scheduling_sim(ts_num, object, dataset_max, dataset_avg, cpu_required)
+svt_scheduling_sim(
+  ts_num,
+  object,
+  dataset_max,
+  dataset_avg,
+  cpu_required,
+  do_plot
+)
 }
 \arguments{
 \item{ts_num}{The corresponding trace/column in \code{dataset_max} or \code{dataset_avg}.}
 
 \item{object}{An S4 sim object.}
 
-\item{dataset_max}{A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
+\item{dataset_max}{A numeric vector representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
 
-\item{dataset_avg}{A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
+\item{dataset_avg}{A numeric vector representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
 
 \item{cpu_required}{A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine.}
+
+\item{do_plot}{A logical value TRUE/FALSE to plot tracewise performance.}
 }
 \value{
 A list containing the resulting scheduling informations.

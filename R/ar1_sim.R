@@ -14,6 +14,10 @@ check_valid_ar1_sim <- function(object) {
     msg <- paste0("train_policy must be one of ", paste(res_dist_choices, collapse = " "), ".")
     errors <- c(errors, msg)
   }
+  if (object@reg_num != 1) {
+    msg <- paste0("reg_num must be fixed to 1 for ar1 sim model.")
+    errors <- c(errors, msg)
+  }
   if (length(errors) == 0) {
     return(TRUE)
   } else {
@@ -23,25 +27,16 @@ check_valid_ar1_sim <- function(object) {
 
 
 #' @rdname sim-class
-#' @name ar1_sim-class
+#' @param res_dist The distribution of residual.
+#' @param reg_num The number of past regressive observations needed to forecast next observation.
 #' @export ar1_sim
 ar1_sim <- setClass("ar1_sim",
-                    slots = list(res_dist = "character"),
+                    slots = list(res_dist = "character", reg_num = "numeric"),
                     contains = "sim",
                     prototype = list(name = "AR1",
-                                     res_dist = "norm"),
+                                     res_dist = "norm",
+                                     reg_num = 1),
                     validity = check_valid_ar1_sim)
-
-#' @rdname sim_process-class
-ar1_sim_process <- setClass("ar1_sim_process",
-                            slots = list(trained_model = "list", predict_result = "list"),
-                            prototype = list(trained_model = list(), predict_result = list()),
-                            contains = "ar1_sim")
-
-#' @rdname sim_result-class
-ar1_sim_result <- setClass("ar1_sim_result",
-                           slots = list(result = "data.frame", summ = "list"),
-                           contains = "ar1_sim")
 
 
 #' @describeIn train_model Train AR1 Model specific to ar1_sim object.
@@ -110,73 +105,63 @@ setMethod("train_model",
 
               trained_result <- list("phi" = phi, "xi" = xi, "omega" = omega, "alpha" = alpha)
             }
-            return(ar1_sim_process(object, trained_model = trained_result))
+            return(trained_result)
           })
 
 
 #' @describeIn do_prediction Do prediction based on trained AR1 Model.
 setMethod("do_prediction",
-          signature(object = "ar1_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
-          function(object, last_obs_max, last_obs_avg, level) {
+          signature(object = "ar1_sim", trained_result = "list", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
+          function(object, trained_result, last_obs_max, last_obs_avg, level) {
             # caclulate probability
             if (object@response == "max") {
               if (object@res_dist == "norm") {
-                mu <- object@trained_model$mu + object@trained_model$phi * last_obs_max
+                mu <- trained_result$mu + trained_result$phi * last_obs_max
               } else {
-                xi <- object@trained_model$xi + object@trained_model$phi * last_obs_max
+                xi <- trained_result$xi + trained_result$phi * last_obs_max
               }
             } else {
               if (object@res_dist == "norm") {
-                mu <- object@trained_model$mu + object@trained_model$phi * last_obs_avg
+                mu <- trained_result$mu + trained_result$phi * last_obs_avg
               } else {
-                xi <- object@trained_model$xi + object@trained_model$phi * last_obs_avg
+                xi <- trained_result$xi + trained_result$phi * last_obs_avg
               }
             }
             if (object@res_dist == "norm") {
-              sd <- sqrt(object@trained_model$sigma2)
+              sd <- sqrt(trained_result$sigma2)
               prob <- NULL
               if (!is.na(level)) {
                 prob <- 1 - stats::pnorm(q = level, mean = mu, sd = sd)
               }
               predict_result <- list("prob" = as.numeric(prob), "mean" = mu, "sd" = sd)
             } else {
-              omega <- object@trained_model$omega
-              alpha <- object@trained_model$alpha
+              omega <- trained_result$omega
+              alpha <- trained_result$alpha
               prob <- NULL
               if (!is.na(level)) {
                 prob <- 1 - sn::psn(x = level, xi = xi, omega = omega, alpha = alpha)
               }
-              predict_result <- list("prob" = as.numeric(prob), "xi" = xi, "omega" = omega, "alpha" = alpha)
+              predicted_result <- list("prob" = as.numeric(prob), "xi" = xi, "omega" = omega, "alpha" = alpha)
             }
-            object@predict_result <- predict_result
-            return(object)
+            return(predicted_result)
           })
 
 
 #' @describeIn compute_pi_up Compute prediction interval Upper Bound based on trained AR1 Model.
 setMethod("compute_pi_up",
-          signature(object = "ar1_sim_process"),
-          function(object) {
+          signature(object = "ar1_sim", predicted_result = "list"),
+          function(object, predicted_result) {
             if (object@res_dist == "norm") {
-              mu <- object@predict_result$mean
-              sd <- object@predict_result$sd
+              mu <- predicted_result$mean
+              sd <- predicted_result$sd
               upper_bounds <- min(stats::qnorm(1 - object@cut_off_prob, mean = mu, sd = sd), 100)
             } else {
-              xi <- object@predict_result$xi
-              omega <- object@predict_result$omega
-              alpha <- object@predict_result$alpha
+              xi <- predicted_result$xi
+              omega <- predicted_result$omega
+              alpha <- predicted_result$alpha
               upper_bounds <- min(sn::qsn(1 - object@cut_off_prob, xi = xi, omega = omega, alpha = alpha), 100)
             }
             return(upper_bounds)
-          })
-
-
-#' @describeIn get_sim_save Generate ar1_sim_result object from simulation.
-setMethod("get_sim_save",
-          signature(object = "ar1_sim", evaluation = "data.frame", write_result = "logical"),
-          function(object, evaluation, write_result) {
-            gn_result <- generate_result(object, evaluation, write_result)
-            return(ar1_sim_result(object, result = gn_result$result, summ = gn_result$summ))
           })
 
 
@@ -201,30 +186,10 @@ setMethod("get_numeric_slots",
 setMethod("get_character_slots",
           signature(object = "ar1_sim"),
           function(object) {
-            numeric_slots <- c("name", "type", "train_policy", "schedule_policy", "adjust_policy", "response", "res_dist")
-            numeric_lst <- list()
-            for (i in numeric_slots) {
-              numeric_lst[[i]] <- methods::slot(object, i)
+            character_slots <- c("name", "type", "train_policy", "schedule_policy", "adjust_policy", "response", "res_dist")
+            character_lst <- list()
+            for (i in character_slots) {
+              character_lst[[i]] <- methods::slot(object, i)
             }
-            return(numeric_lst)
+            return(character_lst)
           })
-
-
-#' @export
-setAs("ar1_sim", "data.frame",
-      function(from) {
-        numeric_lst <- get_numeric_slots(from)
-        result_numeric <- as.data.frame(numeric_lst)
-        return(result_numeric)
-      })
-
-
-#' @export
-setAs("ar1_sim_result", "data.frame",
-      function(from) {
-        summ <- from@summ
-        numeric_lst <- get_numeric_slots(from)
-        result_numeric <- as.data.frame(numeric_lst)
-        result_summ <- as.data.frame(summ)
-        return(cbind(result_numeric, result_summ))
-      })

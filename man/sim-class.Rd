@@ -16,6 +16,10 @@
 \title{An S4 Class to Represent A Simulation.}
 \arguments{
 \item{state_num}{A numeric number that represents the number of states in Markov chain.}
+
+\item{res_dist}{The distribution of residual.}
+
+\item{reg_num}{The number of past regressive observations needed to forecast next observation.}
 }
 \description{
 An S4 Class to Represent A Simulation.

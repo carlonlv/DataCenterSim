@@ -13,6 +13,10 @@ check_valid_var1_sim <- function(object) {
     msg <- paste0("train_policy must be one of ", paste(res_dist_choices, collapse = " "), ".")
     errors <- c(errors, msg)
   }
+  if (object@reg_num != 1) {
+    msg <- paste0("reg_num must be fixed to 1 for var1 sim model.")
+    errors <- c(errors, msg)
+  }
   if (length(errors) == 0) {
     return(TRUE)
   } else {
@@ -22,25 +26,16 @@ check_valid_var1_sim <- function(object) {
 
 
 #' @rdname sim-class
-#' @name var1_sim-class
+#' @param res_dist The distribution of residual.
+#' @param reg_num The number of past regressive observations needed to forecast next observation.
 #' @export var1_sim
 var1_sim <- setClass("var1_sim",
-                     slots = list(res_dist = "character"),
+                     slots = list(res_dist = "character", reg_num = "numeric"),
                      contains = "sim",
                      prototype = list(name = "VAR1",
-                                      res_dist = "norm"),
+                                      res_dist = "norm",
+                                      reg_num = 1),
                      validity = check_valid_var1_sim)
-
-#' @rdname sim_process-class
-var1_sim_process <- setClass("var1_sim_process",
-                            slots = list(trained_model = "list", predict_result = "list"),
-                            prototype = list(trained_model = list(), predict_result = list()),
-                            contains = "var1_sim")
-
-#' @rdname sim_result-class
-var1_sim_result <- setClass("var1_sim_result",
-                           slots = list(result = "data.frame", summ = "list"),
-                           contains = "var1_sim")
 
 
 #' @describeIn train_model Train VAR Model specific to var1_sim object.
@@ -60,56 +55,44 @@ setMethod("train_model",
               uni_data_matrix[,2] <- new_trainset_max
               trained_result <- MTS::VAR(uni_data_matrix, p = 1, include.mean = TRUE, output = FALSE)
             }
-            return(var1_sim_process(object, trained_model = trained_result))
+            return(trained_result)
           })
 
 
 #' @describeIn do_prediction Do prediction based on trained VAR Model.
 setMethod("do_prediction",
-          signature(object = "var1_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
-          function(object, last_obs_max, last_obs_avg, level) {
-
+          signature(object = "var1_sim", trained_result = "list", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
+          function(object, trained_result, last_obs_max, last_obs_avg, level) {
             if (object@response == "max") {
               mu <- matrix(c(last_obs_max,last_obs_avg), ncol = 1)
             } else {
               mu <- matrix(c(last_obs_avg,last_obs_max), ncol = 1)
             }
-            intercept <- object@trained_model$Ph0
-            ar_coef <- object@trained_model$Phi
-            sample_var <- object@trained_model$Sigma
+            intercept <- trained_result$Ph0
+            ar_coef <- trained_result$Phi
+            sample_var <- trained_result$Sigma
 
             mu <- matrix(intercept, nrow = 2, ncol = 1) + ar_coef %*% mu
 
             varcov <- sample_var
-
             # caclulate probability
             prob <- NULL
             if (!is.na(level)) {
               prob <- 1 - stats::pnorm(level, mean = mu[1, 1], sd = varcov[1, 1])
             }
-            predict_result <- list("prob" = as.numeric(prob), "mu" = mu[1, 1], "sd" = sqrt(varcov[1, 1]))
-            object@predict_result <- predict_result
-            return(object)
+            predicted_result <- list("prob" = as.numeric(prob), "mu" = as.numeric(mu[1, 1]), "sd" = as.numeric(sqrt(varcov[1, 1])))
+            return(predicted_result)
           })
 
 
 #' @describeIn compute_pi_up Compute prediction interval Upper Bound based on trained AR1 Model.
 setMethod("compute_pi_up",
-          signature(object = "var1_sim_process"),
-          function(object) {
-            mu <- object@predict_result$mu
-            var <- object@predict_result$var
-            upper_bounds <- min(stats::qnorm(1 - object@cut_off_prob, mean = mu, sd = sqrt(var)))
+          signature(object = "var1_sim", predicted_result = "list"),
+          function(object, predicted_result) {
+            mu <- predicted_result$mu
+            sd <- predicted_result$sd
+            upper_bounds <- min(stats::qnorm(1 - object@cut_off_prob, mean = mu, sd = sd))
             return(max(upper_bounds))
-          })
-
-
-#' @describeIn get_sim_save Generate ar1_sim_result object from simulation.
-setMethod("get_sim_save",
-          signature(object = "var1_sim", evaluation = "data.frame", write_result = "logical"),
-          function(object, evaluation, write_result) {
-            gn_result <- generate_result(object, evaluation, write_result)
-            return(var1_sim_result(object, result = gn_result$result, summ = gn_result$summ))
           })
 
 
@@ -128,21 +111,17 @@ setMethod("get_numeric_slots",
           })
 
 
+#' @return A list containing all character parameter informations.
+#' @rdname get_character_slots
 #' @export
-setAs("var1_sim", "data.frame",
-      function(from) {
-        numeric_lst <- get_numeric_slots(from)
-        result_numeric <- as.data.frame(numeric_lst)
-        return(result_numeric)
-      })
+setMethod("get_character_slots",
+          signature(object = "var1_sim"),
+          function(object) {
+            character_slots <- c("name", "type", "train_policy", "schedule_policy", "adjust_policy", "response", "res_dist")
+            character_lst <- list()
+            for (i in character_slots) {
+              character_lst[[i]] <- methods::slot(object, i)
+            }
+            return(character_lst)
+          })
 
-
-#' @export
-setAs("var1_sim_result", "data.frame",
-      function(from) {
-        summ <- from@summ
-        numeric_lst <- get_numeric_slots(from)
-        result_numeric <- as.data.frame(numeric_lst)
-        result_summ <- as.data.frame(summ)
-        return(cbind(result_numeric, result_summ))
-      })

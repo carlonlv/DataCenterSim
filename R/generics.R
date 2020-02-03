@@ -207,6 +207,21 @@ setGeneric("state_num", function(object) standardGeneric("state_num"))
 setGeneric("state_num<-", function(object, value) standardGeneric("state_num<-"))
 
 
+#' Getter/Setter for Residual Distribution
+#'
+#' Res Dist is the Residual Distribution for ARIMA or VAR models.
+#'
+#' @param object An S4 sim object.
+#' @rdname res_dist
+#' @export
+setGeneric("res_dist", function(object) standardGeneric("res_dist"))
+
+#' @param value A character value that can either be "norm" or "skew_norm".
+#' @rdname res_dist
+#' @export
+setGeneric("res_dist<-", function(object, value) standardGeneric("res_dist<-"))
+
+
 #' Get The Numeric Parameters
 #'
 #' @param object An S4 sim object
@@ -221,14 +236,6 @@ setGeneric("get_numeric_slots", function(object) standardGeneric("get_numeric_sl
 #' @rdname get_character_slots
 #' @export
 setGeneric("get_character_slots", function(object) standardGeneric("get_character_slots"))
-
-
-#' Split A Sim Object Into Sim Objects With Length 1 Slots
-#'
-#' @param object An S4 sim object
-#' @rdname split_to_uni
-#' @export
-setGeneric("split_to_uni", function(object) standardGeneric("split_to_uni"))
 
 
 #' Plot Simulation Result Type Overall
@@ -256,8 +263,10 @@ setGeneric("plot_sim_tracewise", function(object, trainset, testset, prev_score,
 #'
 #' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
 #' @param object An S4 sim object.
+#' @param score A dataframe representing score1 and score2 for each trace.
+#' @param summ A list containing summary of simulation result.
 #' @rdname plot_sim_paramwise
-setGeneric("plot_sim_paramwise", function(object) standardGeneric("plot_sim_paramwise"))
+setGeneric("plot_sim_paramwise", function(object, score, summ) standardGeneric("plot_sim_paramwise"))
 
 
 #' Train Model
@@ -267,7 +276,7 @@ setGeneric("plot_sim_paramwise", function(object) standardGeneric("plot_sim_para
 #' @param object An S4 sim object.
 #' @param trainset_max A matrix of size \eqn{n \times m} representing the training set of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
 #' @param trainset_avg A matrix of size \eqn{n \times m} representing the training set of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
-#' @return A hidden S4 sim process object that contains trained result.
+#' @return A list containing trained result.
 #' @name train_model
 #' @rdname train_model
 setGeneric("train_model", function(object, trainset_max, trainset_avg) standardGeneric("train_model"))
@@ -277,33 +286,24 @@ setGeneric("train_model", function(object, trainset_max, trainset_avg) standardG
 #'
 #' This is a generic function that do prediction according to the input object type.
 #'
-#' @param object An S4 sim process object with trained model information.
+#' @param object An S4 sim process object
+#' @param trained_result A list containing trained model information.
 #' @param last_obs_max A numeric value representing the last observation of maximum.
 #' @param last_obs_avg A numeric value representing the last observation of average.
 #' @param level The level in \eqn{Pr(Y_{t+1}|Y_{t}) \leq level} to be computed.
-#' @return The same S4 process object with prediction information.
+#' @return Prediction information.
 #' @name do_prediction
 #' @rdname do_prediction
-setGeneric("do_prediction", function(object, last_obs_max, last_obs_avg, level) standardGeneric("do_prediction"))
+setGeneric("do_prediction", function(object, trained_result, last_obs_max, last_obs_avg, level) standardGeneric("do_prediction"))
 
 
 #' Compute Prediction Interval Upper Bound
 #'
 #' This is a generic function that computes the upper bound of prediction interval according to the type of input object.
 #'
-#' @param object An S4 sim process object with prediction information.
+#' @param object An S4 sim process object.
+#' @param predicted_result A list containing predicted result information.
 #' @return A numeric value representing the maximum of prediction interval upper bound in the forecasting steps.
 #' @name compute_pi_up
 #' @rdname compute_pi_up
-setGeneric("compute_pi_up", function(object) standardGeneric("compute_pi_up"))
-
-
-#' Generate Simulation Result
-#'
-#' @param object An S4 sim_result object.
-#' @param evaluation The evaluation dataframe with each row representing each trace, and the columns consists of performance information.
-#' @param write_result A logical TRUE/FALSE argument to determine whether to store the result of simulation to a file to location stored as an attribute in sim object.
-#' @return An S4 sim_result object.
-#' @name get_sim_save
-#' @rdname get_sim_save
-setGeneric("get_sim_save", function(object, evaluation, write_result) standardGeneric("get_sim_save"))
+setGeneric("compute_pi_up", function(object, predicted_result) standardGeneric("compute_pi_up"))

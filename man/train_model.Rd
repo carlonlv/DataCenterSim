@@ -27,7 +27,7 @@ train_model(object, trainset_max, trainset_avg)
 \item{trainset_avg}{A matrix of size \eqn{n \times m} representing the training set of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
 }
 \value{
-A hidden S4 sim process object that contains trained result.
+A list containing trained result.
 }
 \description{
 This is a generic function that trains model according to the input object type, with additional arguments supplied by attributes of the object.

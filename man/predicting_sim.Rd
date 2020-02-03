@@ -16,9 +16,9 @@ predicting_sim(
 \arguments{
 \item{object}{A S4 sim object.}
 
-\item{dataset_max}{A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
+\item{dataset_max}{A numeric vector representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
 
-\item{dataset_avg}{A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
+\item{dataset_avg}{A numeric vector representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
 
 \item{cores}{The number of threads for parallel programming for multiple traces, not supported for windows users.}
 

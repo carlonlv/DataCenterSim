@@ -4,10 +4,12 @@
 \alias{predict_model}
 \title{Schedule Jobs Using Predictions On Given Test Set}
 \usage{
-predict_model(object_process, testset_max, testset_avg, do_plot)
+predict_model(object, trained_result, testset_max, testset_avg, do_plot)
 }
 \arguments{
-\item{object_process}{Hidden S4 sim object after training.}
+\item{object}{A S4 sim object.}
+
+\item{trained_result}{A list containing trained model information.}
 
 \item{testset_max}{A numeric vector representing the test set of maximum, with the initial amount of test set that equals to window size are from training set.}
 

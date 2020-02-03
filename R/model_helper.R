@@ -388,7 +388,7 @@ find_state_num <- function(obs, state_num) {
 #' @param object A subclass of S4 sim object.
 #' @param evaluation The evaluation dataframe with each row representing each trace, and the columns consists of performance information.
 #' @param write_result A logical TRUE/FALSE argument to determine whether to store the result of simulation to a file to location stored as an attribute in sim object.
-#' @return A list cotaining information needed by S4 sim result object.
+#' @return A list consists of summary of simulation result.
 #' @keywords internal
 generate_result <- function(object, evaluation, write_result) {
   if (object@type == "scheduling") {
@@ -423,7 +423,7 @@ generate_result <- function(object, evaluation, write_result) {
       utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
     }
   }
-  return(list("result" = evaluation, "summ" = overall_result))
+  return(overall_result)
 }
 
 
@@ -442,4 +442,42 @@ sample_moment_lag <- function(dataset, k, r, s) {
   term2 <- (dataset[(1 + k):n] - mean(dataset)) ^ s
   result <- (term1 %*% term2) / n
   return(result[1,1])
+}
+
+
+#' Split A Sim Object Into Sim Objects With Length 1 Slots
+#'
+#' @param object An S4 sim object
+#' @return A list containing all the sim objects with uni-length slots
+#' @keywords internal
+split_to_uni <- function(object) {
+  methods::validObject(object)
+  result <- list()
+  numeric_lst <- get_numeric_slots(object)
+  character_slots <- setdiff(methods::slotNames(object), names(numeric_lst))
+  cmb <- expand.grid(numeric_lst)
+  counter <- 1
+  for (j in 1:nrow(cmb)) {
+    info <- cmb[j,]
+    uni <- methods::new(class(object))
+    error <- FALSE
+    for (k in names(numeric_lst)) {
+      tryCatch({
+        methods::slot(uni, k, check = TRUE) <- as.numeric(info[k])
+      }, error = function(cond) {
+        error <- TRUE
+      })
+      if (error) {
+        break
+      }
+    }
+    if (!error) {
+      for (l in character_slots) {
+        methods::slot(uni, l) <- slot(object, l)
+      }
+      result[[counter]] <- uni
+      counter <- counter + 1
+    }
+  }
+  return(result)
 }

@@ -12,6 +12,10 @@ check_valid_markov_sim <- function(object) {
     msg <- paste0("state_num must only consist positive integers.")
     errors <- c(errors, msg)
   }
+  if (object@reg_num != 1) {
+    msg <- paste0("reg_num must be fixed to 1 for markov sim model.")
+    errors <- c(errors, msg)
+  }
   if (length(errors) == 0) {
     return(TRUE)
   } else {
@@ -22,24 +26,15 @@ check_valid_markov_sim <- function(object) {
 
 #' @rdname sim-class
 #' @param state_num A numeric number that represents the number of states in Markov chain.
+#' @param reg_num The number of past regressive observations needed to forecast next observation.
 #' @export markov_sim
 markov_sim <- setClass("markov_sim",
-                       slots = list(state_num = "numeric"),
+                       slots = list(state_num = "numeric", reg_num = "numeric"),
                        prototype = list(name = "Markov",
-                                        state_num = c(8, 16, 32)),
+                                        state_num = c(8, 16, 32),
+                                        reg_num = 1),
                        contains = "sim",
                        validity = check_valid_markov_sim)
-
-#' @rdname sim_process-class
-markov_sim_process <- setClass("markov_sim_process",
-                            slots = list(trained_model = "matrix", predict_result = "list"),
-                            prototype = list(trained_model = matrix(), predict_result = list()),
-                            contains = "markov_sim")
-
-#' @rdname sim_result-class
-markov_sim_result <- setClass("markov_sim_result",
-                           slots = list(result = "data.frame", summ = "list"),
-                           contains = "markov_sim")
 
 
 #' @describeIn train_model Train Markov Model specific to markov_sim object.
@@ -86,39 +81,39 @@ setMethod("train_model",
                 }
               }
             }
-            return(markov_sim_process(object, trained_model = transition))
+            trained_result <- list("transition" = transition)
+            return(trained_result)
           })
 
 
 #' @describeIn do_prediction Do prediction based on trained Markov Model.
 setMethod("do_prediction",
-          signature(object = "markov_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
-          function(object, last_obs_max, last_obs_avg, level) {
-            final_transition <- object@trained_model
+          signature(object = "markov_sim", trained_result = "list", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
+          function(object, trained_result, last_obs_max, last_obs_avg, level) {
+            final_transition <- trained_result$transition
             if (object@response == "max") {
-              from <- find_state_num(last_obs_max, nrow(object@trained_model))
+              from <- find_state_num(last_obs_max, nrow(final_transition))
             } else {
-              from <- find_state_num(last_obs_avg, nrow(object@trained_model))
+              from <- find_state_num(last_obs_avg, nrow(final_transition))
             }
             to_states <- final_transition[from,]
 
             # calculate probability
             prob <- NULL
             if (!is.na(level)) {
-              to <- find_state_num(level, nrow(object@trained_model))
-              prob <- sum(final_transition[from, to:(nrow(object@trained_model))])
+              to <- find_state_num(level, nrow(final_transition))
+              prob <- sum(final_transition[from, to:(nrow(final_transition))])
             }
-            predict_result <- list("prob" = as.numeric(prob), "to_states" = to_states)
-            object@predict_result <- predict_result
-            return(object)
+            predicted_result <- list("prob" = as.numeric(prob), "to_states" = to_states)
+            return(predicted_result)
           })
 
 
 #' @describeIn compute_pi_up Compute prediction interval Upper Bound based on trained Markov Model.
 setMethod("compute_pi_up",
-          signature(object = "markov_sim_process"),
-          function(object) {
-            to_states <- object@predict_result$to_states
+          signature(object = "markov_sim", predicted_result = "list"),
+          function(object, predicted_result) {
+            to_states <- predicted_result$to_states
             current_state <- 1
             current_prob <- 0
             while (current_state <= length(to_states)) {
@@ -132,15 +127,6 @@ setMethod("compute_pi_up",
             }
             pi_up <- current_state * (100 / length(to_states))
             return(pi_up)
-          })
-
-
-#' @describeIn get_sim_save Generate markov_sim_result object from simulation.
-setMethod("get_sim_save",
-          signature(object = "markov_sim", evaluation = "data.frame", write_result = "logical"),
-          function(object, evaluation, write_result) {
-            gn_result <- generate_result(object, evaluation, write_result)
-            return(markov_sim_result(object, result = gn_result$result, summ = gn_result$summ))
           })
 
 
@@ -159,24 +145,19 @@ setMethod("get_numeric_slots",
           })
 
 
+#' @return A list containing all character parameter informations.
+#' @rdname get_character_slots
 #' @export
-setAs("markov_sim", "data.frame",
-      function(from) {
-        numeric_lst <- get_numeric_slots(from)
-        result_numeric <- as.data.frame(numeric_lst)
-        return(result_numeric)
-      })
-
-
-#' @export
-setAs("markov_sim_result", "data.frame",
-      function(from) {
-        summ <- from@summ
-        numeric_lst <- get_numeric_slots(from)
-        result_numeric <- as.data.frame(numeric_lst)
-        result_summ <- as.data.frame(summ)
-        return(cbind(result_numeric, result_summ))
-      })
+setMethod("get_character_slots",
+          signature(object = "markov_sim"),
+          function(object) {
+            character_slots <- c("name", "type", "train_policy", "schedule_policy", "adjust_policy", "response")
+            character_lst <- list()
+            for (i in character_slots) {
+              character_lst[[i]] <- methods::slot(object, i)
+            }
+            return(character_lst)
+          })
 
 
 #' @return A plot object

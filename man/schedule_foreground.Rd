@@ -4,10 +4,18 @@
 \alias{schedule_foreground}
 \title{Schedule A Job On Given Test Set}
 \usage{
-schedule_foreground(object_process, testset_max, testset_avg, cpu_required)
+schedule_foreground(
+  object,
+  trained_result,
+  testset_max,
+  testset_avg,
+  cpu_required
+)
 }
 \arguments{
-\item{object_process}{Hidden S4 sim object after training.}
+\item{object}{A S4 sim object.}
+
+\item{trained_result}{A list containing trained model information.}
 
 \item{testset_max}{A numeric vector representing the test set of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
 

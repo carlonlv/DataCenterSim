@@ -3,24 +3,26 @@
 %   R/markov_sim.R, R/var1_sim.R
 \name{compute_pi_up}
 \alias{compute_pi_up}
-\alias{compute_pi_up,ar1_markov_sim_process-method}
-\alias{compute_pi_up,ar1_sim_process-method}
-\alias{compute_pi_up,markov_sim_process-method}
-\alias{compute_pi_up,var1_sim_process-method}
+\alias{compute_pi_up,ar1_markov_sim,list-method}
+\alias{compute_pi_up,ar1_sim,list-method}
+\alias{compute_pi_up,markov_sim,list-method}
+\alias{compute_pi_up,var1_sim,list-method}
 \title{Compute Prediction Interval Upper Bound}
 \usage{
-compute_pi_up(object)
+compute_pi_up(object, predicted_result)
 
-\S4method{compute_pi_up}{ar1_markov_sim_process}(object)
+\S4method{compute_pi_up}{ar1_markov_sim,list}(object, predicted_result)
 
-\S4method{compute_pi_up}{ar1_sim_process}(object)
+\S4method{compute_pi_up}{ar1_sim,list}(object, predicted_result)
 
-\S4method{compute_pi_up}{markov_sim_process}(object)
+\S4method{compute_pi_up}{markov_sim,list}(object, predicted_result)
 
-\S4method{compute_pi_up}{var1_sim_process}(object)
+\S4method{compute_pi_up}{var1_sim,list}(object, predicted_result)
 }
 \arguments{
-\item{object}{An S4 sim process object with prediction information.}
+\item{object}{An S4 sim process object.}
+
+\item{predicted_result}{A list containing predicted result information.}
 }
 \value{
 A numeric value representing the maximum of prediction interval upper bound in the forecasting steps.
@@ -30,12 +32,12 @@ This is a generic function that computes the upper bound of prediction interval 
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{ar1_markov_sim_process}: Compute prediction interval Upper Bound based on trained AR1-Markov Model.
+\item \code{object = ar1_markov_sim,predicted_result = list}: Compute prediction interval Upper Bound based on trained AR1-Markov Model.
 
-\item \code{ar1_sim_process}: Compute prediction interval Upper Bound based on trained AR1 Model.
+\item \code{object = ar1_sim,predicted_result = list}: Compute prediction interval Upper Bound based on trained AR1 Model.
 
-\item \code{markov_sim_process}: Compute prediction interval Upper Bound based on trained Markov Model.
+\item \code{object = markov_sim,predicted_result = list}: Compute prediction interval Upper Bound based on trained Markov Model.
 
-\item \code{var1_sim_process}: Compute prediction interval Upper Bound based on trained AR1 Model.
+\item \code{object = var1_sim,predicted_result = list}: Compute prediction interval Upper Bound based on trained AR1 Model.
 }}
 

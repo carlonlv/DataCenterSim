@@ -12,6 +12,10 @@ check_valid_ar1_markov_sim <- function(object) {
     msg <- paste0("state_num must only consist positive integers.")
     errors <- c(errors, msg)
   }
+  if (object@reg_num != 1) {
+    msg <- paste0("reg_num must be fixed to 1 for ar1_markov sim model.")
+    errors <- c(errors, msg)
+  }
   if (length(errors) == 0) {
     return(TRUE)
   } else {
@@ -22,24 +26,15 @@ check_valid_ar1_markov_sim <- function(object) {
 
 #' @rdname sim-class
 #' @param state_num A numeric number that represents the number of states in Markov chain.
+#' @param reg_num The number of past regressive observations needed to forecast next observation.
 #' @export ar1_markov_sim
 ar1_markov_sim <- setClass("ar1_markov_sim",
-                           slots = list(state_num = "numeric"),
+                           slots = list(state_num = "numeric", reg_num = "numeric"),
                            prototype = list(name = "AR1_Markov",
-                                            state_num = c(8, 16, 32)),
+                                            state_num = c(8, 16, 32),
+                                            reg_num = 1),
                            contains = "sim",
                            validity = check_valid_ar1_markov_sim)
-
-#' @rdname sim_process-class
-ar1_markov_sim_process <- setClass("ar1_markov_sim_process",
-                            slots = list(trained_model = "list", predict_result = "list"),
-                            prototype = list(trained_model = list(), predict_result = list()),
-                            contains = "ar1_markov_sim")
-
-#' @rdname sim_result-class
-ar1_markov_sim_result <- setClass("ar1_markov_sim_result",
-                           slots = list(result = "data.frame", summ = "list"),
-                           contains = "ar1_markov_sim")
 
 
 #' @describeIn train_model Train AR1-Markov Model specific to ar1_markov_sim object.
@@ -79,54 +74,41 @@ setMethod("train_model",
               trained_markov <- train_markov_from_to(overlapping_dataset_max, overlapping_dataset_avg, object@state_num)
             }
             trained_result <- list("coeffs" = trained_ar1@trained_model$coeffs, "means" = trained_ar1@trained_model$means, "vars" = trained_ar1@trained_model$vars, "transition" = trained_markov)
-            return(ar1_markov_sim_process(object, trained_model = trained_result))
+            return(trained_result)
           })
 
 
 #' @describeIn do_prediction Do prediction based on trained AR1-Markov Model.
 setMethod("do_prediction",
-          signature(object = "ar1_markov_sim_process", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
-          function(object, last_obs_max, last_obs_avg, level) {
-            temp_ar <- ar1_sim_process(object)
-            temp_ar@trained_model <- list("coeffs" = object@trained_model$coeffs,"means" = object@trained_model$means, "vars" = object@trained_model$vars)
-            temp_mc <- markov_sim_process(object)
-            temp_mc@trained_model <- object@trained_model$transition
+          signature(object = "ar1_markov_sim", trained_result = "list", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
+          function(object, trained_result, last_obs_max, last_obs_avg, level) {
+            temp_ar <- ar1_sim(object)
+            ar1_trained_result <- list("coeffs" = trained_result$coeffs,"means" = trained_result$means, "vars" = trained_result$vars)
+            temp_mc <- markov_sim(object)
+            markov_trained_result <- list("transition" = trained_result$transition)
             if (object@response == "max") {
               temp_ar@response <- "avg"
               temp_mc@response <- "max"
-              new_ar <- do_prediction(temp_ar, last_obs_max, last_obs_avg, NA_real_)
-              new_last_obs_avg <- new_ar@predict_result$mu
-              new_mc <- do_prediction(temp_mc, max(new_last_obs_avg, 0), max(new_last_obs_avg, 0), level)
             } else {
               temp_ar@response <- "max"
               temp_mc@response <- "avg"
-              new_ar <- do_prediction(temp_ar, last_obs_max, last_obs_avg, NA_real_)
-              new_last_obs_max <- new_ar@predict_result$mu
-              new_mc <- do_prediction(temp_mc, max(new_last_obs_max, 0), max(new_last_obs_max, 0), level)
             }
-            object@predict_result <- list("prob" = new_mc@predict_result$prob, "to_states" = new_mc@predict_result$to_states)
-            return(object)
+            ar1_predicted_result <- do_prediction(temp_ar, ar1_trained_result, last_obs_max, last_obs_avg, NA_real_)
+            new_last_obs <- ar1_predicted_result$mu
+            markov_predicted_result <- do_prediction(temp_mc, markov_trained_result, max(new_last_obs, 0), max(new_last_obs, 0), level)
+
+            predicted_result <- list("prob" = markov_predicted_result$prob, "to_states" = markov_predicted_result$to_states)
+            return(predicted_result)
           })
 
 
 #' @describeIn compute_pi_up Compute prediction interval Upper Bound based on trained AR1-Markov Model.
 setMethod("compute_pi_up",
-          signature(object = "ar1_markov_sim_process"),
-          function(object) {
-            temp_markov_sim_process <- markov_sim_process(object)
-            temp_markov_sim_process@trained_model <- object@trained_model$transition
-            temp_markov_sim_process@predict_result <- object@predict_result
-            pi_up <- compute_pi_up(temp_markov_sim_process)
+          signature(object = "ar1_markov_sim", predicted_result = "list"),
+          function(object, predicted_result) {
+            temp_mc <- markov_sim(object)
+            pi_up <- compute_pi_up(temp_mc, predicted_result)
             return(pi_up)
-          })
-
-
-#' @describeIn get_sim_save Generate ar1_markov_sim_result object from simulation.
-setMethod("get_sim_save",
-          signature(object = "ar1_markov_sim", evaluation = "data.frame", write_result = "logical"),
-          function(object, evaluation, write_result) {
-            gn_result <- generate_result(object, evaluation, write_result)
-            return(ar1_markov_sim_result(object, result = gn_result$result, summ = gn_result$summ))
           })
 
 
@@ -145,24 +127,19 @@ setMethod("get_numeric_slots",
           })
 
 
+#' @return A list containing all character parameter informations.
+#' @rdname get_character_slots
 #' @export
-setAs("ar1_markov_sim", "data.frame",
-      function(from) {
-        numeric_lst <- get_numeric_slots(from)
-        result_numeric <- as.data.frame(numeric_lst)
-        return(result_numeric)
-      })
-
-
-#' @export
-setAs("ar1_markov_sim_result", "data.frame",
-      function(from) {
-        summ <- from@summ
-        numeric_lst <- get_numeric_slots(from)
-        result_numeric <- as.data.frame(numeric_lst)
-        result_summ <- as.data.frame(summ)
-        return(cbind(result_numeric, result_summ))
-      })
+setMethod("get_character_slots",
+          signature(object = "ar1_markov_sim"),
+          function(object) {
+            character_slots <- c("name", "type", "train_policy", "schedule_policy", "adjust_policy", "response")
+            character_lst <- list()
+            for (i in character_slots) {
+              character_lst[[i]] <- methods::slot(object, i)
+            }
+            return(character_lst)
+          })
 
 
 #' @return A plot object

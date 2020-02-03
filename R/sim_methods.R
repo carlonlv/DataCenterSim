@@ -310,7 +310,7 @@ setMethod("plot_sim_overall",
               ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2)) +
               ggplot2::ggtitle(paste("Model Performance"))
 
-            file_name <- unlist(get_character_slots(object))
+            file_name <- paste(unlist(get_character_slots(object)), collapse = " ")
             fp <- fs::path(paste0(object@result_loc, "overall_plots/", file_name), ext = "png")
             ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
             return(plt)

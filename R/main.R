@@ -445,7 +445,12 @@ run_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores=parall
     param_summ <- c(param_attributes, param_performance)
     overall_summ <- rbind(overall_summ, param_summ)
   }
-  colnames(overall_summ) <- c(names(get_numeric_slots(object)), "avg_score1", "avg_score2", "agg_score1", "agg_score2")
+
+  if (object@type == "scheduling") {
+    colnames(overall_summ) <- c(names(get_numeric_slots(object)), "avg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_scheduled_rate", "agg_correct_unscheduled_rate")
+  } else {
+    colnames(overall_summ) <- c(names(get_numeric_slots(object)), "avg_survival_rate", "avg_utilization_rate", "agg_survival_rate", "agg_utilization_rate")
+  }
 
   if (plot_type == "overall") {
     plot_sim_overall(object, overall_summ)

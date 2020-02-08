@@ -31,7 +31,7 @@ check_valid_ari11_sim <- function(object) {
 ari11_sim <- setClass("ari11_sim",
                     slots = list(res_dist = "character", reg_num = "numeric"),
                     contains = "sim",
-                    prototype = list(name = "AR1",
+                    prototype = list(name = "ARI11",
                                      res_dist = "norm",
                                      reg_num = 2),
                     validity = check_valid_ari11_sim)

@@ -350,7 +350,7 @@ setMethod("plot_sim_paramwise",
               ggplot2::ggtitle(paste("Histogram of Performance of param index", index, "on Score1")) +
               ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4)) +
               ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple")
-            fp1 <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name, " index ", index, "Score1"), ext = "png")
+            fp1 <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name, " index ", index, " Score1"), ext = "png")
             ggplot2::ggsave(fp1, plot = plt1, width = 12, height = 7)
 
             result2 <- data.frame("score" = trace_score2)
@@ -360,7 +360,7 @@ setMethod("plot_sim_paramwise",
               ggplot2::ggtitle(paste("Histogram of Performance of param index", index, "on Score2")) +
               ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4)) +
               ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple")
-            fp2 <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name, " index ", index, "Score2"), ext = "png")
+            fp2 <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name, " index ", index, " Score2"), ext = "png")
             ggplot2::ggsave(fp2, plot = plt2, width = 12, height = 7)
           })
 

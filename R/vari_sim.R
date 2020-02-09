@@ -59,30 +59,33 @@ setMethod("train_model",
               uni_data_matrix[,2] <- new_trainset_max_diff
               trained_result <- MTS::VAR(uni_data_matrix, p = 1, include.mean = TRUE, output = FALSE)
             }
-#            if (object@res_dist != "norm"){
-#              ar_coef <- as.numeric(trained_result$Phi)
-#              mean_x <- mean(new_trainset_max_diff)
-#              mean_y <- mean(new_trainset_avg_diff)
-#              x_dot <- new_trainset_max_diff - mean_x
-#              y_dot <- new_trainset_avg_diff - mean_y
-#              fitted_x <- ar_coef[1] * x_dot[-length(x_dot)] + ar_coef[2] * y_dot[-length(y_dot)]
-#              res <- x_dot[-1] - fitted_x
-#              skew_res <- sample_moment_lag(res, k = 0, r = 3, s = 0) / (sample_moment_lag(res, k = 0, r = 2, s = 0) ^ (3/2))
-#              abs_skew_res <- min(abs(skew_res), 0.99)
+            if (object@res_dist != "norm"){
+              intercept <- trained_result$Ph0
+              ar_coef <- as.numeric(trained_result$Phi)
+              mean_x <- mean(new_trainset_max_diff)
+              mean_y <- mean(new_trainset_avg_diff)
+              x_dot <- new_trainset_max_diff - mean_x
+              y_dot <- new_trainset_avg_diff - mean_y
+              fitted_x <- ar_coef[1] * x_dot[-length(x_dot)] + ar_coef[2] * y_dot[-length(y_dot)]
+              res <- x_dot[-1] - fitted_x
+              skew_res <- sample_moment_lag(res, k = 0, r = 3, s = 0) / (sample_moment_lag(res, k = 0, r = 2, s = 0) ^ (3/2))
+              abs_skew_res <- min(abs(skew_res), 0.99)
 
               # alpha parameter
-#              delta <- sign(skew_res) * sqrt((pi / 2) * (abs_skew_res^(2/3)) / ((abs_skew_res ^ (2/3)) + (2 - 0.5 * pi) ^ (2/3)))
-#              alpha <- delta / sqrt(1 - delta ^ 2)
+              delta <- sign(skew_res) * sqrt((pi / 2) * (abs_skew_res^(2/3)) / ((abs_skew_res ^ (2/3)) + (2 - 0.5 * pi) ^ (2/3)))
+              alpha <- delta / sqrt(1 - delta ^ 2)
 
               # omega parameter
-#              omega2 <- sample_moment_lag(res, k = 0, r = 2, s = 0) / (1 - 2 / pi * delta ^ (2))
-#              omega <- sqrt(omega2)
+              omega2 <- sample_moment_lag(res, k = 0, r = 2, s = 0) / (1 - 2 / pi * delta ^ (2))
+              omega <- sqrt(omega2)
 
               # xi parameter
-#              xi <- mean_x * (1 - phi) - sqrt(pi / 2) * omega * delta
+              xi <- intercept[1] - sqrt(pi / 2) * omega * delta
 
-#              trained_result <- list("phi" = phi, "xi" = xi, "omega" = omega, "alpha" = alpha)
-#            }
+              trained_result$xi <- xi
+              trained_result$omega <- omega
+              trained_result$alpha <- alpha
+            }
             return(trained_result)
           })
 
@@ -112,6 +115,15 @@ setMethod("do_prediction",
               prob <- 1 - stats::pnorm(level, mean = mu[1, 1], sd = varcov[1, 1])
             }
             predicted_result <- list("prob" = as.numeric(prob), "mu" = as.numeric(mu[1, 1]), "sd" = as.numeric(sqrt(varcov[1, 1])))
+            if (object@res_dist != "norm"){
+              omega <- trained_result$omega
+              alpha <- trained_result$alpha
+              prob <- NULL
+              if (!is.na(level)) {
+                prob <- 1 - sn::psn(x = level, xi = xi, omega = omega, alpha = alpha)
+              }
+              predicted_result <- list("prob" = as.numeric(prob), "xi" = xi, "omega" = omega, "alpha" = alpha)
+            }
             return(predicted_result)
           })
 

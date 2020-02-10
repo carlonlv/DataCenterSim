@@ -48,12 +48,44 @@ setMethod("train_model",
               uni_data_matrix <- matrix(nrow = length(new_trainset_max), ncol = 2)
               uni_data_matrix[,1] <- new_trainset_max
               uni_data_matrix[,2] <- new_trainset_avg
-              trained_result <- MTS::VAR(uni_data_matrix, p = 1, include.mean = TRUE, output = FALSE)
+              ts_model <- MTS::VAR(uni_data_matrix, p = 1, include.mean = TRUE, output = FALSE)
             } else {
               uni_data_matrix <- matrix(nrow = length(new_trainset_avg), ncol = 2)
               uni_data_matrix[,1] <- new_trainset_avg
               uni_data_matrix[,2] <- new_trainset_max
-              trained_result <- MTS::VAR(uni_data_matrix, p = 1, include.mean = TRUE, output = FALSE)
+              ts_model <- MTS::VAR(uni_data_matrix, p = 1, include.mean = TRUE, output = FALSE)
+            }
+            if (object@res_dist == "norm") {
+              # phi
+              phi <- ts_model$Phi[,1]
+
+              # mu
+              mu <- ts_model$Ph0[1]
+
+              # sigma
+              sigma <- sqrt(ts_model$Sigma[1,1])
+
+              trained_result <- list("phi" = phi, "mu" = mu, "sigma" = sigma)
+            } else {
+              # phi
+              phi <- ts_model$Phi[,1]
+
+              res <- ts_model$residuals[,1]
+              skew_res <- sample_moment_lag(res, k = 0, r = 3, s = 0) / (sample_moment_lag(res, k = 0, r = 2, s = 0) ^ (3/2))
+              abs_skew_res <- min(abs(skew_res), 0.99)
+
+              # alpha parameter
+              delta <- sign(skew_res) * sqrt((pi / 2) * (abs_skew_res^(2/3)) / ((abs_skew_res ^ (2/3)) + (2 - 0.5 * pi) ^ (2/3)))
+              alpha <- delta / sqrt(1 - delta ^ 2)
+
+              # omega parameter
+              omega2 <- sample_moment_lag(res, k = 0, r = 2, s = 0) / (1 - 2 / pi * delta ^ (2))
+              omega <- sqrt(omega2)
+
+              # xi parameter
+              xi <- ts_model$Ph0[1] - sqrt(pi / 2) * omega * delta
+
+              trained_result <- list("phi" = phi, "xi" = xi, "omega" = omega, "alpha" = alpha)
             }
             return(trained_result)
           })
@@ -64,23 +96,41 @@ setMethod("do_prediction",
           signature(object = "var1_sim", trained_result = "list", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
           function(object, trained_result, last_obs_max, last_obs_avg, level) {
             if (object@response == "max") {
-              mu <- matrix(c(last_obs_max,last_obs_avg), ncol = 1)
+              last_obs <- c(last_obs_max, last_obs_avg)
+              if (object@res_dist == "norm") {
+                mu <- trained_result$mu + sum(trained_result$phi * last_obs)
+                mu <- last_obs_max + mu
+              } else {
+                xi <- trained_result$xi + sum(trained_result$phi * last_obs)
+                xi <- last_obs_max + xi
+              }
             } else {
-              mu <- matrix(c(last_obs_avg,last_obs_max), ncol = 1)
+              last_obs <- c(last_obs_avg, last_obs_max)
+              if (object@res_dist == "norm") {
+                mu <- trained_result$mu + sum(trained_result$phi * last_obs)
+                mu <- last_obs_avg + mu
+              } else {
+                xi <- trained_result$xi + sum(trained_result$phi * last_obs)
+                xi <- last_obs_avg + xi
+              }
             }
-            intercept <- trained_result$Ph0
-            ar_coef <- trained_result$Phi
-            sample_var <- trained_result$Sigma
 
-            mu <- matrix(intercept, nrow = 2, ncol = 1) + ar_coef %*% mu
-
-            varcov <- sample_var
-            # caclulate probability
-            prob <- NULL
-            if (!is.na(level)) {
-              prob <- 1 - stats::pnorm(level, mean = mu[1, 1], sd = varcov[1, 1])
+            if (object@res_dist == "norm") {
+              sd <- trained_result$sigma
+              prob <- NULL
+              if (!is.na(level)) {
+                prob <- 1 - stats::pnorm(q = level, mean = mu, sd = sd)
+              }
+              predicted_result <- list("prob" = as.numeric(prob), "mean" = mu, "sd" = sd)
+            } else {
+              omega <- trained_result$omega
+              alpha <- trained_result$alpha
+              prob <- NULL
+              if (!is.na(level)) {
+                prob <- 1 - sn::psn(x = level, xi = xi, omega = omega, alpha = alpha)
+              }
+              predicted_result <- list("prob" = as.numeric(prob), "xi" = xi, "omega" = omega, "alpha" = alpha)
             }
-            predicted_result <- list("prob" = as.numeric(prob), "mu" = as.numeric(mu[1, 1]), "sd" = as.numeric(sqrt(varcov[1, 1])))
             return(predicted_result)
           })
 
@@ -89,10 +139,16 @@ setMethod("do_prediction",
 setMethod("compute_pi_up",
           signature(object = "var1_sim", predicted_result = "list"),
           function(object, predicted_result) {
-            mu <- predicted_result$mu
-            sd <- predicted_result$sd
-            upper_bounds <- min(stats::qnorm(1 - object@cut_off_prob, mean = mu, sd = sd))
-            return(max(upper_bounds))
+            if (object@res_dist == "norm") {
+              mu <- predicted_result$mean
+              sd <- predicted_result$sd
+              upper_bounds <- min(stats::qnorm(1 - object@cut_off_prob, mean = mu, sd = sd), 100)
+            } else {
+              xi <- predicted_result$xi
+              omega <- predicted_result$omega
+              alpha <- predicted_result$alpha
+              upper_bounds <- min(sn::qsn(1 - object@cut_off_prob, xi = xi, omega = omega, alpha = alpha), 100)
+            }
           })
 
 

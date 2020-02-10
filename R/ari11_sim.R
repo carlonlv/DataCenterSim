@@ -45,62 +45,90 @@ setMethod("train_model",
             new_trainset_avg <- convert_frequency_dataset(trainset_avg, object@window_size, "avg")
             if (object@response == "max") {
               new_trainset_max_diff <- diff(new_trainset_max)
-              mean_x <- mean(new_trainset_max_diff)
-              x_dot <- new_trainset_max_diff - mean_x
-              phi <- suppressWarnings(tryCatch({
+              ts_model <- suppressWarnings(tryCatch({
                 ts_model <- stats::arima(x = new_trainset_max_diff, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
-                as.numeric(ts_model$coef[1])
+                list("intercept" = as.numeric(ts_model$coef[1]), "phi" = as.numeric(ts_model$coef[2]), "residuals" = ts_model$residuals, "sigma2" = ts_model$sigma2)
               }, warning = function(w) {
+                mean_x <- mean(new_trainset_max_diff)
+                x_dot <- new_trainset_max_diff - mean_x
                 phi_num <- sample_moment_lag(x_dot, k = 1, r = 1, s = 1)
                 phi_den <- sample_moment_lag(x_dot, k = 0, r = 1, s = 1)
                 phi <- phi_num / phi_den
+                intercept <- mean_x * (1 - phi)
+                fitted_x <- phi * x_dot[-length(x_dot)]
+                res <- x_dot[-1] - fitted_x
+                sigma2 <- sample_moment_lag(ts_model$residuals, k = 0,r = 1,s = 1)
+                list("intercept" = intercept, "phi" = phi, "residuals" = res, "sigma2" = sigma2)
               }, error = function(cond) {
+                mean_x <- mean(new_trainset_max_diff)
+                x_dot <- new_trainset_max_diff - mean_x
                 phi_num <- sample_moment_lag(x_dot, k = 1, r = 1, s = 1)
                 phi_den <- sample_moment_lag(x_dot, k = 0, r = 1, s = 1)
                 phi <- phi_num / phi_den
+                intercept <- mean_x * (1 - phi)
+                fitted_x <- phi * x_dot[-length(x_dot)]
+                res <- x_dot[-1] - fitted_x
+                sigma2 <- sample_moment_lag(ts_model$residuals, k = 0,r = 1,s = 1)
+                list("intercept" = intercept, "phi" = phi, "residuals" = res, "sigma2" = sigma2)
               }))
             } else {
               new_trainset_avg_diff <- diff(new_trainset_avg)
-              mean_x <- mean(new_trainset_avg_diff)
-              x_dot <- new_trainset_avg_diff - mean_x
-              phi <- suppressWarnings(tryCatch({
+              ts_model <- suppressWarnings(tryCatch({
                 ts_model <- stats::arima(x = new_trainset_avg_diff, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
-                as.numeric(ts_model$coef[1])
+                list("intercept" = as.numeric(ts_model$coef[1]), "phi" = as.numeric(ts_model$coef[2]), "residuals" = ts_model$residuals, "sigma2" = ts_model$sigma2)
               }, warning = function(w) {
+                mean_x <- mean(new_trainset_avg_diff)
+                x_dot <- new_trainset_avg_diff - mean_x
                 phi_num <- sample_moment_lag(x_dot, k = 1, r = 1, s = 1)
                 phi_den <- sample_moment_lag(x_dot, k = 0, r = 1, s = 1)
                 phi <- phi_num / phi_den
+                intercept <- mean_x * (1 - phi)
+                fitted_x <- phi * x_dot[-length(x_dot)]
+                res <- x_dot[-1] - fitted_x
+                sigma2 <- sample_moment_lag(ts_model$residuals, k = 0,r = 1,s = 1)
+                list("intercept" = intercept, "phi" = phi, "residuals" = res, "sigma2" = sigma2)
               }, error = function(cond) {
+                mean_x <- mean(new_trainset_avg_diff)
+                x_dot <- new_trainset_avg_diff - mean_x
                 phi_num <- sample_moment_lag(x_dot, k = 1, r = 1, s = 1)
                 phi_den <- sample_moment_lag(x_dot, k = 0, r = 1, s = 1)
                 phi <- phi_num / phi_den
+                intercept <- mean_x * (1 - phi)
+                fitted_x <- phi * x_dot[-length(x_dot)]
+                res <- x_dot[-1] - fitted_x
+                sigma2 <- sample_moment_lag(ts_model$residuals, k = 0,r = 1,s = 1)
+                list("intercept" = intercept, "phi" = phi, "residuals" = res, "sigma2" = sigma2)
               }))
             }
 
-            fitted_x <- phi * x_dot[-length(x_dot)]
-            res <- x_dot[-1] - fitted_x
-
             if (object@res_dist == "norm") {
-              # mu parameter
-              mu <- mean_x * (1 - phi)
-              # sigma parameter
-              sigma2 <- stats::var(res)
+              # phi parameter
+              phi <- ts_model$phi
 
-              trained_result <- list("phi" = phi, "mu" = mu, "sigma2" = sigma2)
+              # mu parameter
+              mu <- ts_model$intercept
+
+              # sigma parameter
+              sigma <- sqrt(ts_model$sigma2)
+
+              trained_result <- list("phi" = phi, "mu" = mu, "sigma" = sigma)
             } else {
-              skew_res <- sample_moment_lag(res, k = 0, r = 3, s = 0) / (sample_moment_lag(res, k = 0, r = 2, s = 0) ^ (3/2))
+              skew_res <- sample_moment_lag(ts_model$residuals, k = 0, r = 3, s = 0) / (sample_moment_lag(ts_model$residuals, k = 0, r = 2, s = 0) ^ (3/2))
               abs_skew_res <- min(abs(skew_res), 0.99)
+
+              # phi parameter
+              phi <- ts_model$phi
 
               # alpha parameter
               delta <- sign(skew_res) * sqrt((pi / 2) * (abs_skew_res^(2/3)) / ((abs_skew_res ^ (2/3)) + (2 - 0.5 * pi) ^ (2/3)))
               alpha <- delta / sqrt(1 - delta ^ 2)
 
               # omega parameter
-              omega2 <- sample_moment_lag(res, k = 0, r = 2, s = 0) / (1 - 2 / pi * delta ^ (2))
+              omega2 <- sample_moment_lag(ts_model$residuals, k = 0, r = 2, s = 0) / (1 - 2 / pi * delta ^ (2))
               omega <- sqrt(omega2)
 
               # xi parameter
-              xi <- mean_x * (1 - phi) - sqrt(pi / 2) * omega * delta
+              xi <- ts_model$intercept - sqrt(pi / 2) * omega * delta
 
               trained_result <- list("phi" = phi, "xi" = xi, "omega" = omega, "alpha" = alpha)
             }
@@ -133,7 +161,7 @@ setMethod("do_prediction",
               }
             }
             if (object@res_dist == "norm") {
-              sd <- sqrt(trained_result$sigma2)
+              sd <- trained_result$sigma
               prob <- NULL
               if (!is.na(level)) {
                 prob <- 1 - stats::pnorm(q = level, mean = mu, sd = sd)

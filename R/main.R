@@ -390,8 +390,8 @@ predicting_sim <- function(index, uni_lst, dataset_max, dataset_avg, cores, writ
 
   ## Do Simulation
   start_time <- proc.time()
-  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, index, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE), mc.cores = cores)
-  #result <- lapply(1:length(ts_names), svt_predicting_sim, index, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE))
+  #result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, index, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE), mc.cores = cores)
+  result <- lapply(1:length(ts_names), svt_predicting_sim, index, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE))
   end_time <- proc.time()
   print(end_time - start_time)
 

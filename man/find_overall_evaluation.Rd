@@ -4,7 +4,14 @@
 \alias{find_overall_evaluation}
 \title{Find Overall Evaluation}
 \usage{
-find_overall_evaluation(numerator1, denominator1, numerator2, denominator2)
+find_overall_evaluation(
+  numerator1,
+  denominator1,
+  numerator2,
+  denominator2,
+  numerator3 = NULL,
+  denominator3 = NULL
+)
 }
 \arguments{
 \item{numerator1}{The numerator of score 1.}
@@ -14,9 +21,13 @@ find_overall_evaluation(numerator1, denominator1, numerator2, denominator2)
 \item{numerator2}{The numerator of score 2.}
 
 \item{denominator2}{The denominator of score 2.}
+
+\item{numerator3}{The numerator of score 3, optional.}
+
+\item{denominator3}{The denominator of score 3, optional.}
 }
 \value{
-A list consists of average and aggregated score 1 and score 2.
+A list consists of average and aggregated score 1, score 2 and score 3.
 }
 \description{
 Find the overall evaluation after an epoche is completed.

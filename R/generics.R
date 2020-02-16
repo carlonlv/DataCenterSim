@@ -222,20 +222,20 @@ setGeneric("res_dist", function(object) standardGeneric("res_dist"))
 setGeneric("res_dist<-", function(object, value) standardGeneric("res_dist<-"))
 
 
-#' Get The Numeric Parameters
+#' Get The Slots that Are Considered Hyperparameters of Simulation
 #'
 #' @param object An S4 sim object
-#' @rdname get_numeric_slots
+#' @rdname get_param_slots
 #' @export
-setGeneric("get_numeric_slots", function(object) standardGeneric("get_numeric_slots"))
+setGeneric("get_param_slots", function(object) standardGeneric("get_param_slots"))
 
 
-#' Get The Character Parameters
+#' Get The Slots that Are Considered Charactersitics of Simulation
 #'
 #' @param object An S4 sim object
-#' @rdname get_character_slots
+#' @rdname get_characteristic_slots
 #' @export
-setGeneric("get_character_slots", function(object) standardGeneric("get_character_slots"))
+setGeneric("get_characteristic_slots", function(object) standardGeneric("get_characteristic_slots"))
 
 
 #' Plot Simulation Result Type Overall

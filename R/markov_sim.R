@@ -131,9 +131,9 @@ setMethod("compute_pi_up",
 
 
 #' @return A list containing all numeric parameter informations.
-#' @rdname get_numeric_slots
+#' @rdname get_param_slots
 #' @export
-setMethod("get_numeric_slots",
+setMethod("get_param_slots",
           signature(object = "markov_sim"),
           function(object) {
             numeric_slots <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance1", "tolerance2", "state_num")
@@ -146,9 +146,9 @@ setMethod("get_numeric_slots",
 
 
 #' @return A list containing all character parameter informations.
-#' @rdname get_character_slots
+#' @rdname get_characteristic_slots
 #' @export
-setMethod("get_character_slots",
+setMethod("get_characteristic_slots",
           signature(object = "markov_sim"),
           function(object) {
             character_slots <- c("name", "type", "train_policy", "schedule_policy", "adjust_policy", "response")

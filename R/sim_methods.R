@@ -302,15 +302,17 @@ setMethod("plot_sim_overall",
                   ggplot2::xlab("Survival Rate")
               }
             }
+
+            file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
+
             plt <- plt +
               ggplot2::scale_linetype(name = "cut_off_prob", guide = ggplot2::guide_legend(ncol = 2)) +
               ggplot2::scale_shape_manual(name = "window_size by update_freq", values = 21:25, guide = ggplot2::guide_legend(ncol = 2)) +
               ggplot2::scale_alpha_discrete(name = "granularity", guide = ggplot2::guide_legend(ncol = 2)) +
               ggplot2::scale_fill_brewer(name = "train_size", palette = "Set3") +
               ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2)) +
-              ggplot2::ggtitle(paste("Model Performance"))
+              ggplot2::ggtitle(paste("Model Performance of", file_name))
 
-            file_name <- paste(unlist(get_character_slots(object)), collapse = " ")
             fp <- fs::path(paste0(object@result_loc, "overall_plots/", file_name), ext = "png")
             ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
             return(plt)
@@ -331,24 +333,50 @@ setMethod("plot_sim_paramwise",
               under_performed_score2 <- sum(trace_score2 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
               msg3 <- paste(under_performed_score1, "of traces underperformed on Correct Scheduled Rate.")
               msg4 <- paste(under_performed_score2, "of traces underperformed on Correct Unscheduled Rate.")
+              under_performed_traces_1 <- rownames(score)[which(sort(trace_score1) < 1 - object@cut_off_prob)]
+              if (length(under_performed_traces_1) > 0) {
+                msg5 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_1, 3), collapse = " "), "for underperformed traces on Correct Schedule Rate.")
+              } else {
+                msg5 <- paste("No traces underperformed on Correct Scheduled Rate.")
+              }
+              under_performed_traces_2 <- rownames(score)[which(sort(trace_score2) < 1 - object@cur_off_prob)]
+              if (length(under_performed_traces_2) > 0) {
+                msg6 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_2, 3), collapse = " "), "for underperformed traces on Correct Unschedule Rate.")
+              } else {
+                msg6 <- paste("No traces underperformed on Correct Unscheduled Rate.")
+              }
             } else {
               trace_score1 <- score$sur_num / score$sur_den
               trace_score2 <- score$util_num / score$util_den
-              msg1 <- paste("The Agg Overall Survival and Utilization Rate are", summ$agg_score1, summ$agg_score2)
-              msg2 <- paste("The Avg Overall Survival and Utilization Rate are", summ$avg_score1, summ$avg_score2)
+              msg1 <- paste("The Agg Overall Survival, Utilization Rate and Utilization wrt Optimal are", summ$agg_score1, summ$agg_score2, summ$agg_score3)
+              msg2 <- paste("The Avg Overall Survival, Utilization Rate and Utilization wrt Optimal are", summ$avg_score1, summ$avg_score2, summ$avg_score3)
               under_performed_score1 <- sum(trace_score1 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
               under_performed_score2 <- sum(trace_score2 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
               msg3 <- paste(under_performed_score1, "of traces underperformed on Survival Rate.")
               msg4 <- paste(under_performed_score2, "of traces underperformed on Utilization Rate.")
+              under_performed_traces_1 <- which(sort(trace_score1) < 1 - object@cut_off_prob)
+              under_performed_traces_2 <- which(sort(trace_score2) < 1 - object@cur_off_prob)
+              if (length(under_performed_traces_1) > 0) {
+                msg5 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_1, 3), collapse = " "), "for underperforming on Survival Rate.")
+              } else {
+                msg5 <- paste("No traces underperformed on Survival Rate.")
+              }
+              under_performed_traces_2 <- rownames(score)[which(sort(trace_score2) < 1 - object@cur_off_prob)]
+              if (length(under_performed_traces_2) > 0) {
+                msg6 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_2, 3), collapse = " "), "for underperforming on Utilization Rate.")
+              } else {
+                msg6 <- paste("No traces underperformed on Utilization Rate.")
+              }
             }
-            file_name <- paste(unlist(get_character_slots(object)), collapse = " ")
+
+            file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
 
             result1 <- data.frame("score" = trace_score1)
             plt1 <- ggplot2::ggplot(result1, aes(x = result1$score, color = "red")) +
               ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE) +
               ggplot2::theme(legend.position = "none") +
               ggplot2::ggtitle(paste("Histogram of Performance of param index", index, "on Score1")) +
-              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4)) +
+              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75, 7, 8.25), hjust = 0, label = c(msg1, msg2, msg3, msg4, msg5, msg6)) +
               ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple")
             fp1 <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name, " index ", index, " Score1"), ext = "png")
             ggplot2::ggsave(fp1, plot = plt1, width = 12, height = 7)
@@ -358,7 +386,7 @@ setMethod("plot_sim_paramwise",
               ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE) +
               ggplot2::theme(legend.position = "none") +
               ggplot2::ggtitle(paste("Histogram of Performance of param index", index, "on Score2")) +
-              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4)) +
+              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75, 7, 8.25), hjust = 0, label = c(msg1, msg2, msg3, msg4, msg5, msg6)) +
               ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple")
             fp2 <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name, " index ", index, " Score2"), ext = "png")
             ggplot2::ggsave(fp2, plot = plt2, width = 12, height = 7)
@@ -384,6 +412,7 @@ setMethod("plot_sim_tracewise",
 
             pi_up <- c(rep(NA_real_, 4 * nrow(testset)), test_decision$pi_up)
             adjust_switch <- c(rep(NA_integer_, 4 * nrow(testset)), test_decision$adjust_switch)
+            decision_opt <- c(rep(NA_integer_, 4 * nrow(testset)), test_decision$decision_opt)
 
             msg1 <- paste("Current batch has performance of", paste(last_score, collapse = " "))
             if (nrow(prev_score) == 0) {
@@ -395,10 +424,11 @@ setMethod("plot_sim_tracewise",
             }
             msg4 <- paste("Based on tolerance level of", object@tolerance1, object@tolerance2, "the training signal is", train_decision$train_sig, "for next iteration.")
 
-            result <- data.frame("target_dataset" = target_dataset, "time" = t, "train_or_test" = train_or_test, "pi_up" = pi_up, "adjust_switch" = adjust_switch)
+            result <- data.frame("target_dataset" = target_dataset, "time" = t, "train_or_test" = train_or_test, "pi_up" = pi_up, "adjust_switch" = adjust_switch, "decision_opt" = decision_opt)
             plt <- ggplot2::ggplot(result, aes(x = result$time, y = result$target_dataset)) +
               ggplot2::geom_line(aes(color = factor(result$train_or_test))) +
-              ggplot2::geom_line(aes(y = result$pi_up, color = as.logical(result$adjust_switch)), na.rm = TRUE) +
+              ggplot2::geom_line(aes(y = result$pi_up, color = as.factor(result$adjust_switch)), na.rm = TRUE) +
+              ggplot2::geom_line(aes(y = result$decision_opt, color = "darkcyan"), na.rm = TRUE) +
               ggplot2::geom_hline(yintercept = 100, linetype = "dashed", color = "purple") +
               ggplot2::xlab("Time (minutes)") +
               ggplot2::ylab("Cpu (percent)") +
@@ -406,7 +436,7 @@ setMethod("plot_sim_tracewise",
               ggplot2::ggtitle(paste("Diagnostic Plot of", trace_name, "at Iteration", train_decision$iter)) +
               ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4))
 
-            file_name <- paste(unlist(get_character_slots(object)), collapse = " ")
+            file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
             fp <- fs::path(paste0(object@result_loc, "tracewise_plots/", file_name, " index ", index, " trace ", trace_name, " iter ", train_decision$iter), ext = "png")
             ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
           })
@@ -415,7 +445,7 @@ setMethod("plot_sim_tracewise",
 #' @export
 setAs("sim", "data.frame",
       function(from) {
-        numeric_lst <- get_numeric_slots(from)
+        numeric_lst <- get_param_slots(from)
         result_numeric <- as.data.frame(numeric_lst)
         return(result_numeric)
       })

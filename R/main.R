@@ -18,7 +18,7 @@ schedule_foreground <- function(object, trained_result, testset_max, testset_avg
   predictions <- c()
   actuals <- c()
 
-  last_time_schedule <- length(testset_max) - 2 * object@window_size + 1
+  last_time_schedule <- length(testset_max) - (object@reg_num + 1) * object@window_size + 1
 
   update <- object@window_size
   current_end <- 1
@@ -37,7 +37,7 @@ schedule_foreground <- function(object, trained_result, testset_max, testset_avg
     prediction <- check_decision(predicted_result$prob, predicted_result@cut_off_prob)
 
     ## Evalute schedulings based on prediction
-    start_time <- current_end + object@window_size
+    start_time <- current_end + object@reg_num * object@window_size
     end_time <- start_time + object@window_size - 1
     if (object@response == "max") {
       actual <- check_actual(testset_max[start_time:end_time], cpu_required, object@granularity)
@@ -217,7 +217,7 @@ predict_model <- function(object, trained_result, testset_max, testset_avg, do_p
 
   info <- data.frame()
 
-  last_time_schedule <- length(testset_max) - 2 * object@window_size + 1
+  last_time_schedule <- length(testset_max) - (object@reg_num + 1) * object@window_size + 1
 
   update <- object@window_size
   current_end <- 1
@@ -236,7 +236,7 @@ predict_model <- function(object, trained_result, testset_max, testset_avg, do_p
     pi_up <- compute_pi_up(object, predicted_result)
 
     ## Evalute schedulings based on prediction
-    start_time <- current_end + object@window_size
+    start_time <- current_end + object@reg_num * object@window_size
     end_time <- start_time + object@window_size - 1
     if (object@response == "max") {
       survival <- check_survival(pi_up, testset_max[start_time:end_time], object@granularity)
@@ -264,9 +264,9 @@ predict_model <- function(object, trained_result, testset_max, testset_avg, do_p
 
   overall_survival <- compute_survival(survivals)
   if (object@response == "max") {
-    overall_utilization <- compute_utilization(utilizations, testset_max[(object@window_size + 1):(current_end - update + 2 * object@window_size - 1)], object@window_size, object@granularity)
+    overall_utilization <- compute_utilization(utilizations, testset_max[(object@window_size * object@reg_num + 1):(current_end - update + (object@reg_num + 1) * object@window_size - 1)], object@window_size, object@granularity)
   } else {
-    overall_utilization <- compute_utilization(utilizations, testset_avg[(object@window_size + 1):(current_end - update + 2 * object@window_size - 1)], object@window_size, object@granularity)
+    overall_utilization <- compute_utilization(utilizations, testset_avg[(object@window_size * object@reg_num + 1):(current_end - update + (object@reg_num + 1) * object@window_size - 1)], object@window_size, object@granularity)
   }
   if (do_plot) {
     if (nrow(info) < object@update_freq) {
@@ -275,8 +275,9 @@ predict_model <- function(object, trained_result, testset_max, testset_avg, do_p
       }
     }
     colnames(info) <- c("pi_up", "adjust_switch")
+    info$decision_opt <- overall_utilization$decision_opt$scheduled_size
   }
-  return(list("sur_num" = overall_survival$numerator, "sur_den" = overall_survival$denominator, "util_num" = overall_utilization$numerator, "util_den" = overall_utilization$denominator, "info" = info))
+  return(list("sur_num" = overall_survival$numerator, "sur_den" = overall_survival$denominator, "util_num" = overall_utilization$numerator, "util_den" = overall_utilization$denominator, "util_den_opt" = overall_utilization$denominator_opt, "info" = info))
 }
 
 
@@ -301,6 +302,7 @@ svt_predicting_sim <- function(ts_num, index, object, dataset_max, dataset_avg, 
   sur_den <- c()
   util_num <- c()
   util_den <- c()
+  util_den_opt <- c()
 
   current <- 1
   last_time_update <- length(dataset_max) - object@update_freq - object@train_size + 1
@@ -342,6 +344,7 @@ svt_predicting_sim <- function(ts_num, index, object, dataset_max, dataset_avg, 
     sur_den <- c(sur_den, result$sur_den)
     util_num <- c(util_num, result$util_num)
     util_den <- c(util_den, result$util_den)
+    util_den_opt <- c(util_den_opt, result$util_den_opt)
 
     ## Do plot
     if (do_plot) {
@@ -361,7 +364,8 @@ svt_predicting_sim <- function(ts_num, index, object, dataset_max, dataset_avg, 
   sur_den <- sum(sur_den)
   util_num <- sum(util_num)
   util_den <- sum(util_den)
-  return(list("sur_num" = sur_num, "sur_den" = sur_den, "util_num" = util_num, "util_den" = util_den))
+  util_den_opt <- sum(util_den_opt)
+  return(list("sur_num" = sur_num, "sur_den" = sur_den, "util_num" = util_num, "util_den" = util_den, "util_den_opt" = util_den_opt))
 }
 
 
@@ -385,13 +389,14 @@ predicting_sim <- function(index, uni_lst, dataset_max, dataset_avg, cores, writ
   sur_den <- c()
   util_num <- c()
   util_den <- c()
+  util_den_opt <- c()
 
   ts_names <- colnames(dataset_max)
 
   ## Do Simulation
   start_time <- proc.time()
-  result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, index, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE), mc.cores = cores)
-  #result <- lapply(1:length(ts_names), svt_predicting_sim, index, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE))
+  #result <- parallel::mclapply(1:length(ts_names), svt_predicting_sim, index, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE), mc.cores = cores)
+  result <- lapply(1:length(ts_names), svt_predicting_sim, index, object, dataset_max, dataset_avg, ifelse(plot_type == "tracewise", TRUE, FALSE))
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -401,9 +406,10 @@ predicting_sim <- function(index, uni_lst, dataset_max, dataset_avg, cores, writ
     sur_den <- c(sur_den, result[[ts_num]]$sur_den)
     util_num <- c(util_num, result[[ts_num]]$util_num)
     util_den <- c(util_den, result[[ts_num]]$util_den)
+    util_den_opt <- c(util_den_opt, result[[ts_num]]$util_den_opt)
   }
 
-  evaluate_info <- data.frame("sur_num" = sur_num, "sur_den" = sur_den, "util_num" = util_num, "util_den" = util_den)
+  evaluate_info <- data.frame("sur_num" = sur_num, "sur_den" = sur_den, "util_num" = util_num, "util_den" = util_den, "util_den_opt" = util_den_opt)
   rownames(evaluate_info) <- ts_names
 
   result_summ <- generate_result(object, evaluate_info, write_result)
@@ -440,16 +446,16 @@ run_sim <- function(object, dataset_max, dataset_avg, cpu_required, cores=parall
 
   overall_summ <- data.frame()
   for (uni_idx in 1:length(uni_lst)) {
-    param_attributes <- unlist(get_numeric_slots(uni_lst[[uni_idx]]))
+    param_attributes <- unlist(get_param_slots(uni_lst[[uni_idx]]))
     param_performance <- unlist(uni_result[[uni_idx]])
     param_summ <- c(param_attributes, param_performance)
     overall_summ <- rbind(overall_summ, param_summ)
   }
 
   if (object@type == "scheduling") {
-    colnames(overall_summ) <- c(names(get_numeric_slots(object)), "avg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_scheduled_rate", "agg_correct_unscheduled_rate")
+    colnames(overall_summ) <- c(names(get_param_slots(object)), "avg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_scheduled_rate", "agg_correct_unscheduled_rate")
   } else {
-    colnames(overall_summ) <- c(names(get_numeric_slots(object)), "avg_survival_rate", "avg_utilization_rate", "agg_survival_rate", "agg_utilization_rate")
+    colnames(overall_summ) <- c(names(get_param_slots(object)), "avg_survival_rate", "avg_utilization_rate", "avg_utilization_opt_rate", "agg_survival_rate", "agg_utilization_rate", "agg_utilization_opt_rate")
   }
 
   if (plot_type == "overall") {

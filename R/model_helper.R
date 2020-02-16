@@ -320,7 +320,7 @@ compute_survival <- function(survival) {
   cvt_survival <- ifelse(is.na(survival), NA, ifelse(survival == 0, 1, 0))
   numerator <- sum(cvt_survival, na.rm = TRUE)
   denominator <- length(cvt_survival[!is.na(cvt_survival)])
-  return(list("survival" = numerator / denominator, "numerator" = numerator, "denominator" = denominator))
+  return(list("numerator" = numerator, "denominator" = denominator))
 }
 
 
@@ -334,6 +334,57 @@ compute_survival <- function(survival) {
 #' @return A list containing the information of overall survival information.
 #' @keywords internal
 compute_utilization <- function(utilization, actual_obs, window_size, granularity) {
+  compute_optimal_utilization <- function(actual_obs, window_size, granularity) {
+    score_lst <- rep(0, length(actual_obs) + window_size)
+    link_lst <- rep(NA, length(actual_obs))
+    actual_obs <- c(rep(NA, window_size), actual_obs)
+    i <- window_size + 1
+    while (i <= length(score_lst)) {
+      max_obs <- max(actual_obs[(i - window_size + 1):i])
+      max_obs <- ifelse(is.na(max_obs), 100, max_obs)
+      past_schedule_score <- score_lst[i - window_size] + check_utilization(max_obs, 0, granularity) * window_size
+      prev_unschedule_score <- score_lst[i - 1]
+      if (past_schedule_score > prev_unschedule_score) {
+        score_lst[i] <- past_schedule_score
+        j <- i - window_size
+        link_lst[i - window_size] <- j - window_size + 1
+      } else {
+        j <- i - window_size
+        score_lst[i] <- prev_unschedule_score
+        link_lst[i - window_size] <- j - 1
+      }
+      i <- i + 1
+    }
+
+    scheduled_time <- c()
+    scheduled_size <- c()
+    idx <- length(link_lst)
+    next_idx <- link_lst[idx]
+    while (next_idx != 0) {
+      if (idx - next_idx > 1) {
+        scheduled_time <- c(scheduled_time, next_idx)
+        scheduled_size <- c(scheduled_size, max(actual_obs[(window_size + next_idx):(window_size + idx)]))
+      }
+      idx <- next_idx
+      next_idx <- link_lst[idx]
+    }
+
+    decision_opt <- data.frame()
+    for (i in 1:length(scheduled_time)) {
+      for (j in 0:(window_size - 1)) {
+        decision_opt <- rbind(decision_opt, c(scheduled_time[i] + j, scheduled_size[i]))
+      }
+    }
+    for (k in 1:length(link_lst)) {
+      if (!(k %in% scheduled_time)) {
+        decision_opt <- rbind(decision_opt, c(k, NA))
+      }
+    }
+    colnames(decision_opt) <- c("scheduled_time", "scheduled_size")
+    decision_opt <- decision_opt[order(decision_opt$scheduled_time),]
+    return(list("max_score" = score_lst[length(score_lst)], "decision_opt" = decision_opt))
+  }
+
   if (granularity > 0) {
     actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
   } else {
@@ -342,7 +393,10 @@ compute_utilization <- function(utilization, actual_obs, window_size, granularit
   actual_obs <- 100 - actual_available
   total_available <- sum(100 - actual_obs)
   actual_used <- utilization * window_size
-  return(list("utilization" = (sum(actual_used) / total_available), "numerator" = sum(actual_used), "denominator" = total_available))
+
+  opt_scheduling <- compute_optimal_utilization(actual_obs, window_size, granularity)
+
+  return(list("numerator" = sum(actual_used), "denominator" = total_available, "denominator_opt" = opt_scheduling$max_score, "decision_opt" = opt_scheduling$decision_opt))
 }
 
 
@@ -353,14 +407,23 @@ compute_utilization <- function(utilization, actual_obs, window_size, granularit
 #' @param denominator1 The denominator of score 1.
 #' @param numerator2 The numerator of score 2.
 #' @param denominator2 The denominator of score 2.
-#' @return A list consists of average and aggregated score 1 and score 2.
+#' @param numerator3 The numerator of score 3, optional.
+#' @param denominator3 The denominator of score 3, optional.
+#' @return A list consists of average and aggregated score 1, score 2 and score 3.
 #' @keywords internal
-find_overall_evaluation <- function(numerator1, denominator1, numerator2, denominator2) {
+find_overall_evaluation <- function(numerator1, denominator1, numerator2, denominator2, numerator3 = NULL, denominator3 = NULL) {
   avg_score1 <- mean(numerator1 / denominator1, na.rm = TRUE)
   agg_score1 <- sum(numerator1, na.rm = TRUE) / sum(denominator1, na.rm = TRUE)
   avg_score2 <- mean(numerator2 / denominator2, na.rm = TRUE)
   agg_score2 <- sum(numerator2, na.rm = TRUE) / sum(denominator2, na.rm = TRUE)
-  return(list("avg_score1" = avg_score1, "avg_score2" = avg_score2, "agg_score1" = agg_score1, "agg_score2" = agg_score2))
+  if (is.null(numerator3) | is.null(denominator3)) {
+    avg_score3 <- NULL
+    agg_score3 <- NULL
+  } else {
+    avg_score3 <- mean(numerator3 / denominator3, na.rm = TRUE)
+    agg_score3 <- sum(numerator3, na.rm = TRUE) / sum(denominator3, na.rm = TRUE)
+  }
+  return(list("avg_score1" = avg_score1, "avg_score2" = avg_score2, "agg_score1" = agg_score1, "agg_score2" = agg_score2, "avg_score3" = avg_score3, "agg_score3" = agg_score3))
 }
 
 
@@ -398,23 +461,27 @@ generate_result <- function(object, evaluation, write_result) {
     print(paste("Avg Correct Unscheduled Rate:", overall_result$avg_score2))
     print(paste("Agg Correct Unscheduled Rate:", overall_result$agg_score2))
   } else {
-    overall_result <- find_overall_evaluation(evaluation$sur_num, evaluation$sur_den, evaluation$util_num, evaluation$util_den)
+    overall_result <- find_overall_evaluation(evaluation$sur_num, evaluation$sur_den, evaluation$util_num, evaluation$util_den, evaluation$util_num, evaluation$util_den_opt)
     print(paste("Avg Survival Rate:", overall_result$avg_score1))
     print(paste("Agg Survival Rate:", overall_result$agg_score1))
     print(paste("Avg Utilization Rate:", overall_result$avg_score2))
     print(paste("Agg Utilization Rate:", overall_result$agg_score2))
+    print(paste("Avg Utilization Rate wrt Optimal:", overall_result$avg_score3))
+    print(paste("Agg Utilization Rate wrt Optimal:", overall_result$agg_score3))
   }
 
   if (write_result) {
-    file_name <- paste(unlist(get_character_slots(object)), collapse = " ")
+    file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
     fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
     param <- methods::as(object, "data.frame")
     new_row <- data.frame()
-    new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2))
+    new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2, overall_result$avg_score3, overall_result$agg_score3))
     if (object@type == "scheduling") {
       colnames(new_row) <- c(colnames(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
+      rownames(new_row) <- rownames(evaluation)
     } else {
-      colnames(new_row) <- c(colnames(param), "avg_survival_rate", "agg_survival_rate", "avg_utilization_rate", "agg_utilization_rate")
+      colnames(new_row) <- c(colnames(param), "avg_survival_rate", "agg_survival_rate", "avg_utilization_rate", "agg_utilization_rate", "avg_utilization_opt_rate", "agg_utilization_opt_rate")
+      rownames(new_row) <- rownames(evaluation)
     }
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)
@@ -453,7 +520,7 @@ sample_moment_lag <- function(dataset, k, r, s) {
 split_to_uni <- function(object) {
   methods::validObject(object)
   result <- list()
-  numeric_lst <- get_numeric_slots(object)
+  numeric_lst <- get_param_slots(object)
   character_slots <- setdiff(methods::slotNames(object), names(numeric_lst))
   cmb <- expand.grid(numeric_lst)
   counter <- 1

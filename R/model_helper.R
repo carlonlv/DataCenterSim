@@ -423,7 +423,7 @@ find_overall_evaluation <- function(numerator1, denominator1, numerator2, denomi
     avg_score3 <- mean(numerator3 / denominator3, na.rm = TRUE)
     agg_score3 <- sum(numerator3, na.rm = TRUE) / sum(denominator3, na.rm = TRUE)
   }
-  return(list("avg_score1" = avg_score1, "avg_score2" = avg_score2, "agg_score1" = agg_score1, "agg_score2" = agg_score2, "avg_score3" = avg_score3, "agg_score3" = agg_score3))
+  return(list("avg_score1" = avg_score1, "avg_score2" = avg_score2, "avg_score3" = avg_score3, "agg_score1" = agg_score1, "agg_score2" = agg_score2, "agg_score3" = agg_score3))
 }
 
 
@@ -478,10 +478,8 @@ generate_result <- function(object, evaluation, write_result) {
     new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2, overall_result$avg_score3, overall_result$agg_score3))
     if (object@type == "scheduling") {
       colnames(new_row) <- c(colnames(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
-      rownames(new_row) <- rownames(evaluation)
     } else {
       colnames(new_row) <- c(colnames(param), "avg_survival_rate", "agg_survival_rate", "avg_utilization_rate", "agg_utilization_rate", "avg_utilization_opt_rate", "agg_utilization_opt_rate")
-      rownames(new_row) <- rownames(evaluation)
     }
     if (!fs::file_exists(fp)) {
       fs::file_create(fp)

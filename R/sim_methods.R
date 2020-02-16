@@ -339,7 +339,7 @@ setMethod("plot_sim_paramwise",
               } else {
                 msg5 <- paste("No traces underperformed on Correct Scheduled Rate.")
               }
-              under_performed_traces_2 <- rownames(score)[which(sort(trace_score2) < 1 - object@cur_off_prob)]
+              under_performed_traces_2 <- rownames(score)[which(sort(trace_score2) < 1 - object@cut_off_prob)]
               if (length(under_performed_traces_2) > 0) {
                 msg6 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_2, 3), collapse = " "), "for underperformed traces on Correct Unschedule Rate.")
               } else {
@@ -355,13 +355,14 @@ setMethod("plot_sim_paramwise",
               msg3 <- paste(under_performed_score1, "of traces underperformed on Survival Rate.")
               msg4 <- paste(under_performed_score2, "of traces underperformed on Utilization Rate.")
               under_performed_traces_1 <- which(sort(trace_score1) < 1 - object@cut_off_prob)
-              under_performed_traces_2 <- which(sort(trace_score2) < 1 - object@cur_off_prob)
+              under_performed_traces_2 <- which(sort(trace_score2) < 1 - object@cut_off_prob)
+              under_performed_traces_1 <- rownames(score)[which(sort(trace_score1) < 1 - object@cut_off_prob)]
               if (length(under_performed_traces_1) > 0) {
                 msg5 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_1, 3), collapse = " "), "for underperforming on Survival Rate.")
               } else {
                 msg5 <- paste("No traces underperformed on Survival Rate.")
               }
-              under_performed_traces_2 <- rownames(score)[which(sort(trace_score2) < 1 - object@cur_off_prob)]
+              under_performed_traces_2 <- rownames(score)[which(sort(trace_score2) < 1 - object@cut_off_prob)]
               if (length(under_performed_traces_2) > 0) {
                 msg6 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_2, 3), collapse = " "), "for underperforming on Utilization Rate.")
               } else {

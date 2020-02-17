@@ -47,7 +47,7 @@ setMethod("train_model",
               new_trainset_max_diff <- diff(new_trainset_max)
               ts_model <- suppressWarnings(tryCatch({
                 ts_model <- stats::arima(x = new_trainset_max_diff, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
-                list("intercept" = as.numeric(ts_model$coef[1]), "phi" = as.numeric(ts_model$coef[2]), "residuals" = ts_model$residuals, "sigma2" = ts_model$sigma2)
+                list("intercept" = as.numeric(ts_model$coef["intercept"]), "phi" = as.numeric(ts_model$coef["ar1"]), "residuals" = ts_model$residuals, "sigma2" = ts_model$sigma2)
               }, warning = function(w) {
                 mean_x <- mean(new_trainset_max_diff)
                 x_dot <- new_trainset_max_diff - mean_x
@@ -57,7 +57,7 @@ setMethod("train_model",
                 intercept <- mean_x * (1 - phi)
                 fitted_x <- phi * x_dot[-length(x_dot)]
                 res <- x_dot[-1] - fitted_x
-                sigma2 <- sample_moment_lag(ts_model$residuals, k = 0,r = 1,s = 1)
+                sigma2 <- sample_moment_lag(res, k = 0,r = 1,s = 1)
                 list("intercept" = intercept, "phi" = phi, "residuals" = res, "sigma2" = sigma2)
               }, error = function(cond) {
                 mean_x <- mean(new_trainset_max_diff)
@@ -68,14 +68,14 @@ setMethod("train_model",
                 intercept <- mean_x * (1 - phi)
                 fitted_x <- phi * x_dot[-length(x_dot)]
                 res <- x_dot[-1] - fitted_x
-                sigma2 <- sample_moment_lag(ts_model$residuals, k = 0,r = 1,s = 1)
+                sigma2 <- sample_moment_lag(res, k = 0,r = 1,s = 1)
                 list("intercept" = intercept, "phi" = phi, "residuals" = res, "sigma2" = sigma2)
               }))
             } else {
               new_trainset_avg_diff <- diff(new_trainset_avg)
               ts_model <- suppressWarnings(tryCatch({
                 ts_model <- stats::arima(x = new_trainset_avg_diff, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
-                list("intercept" = as.numeric(ts_model$coef[1]), "phi" = as.numeric(ts_model$coef[2]), "residuals" = ts_model$residuals, "sigma2" = ts_model$sigma2)
+                list("intercept" = as.numeric(ts_model$coef["intercept"]), "phi" = as.numeric(ts_model$coef["ar1"]), "residuals" = ts_model$residuals, "sigma2" = ts_model$sigma2)
               }, warning = function(w) {
                 mean_x <- mean(new_trainset_avg_diff)
                 x_dot <- new_trainset_avg_diff - mean_x
@@ -85,7 +85,7 @@ setMethod("train_model",
                 intercept <- mean_x * (1 - phi)
                 fitted_x <- phi * x_dot[-length(x_dot)]
                 res <- x_dot[-1] - fitted_x
-                sigma2 <- sample_moment_lag(ts_model$residuals, k = 0,r = 1,s = 1)
+                sigma2 <- sample_moment_lag(res, k = 0,r = 1,s = 1)
                 list("intercept" = intercept, "phi" = phi, "residuals" = res, "sigma2" = sigma2)
               }, error = function(cond) {
                 mean_x <- mean(new_trainset_avg_diff)
@@ -96,7 +96,7 @@ setMethod("train_model",
                 intercept <- mean_x * (1 - phi)
                 fitted_x <- phi * x_dot[-length(x_dot)]
                 res <- x_dot[-1] - fitted_x
-                sigma2 <- sample_moment_lag(ts_model$residuals, k = 0,r = 1,s = 1)
+                sigma2 <- sample_moment_lag(res, k = 0,r = 1,s = 1)
                 list("intercept" = intercept, "phi" = phi, "residuals" = res, "sigma2" = sigma2)
               }))
             }

@@ -3,15 +3,16 @@
 %   R/sim_methods.R
 \name{plot_sim_overall}
 \alias{plot_sim_overall}
-\alias{plot_sim_overall,sim,ANY-method}
+\alias{plot_sim_overall,ar1_markov_sim,ANY-method}
+\alias{plot_sim_overall,markov_sim,ANY-method}
 \alias{plot_sim_overall,sim,data.frame-method}
 \title{Plot Simulation Result Type Overall}
 \usage{
 plot_sim_overall(object, overall_summ)
 
-\S4method{plot_sim_overall}{sim,ANY}(object)
+\S4method{plot_sim_overall}{ar1_markov_sim,ANY}(object)
 
-\S4method{plot_sim_overall}{sim,ANY}(object)
+\S4method{plot_sim_overall}{markov_sim,ANY}(object)
 
 \S4method{plot_sim_overall}{sim,data.frame}(object, overall_summ)
 }

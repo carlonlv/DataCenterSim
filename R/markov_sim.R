@@ -81,7 +81,7 @@ setMethod("train_model",
                 }
               }
             }
-            trained_result <- list("transition" = transition)
+            trained_result <- list("transition" = transition, "residuals" = NULL)
             return(trained_result)
           })
 
@@ -164,7 +164,7 @@ setMethod("get_characteristic_slots",
 #' @rdname plot_sim_overall
 #' @export
 setMethod("plot_sim_overall",
-          signature(object = "sim"),
+          signature(object = "markov_sim"),
           function(object) {
             file_name <- paste(object@name, "Sim:", object@type, "Train:", object@train_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
             fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")

@@ -411,6 +411,9 @@ setMethod("plot_sim_tracewise",
             train_decision <- decision$train_decision
             test_decision <- decision$test_decision
 
+            train_sig <- train_decision$train_sig
+            iter <- train_decision$iter
+
             pi_up <- c(rep(NA_real_, 4 * nrow(testset)), test_decision$pi_up)
             adjust_switch <- c(rep(NA_integer_, 4 * nrow(testset)), test_decision$adjust_switch)
             decision_opt <- c(rep(NA_integer_, 4 * nrow(testset)), test_decision$decision_opt)
@@ -423,7 +426,7 @@ setMethod("plot_sim_tracewise",
               msg2 <- paste("Current batch has performance not failing", sum(last_score[1] >= prev_score$prev_score1, na.rm = TRUE) / nrow(prev_score), "on score 1.")
               msg3 <- paste("Current batch has performance not failing", sum(last_score[2] >= prev_score$prev_score2, na.rm = TRUE) / nrow(prev_score), "on score 2.")
             }
-            msg4 <- paste("Based on tolerance level of", object@tolerance1, object@tolerance2, "the training signal is", train_decision$train_sig, "for next iteration.")
+            msg4 <- paste("Based on tolerance level of", object@tolerance1, object@tolerance2, "the training signal is", train_sig, "for next iteration.")
 
             result <- data.frame("target_dataset" = target_dataset, "time" = t, "train_or_test" = train_or_test, "pi_up" = pi_up, "adjust_switch" = adjust_switch, "decision_opt" = decision_opt)
             plt <- ggplot2::ggplot(result, aes(x = result$time, y = result$target_dataset)) +
@@ -434,11 +437,11 @@ setMethod("plot_sim_tracewise",
               ggplot2::xlab("Time (minutes)") +
               ggplot2::ylab("Cpu (percent)") +
               ggplot2::theme(legend.position = "none") +
-              ggplot2::ggtitle(paste("Diagnostic Plot of", trace_name, "at Iteration", train_decision$iter)) +
+              ggplot2::ggtitle(paste("Diagnostic Plot of", trace_name, "at Iteration", iter)) +
               ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4))
 
             file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
-            fp <- fs::path(paste0(object@result_loc, "tracewise_plots/", file_name, " index ", index, " trace ", trace_name, " iter ", train_decision$iter), ext = "png")
+            fp <- fs::path(paste0(object@result_loc, "tracewise_plots/", file_name, " index ", index, " trace ", trace_name, " iter ", iter), ext = "png")
             ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
           })
 

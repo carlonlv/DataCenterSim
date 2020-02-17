@@ -32,7 +32,7 @@ check_valid_vari11_sim <- function(object) {
 vari11_sim <- setClass("vari11_sim",
                      slots = list(res_dist = "character", reg_num = "numeric"),
                      contains = "sim",
-                     prototype = list(name = "vari11",
+                     prototype = list(name = "VARI11",
                                       res_dist = "norm",
                                       reg_num = 2),
                      validity = check_valid_vari11_sim)
@@ -69,7 +69,7 @@ setMethod("train_model",
               # sigma
               sigma <- sqrt(ts_model$Sigma[1,1])
 
-              trained_result <- list("phi" = phi, "mu" = mu, "sigma" = sigma)
+              trained_result <- list("phi" = phi, "mu" = mu, "sigma" = sigma, "residuals" = ts_model$residuals[,1], "intercept" = ts_model$Ph0[1])
             } else {
               # phi
               phi <- ts_model$Phi[,1]
@@ -89,7 +89,7 @@ setMethod("train_model",
               # xi parameter
               xi <- ts_model$Ph0[1] - sqrt(pi / 2) * omega * delta
 
-              trained_result <- list("phi" = phi, "xi" = xi, "omega" = omega, "alpha" = alpha)
+              trained_result <- list("phi" = phi, "xi" = xi, "omega" = omega, "alpha" = alpha, "residuals" = ts_model$residuals[,1], "intercept" = ts_model$Ph0[1])
             }
             return(trained_result)
           })
@@ -188,3 +188,91 @@ setMethod("get_characteristic_slots",
             return(character_lst)
           })
 
+
+#' @rdname plot_sim_tracewise
+#' @export
+setMethod("plot_sim_tracewise",
+          signature(object = "vari11_sim", index = "numeric", trace_name = "character", trainset = "data.frame", testset = "data.frame", prev_score = "data.frame", last_score = "numeric", decision = "list"),
+          function(object, index, trace_name, trainset, testset, prev_score, last_score, decision) {
+            if (object@response == "max") {
+              target_dataset <- c(utils::tail(trainset$trainset_max, 4 * nrow(testset)), testset$testset_max)
+            } else {
+              target_dataset <- c(utils::tail(trainset$trainset_avg, 4 * nrow(testset)), testset$testset_avg)
+            }
+
+            train_or_test <- c(rep("train", 4 * nrow(testset)), rep("test", nrow(testset)))
+            t <- as.numeric(c(utils::tail(rownames(trainset), 4 * nrow(testset)), rownames(testset))) / 60
+
+            train_decision <- decision$train_decision
+            test_decision <- decision$test_decision
+
+            train_sig <- train_decision$train_sig
+            iter <- train_decision$iter
+            trained_result <- train_decision$trained_result
+            res <- trained_result$residuals
+
+            pi_up <- c(rep(NA_real_, 4 * nrow(testset)), test_decision$pi_up)
+            adjust_switch <- c(rep(NA_integer_, 4 * nrow(testset)), test_decision$adjust_switch)
+            decision_opt <- c(rep(NA_integer_, 4 * nrow(testset)), test_decision$decision_opt)
+
+            msg1 <- paste("Current batch has performance of", paste(last_score, collapse = " "))
+            if (nrow(prev_score) == 0) {
+              msg2 <- paste("No historical score to compare with on score1.")
+              msg3 <- paste("No historical score to compare with on score2.")
+            } else {
+              msg2 <- paste("Current batch has performance not failing", sum(last_score[1] >= prev_score$prev_score1, na.rm = TRUE) / nrow(prev_score), "on score 1.")
+              msg3 <- paste("Current batch has performance not failing", sum(last_score[2] >= prev_score$prev_score2, na.rm = TRUE) / nrow(prev_score), "on score 2.")
+            }
+            msg4 <- paste("Based on tolerance level of", object@tolerance1, object@tolerance2, "the training signal is", train_sig, "for next iteration.")
+            wn_test <- stats::Box.test(res, lag = round(sqrt(length(res))), type = "Ljung-Box", fitdf = 2)
+            msg5 <- paste("The White Noise Test for Residuals has p-value of", round(wn_test$p.value, 3), "for one-tailed test.")
+
+            # Time Series Plot
+            result <- data.frame("target_dataset" = target_dataset, "time" = t, "train_or_test" = train_or_test, "pi_up" = pi_up, "adjust_switch" = adjust_switch, "decision_opt" = decision_opt)
+            ts_plt <- ggplot2::ggplot(result, aes(x = result$time, y = result$target_dataset)) +
+              ggplot2::geom_line(aes(color = factor(result$train_or_test))) +
+              ggplot2::geom_line(aes(y = result$pi_up, color = as.factor(result$adjust_switch)), na.rm = TRUE) +
+              ggplot2::geom_line(aes(y = result$decision_opt, color = "darkcyan"), na.rm = TRUE) +
+              ggplot2::geom_hline(yintercept = 100, linetype = "dashed", color = "purple") +
+              ggplot2::xlab("Time (minutes)") +
+              ggplot2::ylab("Cpu (percent)") +
+              ggplot2::theme(legend.position = "none") +
+              ggplot2::ggtitle(paste("Diagnostic Plot of", trace_name, "at Iteration", iter)) +
+              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75, 7), hjust = 0, label = c(msg1, msg2, msg3, msg4, msg5))
+
+            # Density Plot of Residuals
+            residual <- data.frame("x" = as.numeric(res))
+            dens_res <- ggplot2::ggplot(residual, aes(x = residual$x)) +
+              ggplot2::geom_density(fill = "red", alpha = 0.5)
+            if (object@res_dist == "norm") {
+              mu <- trained_result$mu - trained_result$intercept
+              sd <- trained_result$sigma
+              dens_res <- dens_res +
+                ggplot2::stat_function(fun = stats::dnorm, n = length(res), args = list("mean" = mu, "sd" = sd), color = "blue")
+            } else {
+              xi <- trained_result$xi - trained_result$intercept
+              omega <- trained_result$omega
+              alpha <- trained_result$alpha
+              dens_res <- dens_res +
+                ggplot2::stat_function(fun = sn::dsn, n = length(res), args = list("xi" = xi, "omega" = omega, "alpha" = alpha), color = "blue")
+            }
+            dens_res <- dens_res +
+              ggplot2::theme(legend.position = "none") +
+              ggplot2::ylab("density of residuals") +
+              ggplot2::xlab("residuals")
+
+            # Time Series Plot of Residuals
+            t <- seq(to = as.numeric(rownames(trainset)[nrow(trainset)]), from = as.numeric(rownames(trainset)[nrow(trainset)]) - (length(res) - 1) * 300, by = 300) / 60
+            residual <- data.frame("x" = as.numeric(res), "time" = t)
+            ts_res <- ggplot2::ggplot(residual, aes(x = residual$time, y = residual$x)) +
+              ggplot2::geom_line(color = "green") +
+              ggplot2::theme(legend.position = "none") +
+              ggplot2::ylab("residuals") +
+              ggplot2::xlab("time")
+
+            plt <- gridExtra::grid.arrange(ts_plt, dens_res, ts_res, ncol = 2, nrow = 2, layout_matrix = rbind(c(1,1), c(2,3)))
+
+            file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
+            fp <- fs::path(paste0(object@result_loc, "tracewise_plots/", file_name, " index ", index, " trace ", trace_name, " iter ", iter), ext = "png")
+            ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
+          })

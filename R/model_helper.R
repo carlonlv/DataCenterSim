@@ -375,11 +375,19 @@ compute_utilization <- function(utilization, actual_obs, window_size, granularit
         decision_opt <- rbind(decision_opt, c(scheduled_time[i] + j, scheduled_size[i]))
       }
     }
-    for (k in 1:length(link_lst)) {
-      if (!(k %in% scheduled_time)) {
+
+    if (nrow(decision_opt) == 0) {
+      for (k in 1:length(link_lst)) {
         decision_opt <- rbind(decision_opt, c(k, NA))
       }
+    } else {
+      for (k in 1:length(link_lst)) {
+        if (!(k %in% decision_opt[,1])) {
+          decision_opt <- rbind(decision_opt, c(k, NA))
+        }
+      }
     }
+
     colnames(decision_opt) <- c("scheduled_time", "scheduled_size")
     decision_opt <- decision_opt[order(decision_opt$scheduled_time),]
     return(list("max_score" = score_lst[length(score_lst)], "decision_opt" = decision_opt))

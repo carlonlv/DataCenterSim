@@ -73,7 +73,7 @@ setMethod("train_model",
               trained_ar1 <- train_model(temp_ar1, trainset_max, trainset_avg)
               trained_markov <- train_markov_from_to(overlapping_dataset_max, overlapping_dataset_avg, object@state_num)
             }
-            trained_result <- list("coeffs" = trained_ar1@trained_model$coeffs, "means" = trained_ar1@trained_model$means, "vars" = trained_ar1@trained_model$vars, "transition" = trained_markov)
+            trained_result <- list("coeffs" = trained_ar1@trained_model$coeffs, "means" = trained_ar1@trained_model$means, "vars" = trained_ar1@trained_model$vars, "transition" = trained_markov, "residuals" = NULL)
             return(trained_result)
           })
 
@@ -146,7 +146,7 @@ setMethod("get_characteristic_slots",
 #' @rdname plot_sim_overall
 #' @export
 setMethod("plot_sim_overall",
-          signature(object = "sim"),
+          signature(object = "ar1_markov_sim"),
           function(object) {
             file_name <- paste(object@name, "Sim:", object@type, "Train:", object@train_policy, "Schedule:", object@schedule_policy, "Adjust:", object@adjust_policy)
             fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")

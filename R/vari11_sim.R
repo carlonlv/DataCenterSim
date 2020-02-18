@@ -262,7 +262,7 @@ setMethod("plot_sim_tracewise",
               ggplot2::xlab("residuals")
 
             # Time Series Plot of Residuals
-            t <- seq(to = as.numeric(rownames(trainset)[nrow(trainset)]), from = as.numeric(rownames(trainset)[nrow(trainset)]) - (length(res) - 1) * 300, by = 300) / 60
+            t <- seq(to = as.numeric(rownames(trainset)[nrow(trainset)]), from = as.numeric(rownames(trainset)[nrow(trainset)]) - (length(res) - 1) * object@window_size * 300, by = object@window_size * 300) / 60
             residual <- data.frame("x" = as.numeric(res), "time" = t)
             ts_res <- ggplot2::ggplot(residual, aes(x = residual$time, y = residual$x)) +
               ggplot2::geom_line(color = "green") +
@@ -270,7 +270,7 @@ setMethod("plot_sim_tracewise",
               ggplot2::ylab("residuals") +
               ggplot2::xlab("time")
 
-            plt <- gridExtra::grid.arrange(ts_plt, dens_res, ts_res, ncol = 2, nrow = 2, layout_matrix = rbind(c(1,1), c(2,3)))
+            plt <- gridExtra::arrangeGrob(ts_plt, dens_res, ts_res, ncol = 2, nrow = 2, layout_matrix = rbind(c(1,1), c(2,3)))
 
             file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
             fp <- fs::path(paste0(object@result_loc, "tracewise_plots/", file_name, " index ", index, " trace ", trace_name, " iter ", iter), ext = "png")

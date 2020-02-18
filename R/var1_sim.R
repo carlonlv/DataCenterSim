@@ -263,7 +263,7 @@ setMethod("plot_sim_tracewise",
               ggplot2::ylab("residuals") +
               ggplot2::xlab("time")
 
-            plt <- gridExtra::grid.arrange(ts_plt, dens_res, ts_res, ncol = 2, nrow = 2, layout_matrix = rbind(c(1,1), c(2,3)))
+            plt <- gridExtra::arrangeGrob(ts_plt, dens_res, ts_res, ncol = 2, nrow = 2, layout_matrix = rbind(c(1,1), c(2,3)))
 
             file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
             fp <- fs::path(paste0(object@result_loc, "tracewise_plots/", file_name, " index ", index, " trace ", trace_name, " iter ", iter), ext = "png")

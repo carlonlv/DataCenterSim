@@ -325,30 +325,34 @@ setMethod("plot_sim_paramwise",
           signature(object = "sim", index = "numeric", score = "data.frame", summ = "list"),
           function(object, index, score, summ) {
             if (object@type == "scheduling") {
-              trace_score1 <- score$correct_scheduled_num / score$scheduled_num
-              trace_score2 <- score$correct_unscheduled_num / score$unscheduled_num
+              score$trace_score1 <- score$correct_scheduled_num / score$scheduled_num
+              score$trace_score2 <- score$correct_unscheduled_num / score$unscheduled_num
               msg1.1 <- paste("The Agg Overall Correct scheduled Rate is", summ$agg_score1)
               msg1.2 <- paste("The Agg Overall Correct unscheduled Rate is", summ$agg_score2)
               msg2.1 <- paste("The Avg Overall Correct scheduled Rate is", summ$avg_score1)
               msg2.2 <- paste("The Avg Overall Correct unscheduled Rate is", summ$avg_score2)
-              under_performed_score1 <- sum(trace_score1 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
-              under_performed_score2 <- sum(trace_score2 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
+              under_performed_score1 <- sum(score$trace_score1 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
+              under_performed_score2 <- sum(score$trace_score2 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
               msg3.1 <- paste(under_performed_score1, "of traces underperformed on Correct Scheduled Rate.")
               msg3.2 <- paste(under_performed_score2, "of traces underperformed on Correct Unscheduled Rate.")
-              under_performed_traces_1 <- rownames(score)[which(sort(trace_score1) < 1 - object@cut_off_prob)]
+
+              sorted_by_score1 <- score[order(score$trace_score1),]
+              under_performed_traces_1 <- rownames(sorted_by_score1)[which(sorted_by_score1$trace_score1 < 1 - object@cut_off_prob)]
               if (length(under_performed_traces_1) > 0) {
                 msg4.1 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_1, 3), collapse = " "), "for underperforming.")
               } else {
                 msg4.1 <- paste("No traces underperformed.")
               }
-              under_performed_traces_2 <- rownames(score)[which(sort(trace_score2) < 1 - object@cut_off_prob)]
+
+              sorted_by_score2 <- score[order(score$trace_score2),]
+              under_performed_traces_2 <- rownames(sorted_by_score2)[which(sorted_by_score2$trace_score2 < 1 - object@cut_off_prob)]
               if (length(under_performed_traces_2) > 0) {
                 msg4.2 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_2, 3), collapse = " "), "for underperforming")
               } else {
                 msg4.2 <- paste("No traces underperformed.")
               }
 
-              result1 <- data.frame("score" = trace_score1)
+              result1 <- data.frame("score" = score$trace_score1)
               plt1 <- ggplot2::ggplot(result1, aes(x = result1$score)) +
                 ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE, color = "red") +
                 ggplot2::theme(legend.position = "none") +
@@ -357,7 +361,7 @@ setMethod("plot_sim_paramwise",
                 ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple") +
                 ggplot2::xlab("Correct Scheduled Rate")
 
-              result2 <- data.frame("score" = trace_score2)
+              result2 <- data.frame("score" = score$trace_score2)
               plt2 <- ggplot2::ggplot(result2, aes(x = result2$score)) +
                 ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE, color = "blue") +
                 ggplot2::theme(legend.position = "none") +
@@ -367,34 +371,36 @@ setMethod("plot_sim_paramwise",
                 ggplot2::xlab("Correct Unscheduled Rate")
 
             } else {
-              trace_score1 <- score$sur_num / score$sur_den
-              trace_score2 <- score$util_num / score$util_den
+              score$trace_score1 <- score$sur_num / score$sur_den
+              score$trace_score2 <- score$util_num / score$util_den
               msg1.1 <- paste("The Agg Overall Survival Rate is", summ$agg_score1)
               msg1.2 <- paste("The Agg Overall Utilization Rate is", summ$agg_score2)
               msg1.3 <- paste("The Agg Overall Utilization wrt Optimal is", summ$agg_score3)
               msg2.1 <- paste("The Avg Overall Survival Rate is", summ$avg_score1)
               msg2.2 <- paste("The Avg Overall Utilization Rate is", summ$agg_score2)
               msg2.3 <- paste("The Avg Overall Utilization wrt Optimal is", summ$avg_score3)
-              under_performed_score1 <- sum(trace_score1 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
-              under_performed_score2 <- sum(trace_score2 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
+              under_performed_score1 <- sum(score$trace_score1 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
+              under_performed_score2 <- sum(score$trace_score2 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
               msg3.1 <- paste(under_performed_score1, "of traces underperformed.")
               msg3.2 <- paste(under_performed_score2, "of traces underperformed.")
-              under_performed_traces_1 <- which(sort(trace_score1) < 1 - object@cut_off_prob)
-              under_performed_traces_2 <- which(sort(trace_score2) < 1 - object@cut_off_prob)
-              under_performed_traces_1 <- rownames(score)[which(sort(trace_score1) < 1 - object@cut_off_prob)]
+
+              sorted_by_score1 <- score[order(score$trace_score1),]
+              under_performed_traces_1 <- rownames(sorted_by_score1)[which(sorted_by_score1$trace_score1 < 1 - object@cut_off_prob)]
               if (length(under_performed_traces_1) > 0) {
-                msg4.1 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_1, 3), collapse = " "), "for underperforming.")
+                msg4.1 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_1, 3), collapse = ","), "for underperforming.")
               } else {
                 msg4.1 <- paste("No traces underperformed on Survival Rate.")
               }
-              under_performed_traces_2 <- rownames(score)[which(sort(trace_score2) < 1 - object@cut_off_prob)]
+
+              sorted_by_score2 <- score[order(score$trace_score2),]
+              under_performed_traces_2 <- rownames(sorted_by_score2)[which(sorted_by_score2$trace_score2 < 1 - object@cut_off_prob)]
               if (length(under_performed_traces_2) > 0) {
-                msg4.2 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_2, 3), collapse = " "), "for underperforming.")
+                msg4.2 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_2, 3), collapse = ","), "for underperforming.")
               } else {
                 msg4.2 <- paste("No traces underperformed on Utilization Rate.")
               }
 
-              result1 <- data.frame("score" = trace_score1)
+              result1 <- data.frame("score" = score$trace_score1)
               plt1 <- ggplot2::ggplot(result1, aes(x = result1$score)) +
                 ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE, color = "red") +
                 ggplot2::theme(legend.position = "none") +
@@ -403,7 +409,7 @@ setMethod("plot_sim_paramwise",
                 ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple") +
                 ggplot2::xlab("Survival Rate")
 
-              result2 <- data.frame("score" = trace_score2)
+              result2 <- data.frame("score" = score$trace_score2)
               plt2 <- ggplot2::ggplot(result2, aes(x = result2$score)) +
                 ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE, color = "blue") +
                 ggplot2::theme(legend.position = "none") +
@@ -411,11 +417,10 @@ setMethod("plot_sim_paramwise",
                 ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75, 7, 8.25), hjust = 0, label = c(msg1.2, msg1.3, msg2.2, msg2.3, msg3.2, msg4.2)) +
                 ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple") +
                 ggplot2::xlab("Utilization")
-
             }
 
             file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
-            plt <- gridExtra::grid.arrange(plt1, plt2, ncol = 2, nrow = 1)
+            plt <- gridExtra::arrangeGrob(plt1, plt2, ncol = 2, nrow = 1)
             fp <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name, " index ", index), ext = "png")
             ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
           })

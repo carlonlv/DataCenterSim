@@ -360,12 +360,14 @@ compute_utilization <- function(utilization, actual_obs, window_size, granularit
     scheduled_size <- c()
     idx <- length(link_lst)
     next_idx <- link_lst[idx]
-    while (next_idx != 0) {
+    while (next_idx <= 0) {
       if (idx - next_idx > 1) {
         scheduled_time <- c(scheduled_time, next_idx)
         scheduled_size <- c(scheduled_size, max(actual_obs[(window_size + next_idx):(window_size + idx)]))
+        idx <- next_idx - 1
+      } else {
+        idx <- next_idx
       }
-      idx <- next_idx
       next_idx <- link_lst[idx]
     }
 

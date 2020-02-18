@@ -264,9 +264,9 @@ predict_model <- function(object, trained_result, testset_max, testset_avg, do_p
 
   overall_survival <- compute_survival(survivals)
   if (object@response == "max") {
-    overall_utilization <- compute_utilization(utilizations, testset_max[(object@window_size * object@reg_num + 1):(current_end - update + (object@reg_num + 1) * object@window_size - 1)], object@window_size, object@granularity)
+    overall_utilization <- compute_utilization(utilizations, testset_max[(object@window_size * object@reg_num + 1):length(testset_max)], object@window_size, object@granularity)
   } else {
-    overall_utilization <- compute_utilization(utilizations, testset_avg[(object@window_size * object@reg_num + 1):(current_end - update + (object@reg_num + 1) * object@window_size - 1)], object@window_size, object@granularity)
+    overall_utilization <- compute_utilization(utilizations, testset_avg[(object@window_size * object@reg_num + 1):length(testset_avg)], object@window_size, object@granularity)
   }
   if (do_plot) {
     if (nrow(info) < object@update_freq) {

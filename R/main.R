@@ -244,6 +244,13 @@ predict_model <- function(object, trained_result, testset_max, testset_avg, do_p
       survival <- check_survival(pi_up, testset_avg[start_time:end_time], object@granularity)
     }
 
+    ## Store information for plotting
+    if (do_plot) {
+      for (i in 1:update) {
+        info <- rbind(info, c(pi_up, adjust_switch))
+      }
+    }
+
     ## Update step based on adjustment policy and schedule policy
     update_info <- get_predicting_step(survival, object@window_size, object@adjust_policy, adjust_switch, object@schedule_policy)
     adjust_switch <- update_info$adjust_switch
@@ -251,13 +258,6 @@ predict_model <- function(object, trained_result, testset_max, testset_avg, do_p
     update <- update_info$update
 
     utilizations <- c(utilizations, check_utilization(pi_up, survival, object@granularity))
-
-    ## Store information for plotting
-    if (do_plot) {
-      for (i in 1:update) {
-        info <- rbind(info, c(pi_up, adjust_switch))
-      }
-    }
 
     current_end <- current_end + update
   }

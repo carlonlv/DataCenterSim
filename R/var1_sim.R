@@ -225,7 +225,7 @@ setMethod("plot_sim_tracewise",
             ts_plt <- ggplot2::ggplot(result, aes(x = result$time, y = result$target_dataset)) +
               ggplot2::geom_line(aes(color = factor(result$train_or_test))) +
               ggplot2::geom_line(aes(y = result$pi_up, color = as.factor(result$adjust_switch)), na.rm = TRUE) +
-              ggplot2::geom_line(aes(y = result$decision_opt, color = "darkcyan"), na.rm = TRUE) +
+              ggplot2::geom_line(aes(y = result$decision_opt), color = "darkcyan", na.rm = TRUE) +
               ggplot2::geom_hline(yintercept = 100, linetype = "dashed", color = "purple") +
               ggplot2::xlab("Time (minutes)") +
               ggplot2::ylab("Cpu (percent)") +

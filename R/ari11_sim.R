@@ -204,7 +204,7 @@ setMethod("compute_pi_up",
 setMethod("get_param_slots",
           signature(object = "ari11_sim"),
           function(object) {
-            numeric_slots <- c("window_size", "cut_off_prob", "granularity", "train_size", "update_freq", "tolerance1", "tolerance2")
+            numeric_slots <- c("cut_off_prob", "granularity", "train_size", "update_freq", "tolerance1", "tolerance2")
             numeric_lst <- list()
             for (i in numeric_slots) {
               numeric_lst[[i]] <- methods::slot(object, i)
@@ -219,7 +219,7 @@ setMethod("get_param_slots",
 setMethod("get_characteristic_slots",
           signature(object = "ari11_sim"),
           function(object) {
-            character_slots <- c("name", "type", "train_policy", "schedule_policy", "adjust_policy", "response", "res_dist")
+            character_slots <- c("name", "type", "window_size", "train_policy", "schedule_policy", "adjust_policy", "response", "res_dist")
             character_lst <- list()
             for (i in character_slots) {
               character_lst[[i]] <- methods::slot(object, i)

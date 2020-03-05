@@ -4,4 +4,5 @@
 #' @import ggplot2
 #' @importFrom sn psn
 #' @importFrom gridExtra grid.arrange
+#' @import tsoutliers
 NULL

@@ -80,8 +80,8 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained AR1-Markov Model.
 setMethod("do_prediction",
-          signature(object = "ar1_markov_sim", trained_result = "list", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
-          function(object, trained_result, last_obs_max, last_obs_avg, level) {
+          signature(object = "ar1_markov_sim", trained_result = "list", last_obs_max = "numeric", last_obs_avg = "numeric", last_res = "numeric", level = "numeric"),
+          function(object, trained_result, last_obs_max, last_obs_avg, last_res, level) {
             temp_ar <- ar1_sim(object)
             ar1_trained_result <- list("coeffs" = trained_result$coeffs,"means" = trained_result$means, "vars" = trained_result$vars)
             temp_mc <- markov_sim(object)
@@ -93,9 +93,9 @@ setMethod("do_prediction",
               temp_ar@response <- "max"
               temp_mc@response <- "avg"
             }
-            ar1_predicted_result <- do_prediction(temp_ar, ar1_trained_result, last_obs_max, last_obs_avg, NA_real_)
+            ar1_predicted_result <- do_prediction(temp_ar, ar1_trained_result, last_obs_max, last_obs_avg, last_res, NA_real_)
             new_last_obs <- ar1_predicted_result$mu
-            markov_predicted_result <- do_prediction(temp_mc, markov_trained_result, max(new_last_obs, 0), max(new_last_obs, 0), level)
+            markov_predicted_result <- do_prediction(temp_mc, markov_trained_result, max(new_last_obs, 0), max(new_last_obs, 0), last_res, level)
 
             predicted_result <- list("prob" = markov_predicted_result$prob, "to_states" = markov_predicted_result$to_states)
             return(predicted_result)

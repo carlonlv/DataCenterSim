@@ -88,8 +88,8 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained Markov Model.
 setMethod("do_prediction",
-          signature(object = "markov_sim", trained_result = "list", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
-          function(object, trained_result, last_obs_max, last_obs_avg, level) {
+          signature(object = "markov_sim", trained_result = "list", last_obs_max = "numeric", last_obs_avg = "numeric", last_res = "numeric", level = "numeric"),
+          function(object, trained_result, last_obs_max, last_obs_avg, last_res, level) {
             final_transition <- trained_result$transition
             if (object@response == "max") {
               from <- find_state_num(last_obs_max, nrow(final_transition))
@@ -104,7 +104,7 @@ setMethod("do_prediction",
               to <- find_state_num(level, nrow(final_transition))
               prob <- sum(final_transition[from, to:(nrow(final_transition))])
             }
-            predicted_result <- list("prob" = as.numeric(prob), "to_states" = to_states)
+            predicted_result <- list("prob" = as.numeric(prob), "to_states" = to_states, "expected" = NA_real_)
             return(predicted_result)
           })
 

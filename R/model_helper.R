@@ -274,6 +274,25 @@ check_survival <- function(pi_up, actual_obs, granularity) {
 }
 
 
+#' Check Residual Of A Single Prediction.
+#'
+#' @description Check the forecast residual.
+#' @param expected The expected value of next observation.
+#' @param actual_obs The actual observation corresponding to the predictions.
+#' @param window_size The length of predictions.
+#' @param response If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.
+#' @return If expected is NA, then NA_real_ is returned, otherwise return aggregated actual subtract by expected value.
+#' @keywords internal
+check_residual <- function(expected, actual_obs, window_size, response) {
+  actual_obs <- convert_frequency_dataset(actual_obs, window_size, response)
+  if (is.na(expected)) {
+    return(NA_real_)
+  } else {
+    return(actual_obs - expected)
+  }
+}
+
+
 #' Get Update Step For Predicting.
 #'
 #' @description Get predicting update step given survival informations.

@@ -19,6 +19,10 @@
 \alias{vari11_sim}
 \title{An S4 Class to Represent A Simulation.}
 \arguments{
+\item{outlier_type}{The type of outlier it will be treated, it can be NA_character for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or ALL for taking account of all outlier types.}
+
+\item{outlier_cval}{The critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50).}
+
 \item{state_num}{A numeric number that represents the number of states in Markov chain.}
 
 \item{res_dist}{The distribution of residual.}

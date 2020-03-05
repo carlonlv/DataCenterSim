@@ -97,8 +97,8 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained VAR Model.
 setMethod("do_prediction",
-          signature(object = "vari11_sim", trained_result = "list", last_obs_max = "numeric", last_obs_avg = "numeric", level = "numeric"),
-          function(object, trained_result, last_obs_max, last_obs_avg, level) {
+          signature(object = "vari11_sim", trained_result = "list", last_obs_max = "numeric", last_obs_avg = "numeric", last_res = "numeric", level = "numeric"),
+          function(object, trained_result, last_obs_max, last_obs_avg, last_res, level) {
             last_obs_max_diff <- last_obs_max[2] - last_obs_max[1]
             last_obs_avg_diff <- last_obs_avg[2] - last_obs_avg[1]
             if (object@response == "max") {
@@ -127,7 +127,7 @@ setMethod("do_prediction",
               if (!is.na(level)) {
                 prob <- 1 - stats::pnorm(q = level, mean = mu, sd = sd)
               }
-              predicted_result <- list("prob" = as.numeric(prob), "mean" = mu, "sd" = sd)
+              predicted_result <- list("prob" = as.numeric(prob), "mean" = mu, "sd" = sd, "expected" = mu)
             } else {
               omega <- trained_result$omega
               alpha <- trained_result$alpha
@@ -135,7 +135,7 @@ setMethod("do_prediction",
               if (!is.na(level)) {
                 prob <- 1 - sn::psn(x = level, xi = xi, omega = omega, alpha = alpha)
               }
-              predicted_result <- list("prob" = as.numeric(prob), "xi" = xi, "omega" = omega, "alpha" = alpha)
+              predicted_result <- list("prob" = as.numeric(prob), "xi" = xi, "omega" = omega, "alpha" = alpha, "expected" = xi)
             }
             return(predicted_result)
           })

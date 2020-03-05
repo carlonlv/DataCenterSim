@@ -175,8 +175,8 @@ scheduling_sim <- function(index, uni_lst, dataset_max, dataset_avg, cpu_require
 
   ## Do Simulation
   start_time <- proc.time()
-  result <- parallel::mclapply(1:length(ts_names), svt_scheduling_sim, index, object, dataset_max, dataset_avg, cpu_required, mc.cores = cores)
-  #result <- lapply(1:length(ts_names), svt_scheduling_sim, index, object, dataset_max, dataset_avg, cpu_required, mc.cores = cores)
+  #result <- parallel::mclapply(1:length(ts_names), svt_scheduling_sim, index, object, dataset_max, dataset_avg, cpu_required, mc.cores = cores)
+  result <- lapply(1:length(ts_names), svt_scheduling_sim, index, object, dataset_max, dataset_avg, cpu_required, mc.cores = cores)
 
   end_time <- proc.time()
   print(end_time - start_time)
@@ -215,6 +215,8 @@ predict_model <- function(object, trained_result, testset_max, testset_avg, do_p
   survivals <- c()
   utilizations <- c()
 
+  res <- c()
+
   info <- data.frame()
 
   last_time_schedule <- length(testset_max) - (object@reg_num + 1) * object@window_size + 1
@@ -228,11 +230,16 @@ predict_model <- function(object, trained_result, testset_max, testset_avg, do_p
     if (object@reg_num == 0) {
       last_obs_max <- NULL
       last_obs_avg <- NULL
+      last_res <- NULL
     } else {
       last_obs_max <- convert_frequency_dataset(testset_max[current_end:(current_end + object@reg_num * object@window_size - 1)], object@window_size, "max")
       last_obs_avg <- convert_frequency_dataset(testset_avg[current_end:(current_end + object@reg_num * object@window_size - 1)], object@window_size, "avg")
+      last_res <- res[(length(res) - object@reg_num + 1):length(res)]
+      if (length(last_res) < object@reg_num) {
+        last_res <- NA_real_
+      }
     }
-    predicted_result <- do_prediction(object, trained_result, last_obs_max, last_obs_avg, NA_real_)
+    predicted_result <- do_prediction(object, trained_result, last_obs_max, last_obs_avg, last_res, level = NA_real_)
     pi_up <- compute_pi_up(object, predicted_result)
 
     ## Evalute schedulings based on prediction
@@ -240,8 +247,10 @@ predict_model <- function(object, trained_result, testset_max, testset_avg, do_p
     end_time <- start_time + object@window_size - 1
     if (object@response == "max") {
       survival <- check_survival(pi_up, testset_max[start_time:end_time], object@granularity)
+      res <- c(res, check_residual(predicted_result$expected, testset_max[start_time:end_time], object@window_size, object@response))
     } else {
       survival <- check_survival(pi_up, testset_avg[start_time:end_time], object@granularity)
+      res <- c(res, check_residual(predicted_result$expected, testset_avg[start_time:end_time], object@window_size, object@response))
     }
 
     ## Store information for plotting

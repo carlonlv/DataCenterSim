@@ -9,12 +9,21 @@ NULL
 check_valid_ari11_sim <- function(object) {
   errors <- character()
   res_dist_choices <- c("norm", "skew_norm")
+  outlier_type_choices <- c("AO", "IO", "LS", "None", "All")
   if (length(object@res_dist) != 1 | is.na(object@res_dist) |  all(object@res_dist != res_dist_choices)) {
     msg <- paste0("train_policy must be one of ", paste(res_dist_choices, collapse = " "), ".")
     errors <- c(errors, msg)
   }
   if (object@reg_num != 2) {
     msg <- paste0("reg_num must be fixed to 2 for ari11 sim model.")
+    errors <- c(errors, msg)
+  }
+  if (length(object@outlier_type) != 1 | is.na(object@outlier_type) |  all(object@outlier_type != outlier_type_choices)) {
+    msg <- paste0("outlier_type must be one of ", paste(outlier_type_choices, collapse = " "), ".")
+    errors <- c(errors, msg)
+  }
+  if (any(object@outlier_cval < 3, na.rm = TRUE) | any(object@outlier_cval > 4, na.rm = TRUE)) {
+    msg <- paste0("outlier_cval must only consist numeric values within 3 and 4, inclusively, or NA.")
     errors <- c(errors, msg)
   }
   if (length(errors) == 0) {
@@ -27,13 +36,20 @@ check_valid_ari11_sim <- function(object) {
 #' @rdname sim-class
 #' @param res_dist The distribution of residual.
 #' @param reg_num The number of past regressive observations needed to forecast next observation.
+#' @param outlier_type The type of outlier it will be treated, it can be NA_character for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or ALL for taking account of all outlier types.
+#' @param outlier_cval The critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50).
 #' @export ari11_sim
 ari11_sim <- setClass("ari11_sim",
-                    slots = list(res_dist = "character", reg_num = "numeric"),
+                    slots = list(res_dist = "character",
+                                 reg_num = "numeric",
+                                 outlier_type = "character",
+                                 outlier_cval = "numeric"),
                     contains = "sim",
                     prototype = list(name = "ARI11",
                                      res_dist = "norm",
-                                     reg_num = 2),
+                                     reg_num = 2,
+                                     outlier_type = "AO",
+                                     outlier_cval = NA_real_),
                     validity = check_valid_ari11_sim)
 
 
@@ -41,63 +57,94 @@ ari11_sim <- setClass("ari11_sim",
 setMethod("train_model",
           signature(object = "ari11_sim", trainset_max = "numeric", trainset_avg = "numeric"),
           function(object, trainset_max, trainset_avg) {
-            new_trainset_max <- convert_frequency_dataset(trainset_max, object@window_size, "max")
-            new_trainset_avg <- convert_frequency_dataset(trainset_avg, object@window_size, "avg")
+            new_trainset_max <- stats::ts(convert_frequency_dataset(trainset_max, object@window_size, "max"))
+            new_trainset_avg <- stats::ts(convert_frequency_dataset(trainset_avg, object@window_size, "avg"))
+
             if (object@response == "max") {
-              new_trainset_max_diff <- diff(new_trainset_max)
+              if (is.na(object@outlier_cval)) {
+                cval <- ifelse(length(new_trainset_max) <= 50, 3, ifelse(length(new_trainset_max) >= 450, 4, 3 + 0.0025 * (length(new_trainset_max) - 50)))
+              } else {
+                cval <- object@outlier_cval
+              }
+
               ts_model <- suppressWarnings(tryCatch({
-                ts_model <- stats::arima(x = new_trainset_max_diff, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
-                list("intercept" = as.numeric(ts_model$coef["intercept"]), "phi" = as.numeric(ts_model$coef["ar1"]), "residuals" = ts_model$residuals, "sigma2" = ts_model$sigma2)
+                if (object@outlier_type == "None") {
+                  ts_model <- stats::arima(x = new_trainset_max, order = c(1,1,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 5000))
+                } else if (object@outlier_type == "All") {
+                  ts_model <- tsoutliers::tso(y = new_trainset_max, types = c("AO", "IO", "TC"), cval = cval, maxit = 2, tsmethod = "arima", args.tsmethod = list("order" = c(1,1,0), "include.mean" = TRUE, "method" = "CSS-ML", "optim.control" = list(maxit = 5000)), maxit.oloop = 20, maxit.iloop = 20)
+                  ts_model <- ts_model$fit
+                } else {
+                  ts_model <- tsoutliers::tso(y = new_trainset_max, types = object@outlier_type, cval = cval, maxit = 2, tsmethod = "arima", args.tsmethod = list("order" = c(1,1,0), "include.mean" = TRUE, "method" = "CSS-ML", "optim.control" = list(maxit = 5000)), maxit.oloop = 20, maxit.iloop = 20)
+                  ts_model <- ts_model$fit
+                }
+                list("intercept" = 0, "phi" = as.numeric(ts_model$coef["ar1"]), "residuals" = ts_model$residuals, "sigma2" = ts_model$sigma2)
               }, warning = function(w) {
-                mean_x <- mean(new_trainset_max_diff)
-                x_dot <- new_trainset_max_diff - mean_x
-                phi_num <- sample_moment_lag(x_dot, k = 1, r = 1, s = 1)
-                phi_den <- sample_moment_lag(x_dot, k = 0, r = 1, s = 1)
-                phi <- phi_num / phi_den
-                intercept <- mean_x * (1 - phi)
-                fitted_x <- phi * x_dot[-length(x_dot)]
-                res <- x_dot[-1] - fitted_x
-                sigma2 <- sample_moment_lag(res, k = 0,r = 1,s = 1)
-                list("intercept" = intercept, "phi" = phi, "residuals" = res, "sigma2" = sigma2)
+                if (object@outlier_type == "None") {
+                  ts_model <- stats::arima(x = new_trainset_max, order = c(1,1,0), include.mean = TRUE, method = "CSS", optim.control = list(maxit = 5000))
+                } else if (object@outlier_type == "All") {
+                  ts_model <- tsoutliers::tso(y = new_trainset_max, types = c("AO", "IO", "TC"), cval = cval, maxit = 1, tsmethod = "arima", args.tsmethod = list("order" = c(1,1,0), "include.mean" = TRUE, "method" = "CSS-ML", "optim.control" = list(maxit = 5000)), maxit.oloop = 10, maxit.iloop = 10)
+                  ts_model <- ts_model$fit
+                } else {
+                  ts_model <- tsoutliers::tso(y = new_trainset_max, types = object@outlier_type, cval = cval, maxit = 1, tsmethod = "arima", args.tsmethod = list("order" = c(1,1,0), "include.mean" = TRUE, "method" = "CSS-ML", "optim.control" = list(maxit = 5000)), maxit.oloop = 10, maxit.iloop = 10)
+                  ts_model <- ts_model$fit
+                }
+                list("intercept" = 0, "phi" = as.numeric(ts_model$coef["ar1"]), "residuals" = ts_model$residuals, "sigma2" = ts_model$sigma2)
               }, error = function(cond) {
-                mean_x <- mean(new_trainset_max_diff)
-                x_dot <- new_trainset_max_diff - mean_x
-                phi_num <- sample_moment_lag(x_dot, k = 1, r = 1, s = 1)
-                phi_den <- sample_moment_lag(x_dot, k = 0, r = 1, s = 1)
+                new_trainset_max_diff <- diff(new_trainset_max)
+                x_dot <- new_trainset_max_diff
+                if (object@outlier_type == "None") {
+                  x_dot_trimmed <- x_dot
+                } else {
+                  x_dot_trimmed <- x_dot[stats::quantile(abs(x_dot), 0.125) < abs(x_dot) & abs(x_dot) < stats::quantile(abs(x_dot), 0.875)]
+                }
+                phi_num <- sample_moment_lag(x_dot_trimmed, k = 1, r = 1, s = 1)
+                phi_den <- sample_moment_lag(x_dot_trimmed, k = 0, r = 1, s = 1)
                 phi <- phi_num / phi_den
-                intercept <- mean_x * (1 - phi)
                 fitted_x <- phi * x_dot[-length(x_dot)]
                 res <- x_dot[-1] - fitted_x
-                sigma2 <- sample_moment_lag(res, k = 0,r = 1,s = 1)
-                list("intercept" = intercept, "phi" = phi, "residuals" = res, "sigma2" = sigma2)
+                if (object@outlier_type == "None") {
+                  res_trimmed <- res
+                } else {
+                  res_trimmed <- res[stats::quantile(abs(res), 0.125) < abs(res) & abs(res) < stats::quantile(abs(res), 0.875)]
+                }
+                sigma2 <- sample_moment_lag(res_trimmed, k = 0, r = 1, s = 1)
+                list("intercept" = 0, "phi" = phi, "residuals" = c(rep(0, object@reg_num), res), "sigma2" = sigma2)
               }))
             } else {
-              new_trainset_avg_diff <- diff(new_trainset_avg)
+              if (is.na(object@outlier_cval)) {
+                cval <- ifelse(length(new_trainset_avg) <= 50, 3, ifelse(length(new_trainset_avg) >= 450, 4, 3 + 0.0025 * (length(new_trainset_avg) - 50)))
+              } else {
+                cval <- object@outlier_cval
+              }
+
               ts_model <- suppressWarnings(tryCatch({
-                ts_model <- stats::arima(x = new_trainset_avg_diff, order = c(1,0,0), include.mean = TRUE, method = "CSS-ML", optim.control = list(maxit = 2000), optim.method = "Nelder-Mead")
-                list("intercept" = as.numeric(ts_model$coef["intercept"]), "phi" = as.numeric(ts_model$coef["ar1"]), "residuals" = ts_model$residuals, "sigma2" = ts_model$sigma2)
+                ts_model <- tsoutliers::tso(y = new_trainset_avg, types = object@outlier_type, cval = cval, maxit = 2, tsmethod = "arima", args.tsmethod = list("order" = c(1,1,0), "include.mean" = TRUE, "method" = "CSS-ML", "optim.control" = list(maxit = 5000)), maxit.oloop = 20, maxit.iloop = 20)
+                ts_model <- ts_model$fit
+                list("intercept" = 0, "phi" = as.numeric(ts_model$coef["ar1"]), "residuals" = ts_model$residuals, "sigma2" = ts_model$sigma2)
               }, warning = function(w) {
-                mean_x <- mean(new_trainset_avg_diff)
-                x_dot <- new_trainset_avg_diff - mean_x
-                phi_num <- sample_moment_lag(x_dot, k = 1, r = 1, s = 1)
-                phi_den <- sample_moment_lag(x_dot, k = 0, r = 1, s = 1)
-                phi <- phi_num / phi_den
-                intercept <- mean_x * (1 - phi)
-                fitted_x <- phi * x_dot[-length(x_dot)]
-                res <- x_dot[-1] - fitted_x
-                sigma2 <- sample_moment_lag(res, k = 0,r = 1,s = 1)
-                list("intercept" = intercept, "phi" = phi, "residuals" = res, "sigma2" = sigma2)
+                ts_model <- tsoutliers::tso(y = new_trainset_avg, types = object@outlier_type, cval = cval, maxit = 1, tsmethod = "arima", args.tsmethod = list("order" = c(1,1,0), "include.mean" = TRUE, "method" = "CSS-ML", "optim.control" = list(maxit = 5000)), maxit.oloop = 10, maxit.iloop = 10)
+                ts_model <- ts_model$fit
+                list("intercept" = 0, "phi" = as.numeric(ts_model$coef["ar1"]), "residuals" = ts_model$residuals, "sigma2" = ts_model$sigma2)
               }, error = function(cond) {
-                mean_x <- mean(new_trainset_avg_diff)
-                x_dot <- new_trainset_avg_diff - mean_x
-                phi_num <- sample_moment_lag(x_dot, k = 1, r = 1, s = 1)
-                phi_den <- sample_moment_lag(x_dot, k = 0, r = 1, s = 1)
+                new_trainset_avg_diff <- diff(new_trainset_avg)
+                x_dot <- new_trainset_avg_diff
+                if (object@outlier_type == "None") {
+                  x_dot_trimmed <- x_dot
+                } else {
+                  x_dot_trimmed <- x_dot[stats::quantile(abs(x_dot), 0.125) < abs(x_dot) & abs(x_dot) < stats::quantile(abs(x_dot), 0.875)]
+                }
+                phi_num <- sample_moment_lag(x_dot_trimmed, k = 1, r = 1, s = 1)
+                phi_den <- sample_moment_lag(x_dot_trimmed, k = 0, r = 1, s = 1)
                 phi <- phi_num / phi_den
-                intercept <- mean_x * (1 - phi)
                 fitted_x <- phi * x_dot[-length(x_dot)]
                 res <- x_dot[-1] - fitted_x
-                sigma2 <- sample_moment_lag(res, k = 0,r = 1,s = 1)
-                list("intercept" = intercept, "phi" = phi, "residuals" = res, "sigma2" = sigma2)
+                if (object@outlier_type == "None") {
+                  res_trimmed <- res
+                } else {
+                  res_trimmed <- res[stats::quantile(abs(res), 0.125) < abs(res) & abs(res) < stats::quantile(abs(res), 0.875)]
+                }
+                sigma2 <- sample_moment_lag(res_trimmed, k = 0, r = 1, s = 1)
+                list("intercept" = 0, "phi" = phi, "residuals" = c(rep(0, object@reg_num), res), "sigma2" = sigma2)
               }))
             }
 
@@ -138,43 +185,62 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained ARI Model.
 setMethod("do_prediction",
-          signature(object = "ari11_sim", trained_result = "list", last_obs_max = "numeric" , last_obs_avg = "numeric", level = "numeric"),
-          function(object, trained_result, last_obs_max, last_obs_avg, level) {
+          signature(object = "ari11_sim", trained_result = "list", last_obs_max = "numeric" , last_obs_avg = "numeric", last_res = "numeric", level = "numeric"),
+          function(object, trained_result, last_obs_max, last_obs_avg, last_res, level) {
             # caclulate probability
             last_obs_max_diff <- last_obs_max[2] - last_obs_max[1]
             last_obs_avg_diff <- last_obs_avg[2] - last_obs_avg[1]
             if (object@response == "max") {
-              if (object@res_dist == "norm") {
-                mu <- trained_result$mu + trained_result$phi * last_obs_max_diff
-                mu <- last_obs_max[2] + mu
-              } else {
-                xi <- trained_result$xi + trained_result$phi * last_obs_max_diff
-                xi <- last_obs_max[2] + xi
-              }
+              last_obs_diff <- last_obs_max_diff
+              last_obs <- last_obs_max
             } else {
-              if (object@res_dist == "norm") {
-                mu <- trained_result$mu + trained_result$phi * last_obs_avg_diff
-                mu <- last_obs_avg[2] + mu
+              last_obs_diff <- last_obs_avg_diff
+              last_obs <- last_obs_avg
+            }
+            res <- stats::ts(c(trained_result$residuals, last_res))
+
+            if (!any(is.na(last_res))) {
+              pars <- list("arcoefs" = trained_result$phi, "macoefs" = numeric(0))
+              if (is.na(object@outlier_cval)) {
+                cval <- ifelse(length(res) <= 50, 3, ifelse(length(res) >= 450, 4, 3 + 0.0025 * (length(res) - 50)))
               } else {
-                xi <- trained_result$xi + trained_result$phi * last_obs_avg_diff
-                xi <- last_obs_avg[2] + xi
+                cval <- object@outlier_cval
+              }
+              ol <- tsoutliers::locate.outliers.iloop(resid = res, pars = pars, cval = cval, types = object@outlier_type, maxit = 20)
+              if (nrow(ol) > 0) {
+                cons_ol <- tsoutliers::find.consecutive.outliers(ol, object@outlier_type)
+                if (length(cons_ol) > 0) {
+                  ol <- ol[-cons_ol,]
+                }
+                if (any((length(res) - object@reg_num + 1):length(res) %in% ol$ind)) {
+                  ol <- ol[which(ol$ind %in% (length(res) - object@reg_num + 1):length(res)),]
+                  ol$ind <- ol$ind - length(trained_result$residuals)
+                  last_obs[ol$ind] <- ol$coefhat
+                  last_obs_diff <- last_obs[2] - last_obs[1]
+                }
               }
             }
+            last_obs <- last_obs[2]
+
             if (object@res_dist == "norm") {
+              mu <- trained_result$mu + trained_result$phi * last_obs_diff
+              mu <- last_obs + mu
               sd <- trained_result$sigma
               prob <- NULL
               if (!is.na(level)) {
                 prob <- 1 - stats::pnorm(q = level, mean = mu, sd = sd)
               }
-              predicted_result <- list("prob" = as.numeric(prob), "mean" = mu, "sd" = sd)
+              predicted_result <- list("prob" = as.numeric(prob), "mean" = mu, "sd" = sd, "expected" = min(max(mu, 0), 100))
             } else {
+              xi <- trained_result$xi + trained_result$phi * last_obs_diff
+              xi <- last_obs + xi
               omega <- trained_result$omega
               alpha <- trained_result$alpha
               prob <- NULL
               if (!is.na(level)) {
                 prob <- 1 - sn::psn(x = level, xi = xi, omega = omega, alpha = alpha)
               }
-              predicted_result <- list("prob" = as.numeric(prob), "xi" = xi, "omega" = omega, "alpha" = alpha)
+              predicted_result <- list("prob" = as.numeric(prob), "xi" = xi, "omega" = omega, "alpha" = alpha, "expected" = min(max(xi, 0), 100))
             }
             return(predicted_result)
           })
@@ -204,7 +270,7 @@ setMethod("compute_pi_up",
 setMethod("get_param_slots",
           signature(object = "ari11_sim"),
           function(object) {
-            numeric_slots <- c("cut_off_prob", "granularity", "train_size", "update_freq", "tolerance1", "tolerance2")
+            numeric_slots <- c("cut_off_prob", "granularity", "train_size", "update_freq", "tolerance1", "tolerance2", "outlier_cval")
             numeric_lst <- list()
             for (i in numeric_slots) {
               numeric_lst[[i]] <- methods::slot(object, i)
@@ -219,7 +285,7 @@ setMethod("get_param_slots",
 setMethod("get_characteristic_slots",
           signature(object = "ari11_sim"),
           function(object) {
-            character_slots <- c("name", "type", "window_size", "train_policy", "schedule_policy", "adjust_policy", "response", "res_dist")
+            character_slots <- c("name", "type", "window_size", "train_policy", "schedule_policy", "adjust_policy", "response", "res_dist", "outlier_type")
             character_lst <- list()
             for (i in character_slots) {
               character_lst[[i]] <- methods::slot(object, i)
@@ -306,7 +372,7 @@ setMethod("plot_sim_tracewise",
             ts_res <- ggplot2::ggplot(residual, aes(x = residual$time, y = residual$x)) +
               ggplot2::geom_line(color = "green") +
               ggplot2::theme(legend.position = "none") +
-              ggplot2::ylab("residuals") +
+              ggplot2::ylac 45b("residuals") +
               ggplot2::xlab("time")
 
             plt <- gridExtra::arrangeGrob(ts_plt, dens_res, ts_res, ncol = 2, nrow = 2, layout_matrix = rbind(c(1,1), c(2,3)))

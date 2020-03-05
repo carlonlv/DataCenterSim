@@ -372,7 +372,7 @@ setMethod("plot_sim_tracewise",
             ts_res <- ggplot2::ggplot(residual, aes(x = residual$time, y = residual$x)) +
               ggplot2::geom_line(color = "green") +
               ggplot2::theme(legend.position = "none") +
-              ggplot2::ylac 45b("residuals") +
+              ggplot2::ylab("residuals") +
               ggplot2::xlab("time")
 
             plt <- gridExtra::arrangeGrob(ts_plt, dens_res, ts_res, ncol = 2, nrow = 2, layout_matrix = rbind(c(1,1), c(2,3)))

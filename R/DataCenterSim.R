@@ -2,7 +2,7 @@
 #' @importFrom parallel mclapply
 #' @importFrom dplyr filter
 #' @import ggplot2
-#' @importFrom sn psn
 #' @importFrom gridExtra grid.arrange
 #' @import tsoutliers
+#' @import forecast
 NULL

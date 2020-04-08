@@ -4,7 +4,13 @@
 \alias{convert_frequency_dataset}
 \title{Convert Dataset Frequency Using Disjoint Windows.}
 \usage{
-convert_frequency_dataset(dataset, new_freq, response)
+convert_frequency_dataset(
+  dataset,
+  new_freq,
+  response,
+  keep.names = TRUE,
+  right.aligned = TRUE
+)
 }
 \arguments{
 \item{dataset}{A vector of numeric value.}
@@ -12,6 +18,10 @@ convert_frequency_dataset(dataset, new_freq, response)
 \item{new_freq}{An integer value.}
 
 \item{response}{If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.}
+
+\item{keep.names}{If this argument is \code{TRUE}, then if \code{dataset} has names representing the time stamp of each observation, then the output vector also keep names as aggretated time stamp of each observation.}
+
+\item{right.aligned}{If this argument is \code{TRUE}, then the converted frequency will be aligned from the right side instead of the left side.}
 }
 \value{
 The vector of smaller size than input vector if \code{new_freq} is greater than 1.

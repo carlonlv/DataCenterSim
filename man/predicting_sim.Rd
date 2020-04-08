@@ -4,30 +4,20 @@
 \alias{predicting_sim}
 \title{Simulation of Scheduling Jobs Based On Predictions With AR1 Model}
 \usage{
-predicting_sim(
-  index,
-  uni_lst,
-  dataset_max,
-  dataset_avg,
-  cores,
-  write_result,
-  plot_type
-)
+predicting_sim(object, x, xreg, cores, plot_type, result_loc)
 }
 \arguments{
-\item{index}{A numeric number representing the index of current parameter setting.}
+\item{object}{A uni-length sim object that represents a specific parameter setting.}
 
-\item{uni_lst}{The list of uni-length S4 sim objects.}
+\item{x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
-\item{dataset_max}{A numeric vector representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
-
-\item{dataset_avg}{A numeric vector representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
+\item{xreg}{A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.}
 
 \item{cores}{The number of threads for parallel programming for multiple traces, not supported for windows users.}
 
-\item{write_result}{TRUE if the result of the experiment is written to a file.}
-
 \item{plot_type}{A character that can be one of "overall", "tracewise", "paramwise" or "none".}
+
+\item{result_loc}{A character that specify the path to which the result of simulations will be saved to.}
 }
 \value{
 An S4 sim result object.

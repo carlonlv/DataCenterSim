@@ -21,21 +21,43 @@ round_to_nearest <- function(data, divisor, lower) {
 #' @param dataset A vector of numeric value.
 #' @param new_freq An integer value.
 #' @param response If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.
+#' @param keep.names If this argument is \code{TRUE}, then if \code{dataset} has names representing the time stamp of each observation, then the output vector also keep names as aggretated time stamp of each observation.
+#' @param right.aligned If this argument is \code{TRUE}, then the converted frequency will be aligned from the right side instead of the left side.
 #' @return The vector of smaller size than input vector if \code{new_freq} is greater than 1.
 #' @keywords internal
-convert_frequency_dataset <- function(dataset, new_freq, response) {
+convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = TRUE, right.aligned = TRUE) {
   new_dataset <- c()
+  new_names <- c()
   window_num <- floor(length(dataset) / new_freq)
   for (i in 1:window_num) {
-    from <- (i - 1) * new_freq + 1
-    to <- i * new_freq
-    new_val <- NULL
+    if (right.aligned) {
+      from <- length(dataset) - i * new_freq + 1
+      to <- length(dataset) - (i - 1) * new_freq
+    } else {
+      from <- 1 + (i - 1) * new_freq
+      to <- i * new_freq
+    }
+
     if (response == 'max') {
       new_val <- max(dataset[from:to], na.rm = TRUE)
     } else {
       new_val <- mean(dataset[from:to], na.rm = TRUE)
     }
-    new_dataset <- c(new_dataset, new_val)
+
+    name <- NULL
+    if (keep.names & !is.null(names(dataset))) {
+      name <- names(dataset)[to]
+    }
+
+    if (right.aligned) {
+      new_dataset <- c(new_val, new_dataset)
+      new_names <- c(name, new_names)
+    } else {
+      new_dataset <- c(new_dataset, new_val)
+      new_names <- c(new_names, name)
+    }
+
+    names(new_dataset) <- new_names
   }
   return(new_dataset)
 }
@@ -49,7 +71,7 @@ convert_frequency_dataset <- function(dataset, new_freq, response) {
 #' @param response If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.
 #' @return The vector of same size of input vector.
 #' @keywords internal
-convert_frequency_dataset_overlapping <- function(dataset, new_freq, response) {
+convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, keep.names = TRUE) {
   new_dataset <- c()
   last_window <- length(dataset) - new_freq + 1
   for (i in 1:last_window) {
@@ -63,396 +85,322 @@ convert_frequency_dataset_overlapping <- function(dataset, new_freq, response) {
     }
     new_dataset <- c(new_dataset, new_val)
   }
+  if (keep.names & !is.null(names(dataset))) {
+    names(new_dataset) <- names(dataset)
+  }
   return(new_dataset)
 }
 
 
-#' Get Training Update Step.
+#' Get Updated Adjustment Status.
 #'
-#' @description Computer training step.
-#' @param train_policy The training policy, either \code{"once"}, \code{"fixed"} or \code{"dynamic"}.
-#' @param tolerance1 The tolerance level of retrain, the quantile of previous performance of score 1.
-#' @param tolerance2 The tolerance level of retrain, the quantile of previous performance of score 2.
-#' @param prev_score1 A vector of previous correctly scheduled rate or survival rate.
-#' @param prev_score2 A vector of previous correctly unscheduled rate or utiliztion rate.
-#' @param last_score1 The current correctly scheduled rate or survival rate.
-#' @param last_score2 The current correctly unscheduled rate or utilization rate.
-#' @return train signal whether \code{TRUE} if retraining is needed at next update, otherwise \code{FALSE}.
-#' @keywords internal
-get_training_step <- function(train_policy, tolerance1, tolerance2, prev_score1, prev_score2, last_score1, last_score2) {
-  if (train_policy == "once") {
-    train_sig <- FALSE
-  } else if (train_policy == "fixed") {
-    train_sig <- TRUE
-  } else {
-    if (is.na(tolerance1)) {
-      bad_performance_score1 <- FALSE
-      bad_performance_score2 <- is.na(last_score2) | last_score2 == 0 | last_score2 < stats::quantile(prev_score2, probs = tolerance2, na.rm = TRUE)
-    } else if (is.na(tolerance2)) {
-      bad_performance_score1 <- is.na(last_score1) | last_score1 == 0 | last_score1 < stats::quantile(prev_score1, probs = tolerance1, na.rm = TRUE)
-      bad_performance_score2 <- FALSE
-    } else {
-      bad_performance_score1 <- is.na(last_score1) | last_score1 == 0 | last_score1 < stats::quantile(prev_score1, probs = tolerance1, na.rm = TRUE)
-      bad_performance_score2 <- is.na(last_score2) | last_score2 == 0 | last_score2 < stats::quantile(prev_score2, probs = tolerance2, na.rm = TRUE)
-    }
-    if (is.na(bad_performance_score1) | is.na(bad_performance_score2)) {
-      train_sig <- FALSE
-    } else {
-      if (bad_performance_score1 | bad_performance_score2) {
-        train_sig <- TRUE
-      } else {
-        train_sig <- FALSE
-      }
-    }
-  }
-  return(train_sig)
-}
-
-
-#' Check Decision of Scheduling Job At Next Window.
-#'
-#' @description Make decision based on the probability and cut off probability.
-#' @param prob The probability of next scheduling will fail.
-#' @param cut_off_prob The maximum probability allowed to have next scheduling failing.
-#' @return \code{1} if the scheduling decision is Yes, \code{0} otherwise.
-#' @keywords internal
-check_decision <- function(prob, cut_off_prob) {
-  return(ifelse(prob <= cut_off_prob, 1, 0))
-}
-
-
-#' Check Actual Information of Scheduling Job.
-#'
-#' @description Check the actual information if the job is scheduled.
-#' @param actual_obs The actual observation of the time series.
-#' @param cpu_required The cpu required by the job that needs to be scheduled.
-#' @param granularity The granularity of 100 percent of total cpu.
-#' @return \code{0} if the job scheduled actually survives, otherwise the location the job fails.
-#' @keywords internal
-check_actual <- function(actual_obs, cpu_required, granularity) {
-  if (granularity > 0) {
-    actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
-  } else {
-    actual_available <- 100 - actual_obs
-  }
-  pos <- ifelse(min(actual_available) >= cpu_required, 0, which(actual_available < cpu_required))
-  return(pos)
-}
-
-
-#' Get Update Step For Schedulings.
-#'
-#' @description Get update scheduling step given prediction and actual informations.
-#' @param prediction The prediction of current scheduling.
-#' @param actual The actual information of whether the current scheduling survives.
-#' @param window_size The length of predictions.
-#' @param adjust_policy The adjustment policy, \code{TRUE} or \code{FALSE}.
-#' @param adjust_switch The previous switch, \code{TRUE} for on and \code{FALSE}.
-#' @param schedule_policy The schedule policy, \code{"dynamic"} or \code{"disjoint"}.
-#' @return A list containing update step, (adjusted) prediction, and switch information.
-#' @keywords internal
-get_scheduling_step <- function(prediction, actual, window_size, adjust_policy, adjust_switch, schedule_policy) {
-  if (prediction == 1 & actual == 0) {
-    if (schedule_policy == "dynamic") {
-      update <- window_size
-    }
-    if (adjust_policy == "back_off" & adjust_switch) {
-      adjust_switch <- FALSE
-      prediction <- NA
-      if (schedule_policy == "dynamic") {
-        update <- 1
-      }
-    }
-  } else if (prediction == 1 & actual > 0) {
-    if (schedule_policy == "dynamic") {
-      update <- actual
-    }
-    if (adjust_policy == "back_off" & !adjust_switch) {
-      adjust_switch <- TRUE
-    } else if (adjust_policy == "back_off" & adjust_switch) {
-      prediction <- NA
-    }
-  } else if (prediction == 0 & actual == 0) {
-    if (schedule_policy == "dynamic") {
-      update <- 1
-    }
-    if (adjust_policy == "back_off" & !adjust_switch) {
-      adjust_switch <- TRUE
-    } else if (adjust_policy == "back_off" & adjust_switch) {
-      prediction <- NA
-    }
-  } else {
-    if (schedule_policy == "dynamic") {
-      update <- actual
-    }
-    if (adjust_policy == "back_off" & adjust_switch) {
-      adjust_switch <- FALSE
-      prediction <- NA
-      if (schedule_policy == "dynamic") {
-        update <- 1
-      }
-    }
-  }
-  return(list("adjust_switch" = adjust_switch, "prediction" = prediction, "update" = update))
-}
-
-
-#' Compute Overall Performance of Predictions.
-#'
-#' @description Compute overall correctly scheduled ratio and correctlt unscheduled ratio.
-#' @param predictions The predictions made, a vector of \code{0}, \code{1} and \code{NA}.
-#' @param actuals The actual survival information, a vector of \code{0} and \code{1}.
-#' @return A list consists scheduled num, unscheduled num, correctly scheduled num, correctly unscheduled num.
-#' @keywords internal
-compute_performance <- function(predictions, actuals) {
-  temp <- data.frame("predictions" = predictions, "actuals" = actuals)
-  temp <- dplyr::filter(temp, !is.na(predictions))
-  scheduled_num <- nrow(dplyr::filter(temp, predictions == 1))
-  unscheduled_num <- nrow(dplyr::filter(temp, predictions == 0))
-  correct_scheduled_num <- nrow(dplyr::filter(temp, predictions == 1 & actuals == 1))
-  correct_unscheduled_num <- nrow(dplyr::filter(temp, predictions == 0 & actuals == 0))
-  return(list("scheduled_num" = scheduled_num, "unscheduled_num" = unscheduled_num, "correct_scheduled_num" = correct_scheduled_num, "correct_unscheduled_num" = correct_unscheduled_num))
-}
-
-
-#' Check Utilization Of Next Prediction.
-#'
-#' @description Check the utilization of next predictions.
-#' @param pi_up The prediction upper bound of next observations.
-#' @param survival The survival information of the prediction.
-#' @param granularity The granularity of 100 percent of total cpu.
-#' @return A vector same size as the input vector.
-#' @keywords internal
-check_utilization <- function(pi_up, survival, granularity) {
-  if (is.na(survival) | survival != 0) {
-    return(0)
-  } else {
-    if (granularity > 0) {
-      scheduled_size <- round_to_nearest(100 - pi_up, granularity, TRUE)
-      return(scheduled_size)
-    } else {
-      return(100 - pi_up)
-    }
-  }
-}
-
-
-#' Check Survial Of A Single Prediction.
-#'
-#' @description Check the survival information of a prediction based on actual observations.
-#' @param pi_up The prediction upper bound of next observation.
-#' @param actual_obs The actual observation corresponding to the predictions.
-#' @param granularity The granularity of 100 percent of total cpu.
-#' @return If both predicted available and actual available is smaller than \code{granularity}, \code{NA} is returned, if predicted available is smaller than or equal to actual, \code{0} is returned, otherwise, the first position that predicted available is greater than actual is returned.
-#' @keywords internal
-check_survival <- function(pi_up, actual_obs, granularity) {
-  if (granularity > 0) {
-    actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
-  } else {
-    actual_available <- 100 - actual_obs
-  }
-
-  survival <- NULL
-  if (granularity == 0) {
-    if (pi_up == 100) {
-      survival <- NA
-    } else {
-      survival <- ifelse(min(actual_available) >= 100 - pi_up, 0, which(actual_available < 100 - pi_up)[1])
-    }
-  } else {
-    if ((100 - pi_up) < granularity) {
-      survival <- NA
-    } else {
-      if (min(actual_available) < granularity) {
-        survival <- which(actual_available <  100 - pi_up)[1]
-      } else {
-        survival <- ifelse(min(actual_available) >= 100 - pi_up, 0, which(actual_available < 100 - pi_up)[1])
-      }
-    }
-  }
-  return(survival)
-}
-
-
-#' Check Residual Of A Single Prediction.
-#'
-#' @description Check the forecast residual.
-#' @param expected The expected value of next observation.
-#' @param actual_obs The actual observation corresponding to the predictions.
-#' @param window_size The length of predictions.
-#' @param response If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.
-#' @return If expected is NA, then NA_real_ is returned, otherwise return aggregated actual subtract by expected value.
-#' @keywords internal
-check_residual <- function(expected, actual_obs, window_size, response) {
-  actual_obs <- convert_frequency_dataset(actual_obs, window_size, response)
-  if (is.na(expected)) {
-    return(NA_real_)
-  } else {
-    return(actual_obs - expected)
-  }
-}
-
-
-#' Get Update Step For Predicting.
-#'
-#' @description Get predicting update step given survival informations.
-#' @param survival The survival information of current scheduling survives.
-#' @param window_size The length of predictions.
-#' @param adjust_policy The adjustment policy, \code{"back_off"} or \code{"none"}.
-#' @param adjust_switch The previous switch, \code{TRUE} for on and \code{FALSE}.
-#' @param schedule_policy The schedule policy, \code{"dynamic"} or \code{"disjoint"}.
+#' @description Return the updated adjustment status based on the \code{react_speed} and \code{react_counter}.
+#' @param score1 A numeric indicating the computed score1 information from previous prediction step, should be \code{1}, \code{0} or \code{NA}.
+#' @param react_counter A numeric indicating the status of counter for changing the status of adjust_switch.
+#' @param adjust_switch A logical indicating the status of adjustment switch, \code{TRUE} for on and \code{FALSE}.
+#' @param react_speed A numeric vector indicating the reacting speed to change adjustment switch from \code{FALSE} to \code{TRUE} and from \code{TRUE} to \code{FALSE}.
 #' @return A list containing update step and switch information.
 #' @keywords internal
-get_predicting_step <- function(survival, window_size, adjust_policy, adjust_switch, schedule_policy) {
-  if (is.na(survival) | survival > 0) {
-    if (schedule_policy == "dynamic") {
-      update <- ifelse(is.na(survival), 1, survival)
-    }
-    if (adjust_policy == "back_off" & !adjust_switch) {
-      adjust_switch <- TRUE
-    } else if (adjust_policy == "back_off" & adjust_switch) {
-      survival <- NA
-    }
+get_adjust_switch <- function(score1, react_counter, adjust_switch, react_speed) {
+  if (is.na(score1)) {
+    adjust_switch <- adjust_switch
+    react_counter <- react_counter
   } else {
-    if (schedule_policy == "dynamic") {
-      update <- window_size
-    }
-    if (adjust_policy == "back_off" & adjust_switch) {
-      adjust_switch <- FALSE
-      survival <- NA
-      if (schedule_policy == "dynamic") {
-        update <- 1
+    if (score1 > 0) {
+      if (!adjust_switch) {
+        react_counter <- 0
+      } else {
+        react_counter <- react_counter + 1
+        if (react_counter >= react_speed[1]) {
+          adjust_switch <- FALSE
+          react_counter <- 0
+        }
+      }
+    } else {
+      if (!adjust_switch) {
+        react_counter <- react_counter + 1
+        if (react_counter >= react_speed[2]) {
+          adjust_switch <- TRUE
+          react_counter <- 0
+        }
+      } else {
+        react_counter <- 0
       }
     }
   }
-  return(list("adjust_switch" = adjust_switch, "update" = update, "survival" = survival))
+  return(list("adjust_switch" = adjust_switch, "react_counter" = react_counter))
 }
 
 
-#' Compute The Overall Survial.
+#' Check Scores Of A Single Prediction.
 #'
-#' @description Compute the overall survival rate given survival informations.
-#' @param survival A vector of survial information.
-#' @return A list containing the information of overall survival information.
+#' @description Check the score information of a prediction based on actual observations and predictions
+#' @param train_iter A numeric number representing the number of iteration of training step, used as identifier when evaluating training performance.
+#' @param test_iter A numeric number representing the number of iteration on testing step of the current training step.
+#' @param predict_iter A numeric number representing the number of iteration on prediction step of the current testing step.
+#' @param object An S4 sim object.
+#' @param predict_info The dataframe storing the prediction info
+#' @param actual_obs The actual observation corresponding to the predictions.
+#' @param adjust_switch A logical value representing the status of the adjust_switch.
+#' @return The updated prediction information dataframe with last row modified.
 #' @keywords internal
-compute_survival <- function(survival) {
-  cvt_survival <- ifelse(is.na(survival), NA, ifelse(survival == 0, 1, 0))
-  numerator <- sum(cvt_survival, na.rm = TRUE)
-  denominator <- length(cvt_survival[!is.na(cvt_survival)])
-  return(list("numerator" = numerator, "denominator" = denominator))
-}
+check_score_pred <- function(train_iter, test_iter, predict_iter, object, predict_info, actual_obs, adjust_switch) {
+  check_residual <- function(expected, actual_obs) {
+    if (is.na(expected)) {
+      return(NA_real_)
+    } else {
+      return(actual_obs - expected)
+    }
+  }
 
+  check_score1 <- function(pi_up, actual_obs, granularity) {
+    if (granularity > 0) {
+      actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
+      predicted_available <- round_to_nearest(100 - pi_up, granularity, TRUE)
+    } else {
+      actual_available <- 100 - actual_obs
+      predicted_available <- 100 - pi_up
+    }
 
-#' Compute The Overall Utilization.
-#'
-#' @description Compute the overall utilization rate given utilization informations.
-#' @param utilization A vector of survial information.
-#' @param actual_obs A vector of actual observations.
-#' @param window_size The length of predictions.
-#' @param granularity The granularity of 100 percent of total cpu.
-#' @return A list containing the information of overall survival information.
-#' @keywords internal
-compute_utilization <- function(utilization, actual_obs, window_size, granularity) {
-  compute_optimal_utilization <- function(actual_obs, window_size, granularity) {
-    score_lst <- rep(0, length(actual_obs) + window_size)
-    link_lst <- rep(NA, length(actual_obs))
-    actual_obs <- c(rep(NA, window_size), actual_obs)
-    i <- window_size + 1
-    while (i <= length(score_lst)) {
-      max_obs <- max(actual_obs[(i - window_size + 1):i])
-      max_obs <- ifelse(is.na(max_obs), 100, max_obs)
-      past_schedule_score <- score_lst[i - window_size] + check_utilization(max_obs, 0, granularity) * window_size
-      prev_unschedule_score <- score_lst[i - 1]
-      if (past_schedule_score > prev_unschedule_score) {
-        score_lst[i] <- past_schedule_score
-        j <- i - window_size
-        link_lst[i - window_size] <- j - window_size + 1
+    if (granularity == 0) {
+      if (predicted_available <= 0) {
+        score <- NA
       } else {
-        j <- i - window_size
-        score_lst[i] <- prev_unschedule_score
-        link_lst[i - window_size] <- j - 1
-      }
-      i <- i + 1
-    }
-
-    scheduled_time <- c()
-    scheduled_size <- c()
-    idx <- length(link_lst)
-    next_idx <- link_lst[idx]
-    while (idx > 0) {
-      if (idx - next_idx > 1) {
-        scheduled_time <- c(scheduled_time, next_idx)
-        scheduled_size <- c(scheduled_size, max(actual_obs[(window_size + next_idx):(window_size + idx)]))
-        idx <- next_idx - 1
-      } else {
-        idx <- next_idx
-      }
-      next_idx <- link_lst[idx]
-    }
-
-    decision_opt <- data.frame()
-    for (i in 1:length(scheduled_time)) {
-      for (j in 0:(window_size - 1)) {
-        decision_opt <- rbind(decision_opt, c(scheduled_time[i] + j, scheduled_size[i]))
-      }
-    }
-
-    if (nrow(decision_opt) == 0) {
-      for (k in 1:length(link_lst)) {
-        decision_opt <- rbind(decision_opt, c(k, NA))
+        score <- ifelse(actual_available >= predicted_available, 1, 0)
       }
     } else {
-      for (k in 1:length(link_lst)) {
-        if (!(k %in% decision_opt[,1])) {
-          decision_opt <- rbind(decision_opt, c(k, NA))
+      if (predicted_available < granularity) {
+        score <- NA
+      } else {
+        if (actual_available < granularity) {
+          score <- 0
+        } else {
+          score <- ifelse(actual_available >= predicted_available, 1, 0)
         }
       }
     }
-
-    colnames(decision_opt) <- c("scheduled_time", "scheduled_size")
-    decision_opt <- decision_opt[order(decision_opt$scheduled_time),]
-    return(list("max_score" = score_lst[length(score_lst)], "decision_opt" = decision_opt))
+    return(score)
   }
 
-  if (granularity > 0) {
-    actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
-  } else {
-    actual_available <- 100 - actual_obs
+  check_score2 <- function(pi_up, actual, granularity) {
+    score <- ifelse(granularity > 0, round_to_nearest(100 - pi_up, granularity, TRUE) / round_to_nearest(100 - actual, granularity, TRUE), (100 - pi_up) / (100 - actual))
+    score <- ifelse(score > 1, 0, ifelse(score < 0, 0, score))
+    return(score)
   }
-  actual_obs <- 100 - actual_available
-  total_available <- sum(100 - actual_obs)
-  actual_used <- utilization * window_size
 
-  opt_scheduling <- compute_optimal_utilization(actual_obs, window_size, granularity)
+  actual <- convert_frequency_dataset(actual_obs, object@window_size, object@response, keep.names = TRUE)
+  time <- as.numeric(names(actual))
 
-  return(list("numerator" = sum(actual_used), "denominator" = total_available, "denominator_opt" = opt_scheduling$max_score, "decision_opt" = opt_scheduling$decision_opt))
+  idx <- predict_info$train_iter == train_iter & predict_info$test_iter == test_iter & predict_info$predict_iter == predict_iter
+
+  pi_up <- predict_info[idx, "pi_up"]
+  expected <- predict_info[idx, "expected"]
+  score1 <- check_score1(pi_up, actual, object@granularity)
+  score2 <- check_score2(pi_up, actual, object@granularity)
+  res <- check_residual(expected, actual)
+
+  predict_info[idx, "time"] <- time
+  predict_info[idx, "actual"] <- actual
+  predict_info[idx, "residuals"] <- res
+  predict_info[idx, "adjustment"] <- adjust_switch
+  predict_info[idx, "score_pred_1"] <- score1
+  predict_info[idx, "score_pred_2"] <- score2
+  return(predict_info)
 }
 
 
-#' Find Overall Evaluation
+#' Check Score Of A Testing Batch.
 #'
-#' @description Find the overall evaluation after an epoche is completed.
-#' @param numerator1 The numerator of score 1.
-#' @param denominator1 The denominator of score 1.
-#' @param numerator2 The numerator of score 2.
-#' @param denominator2 The denominator of score 2.
-#' @param numerator3 The numerator of score 3, optional.
-#' @param denominator3 The denominator of score 3, optional.
-#' @return A list consists of average and aggregated score 1, score 2 and score 3.
+#' @description Check the score information of a testing batch based on actual observations and predictions.
+#' @param test_predict_info A dataframe representing current prediction information.
+#' @param predict_info A dataframe representing past prediction information.
+#' @return A list containing updated predict_info if applicable and sim_result object.
 #' @keywords internal
-find_overall_evaluation <- function(numerator1, denominator1, numerator2, denominator2, numerator3 = NULL, denominator3 = NULL) {
-  avg_score1 <- mean(numerator1 / denominator1, na.rm = TRUE)
-  agg_score1 <- sum(numerator1, na.rm = TRUE) / sum(denominator1, na.rm = TRUE)
-  avg_score2 <- mean(numerator2 / denominator2, na.rm = TRUE)
-  agg_score2 <- sum(numerator2, na.rm = TRUE) / sum(denominator2, na.rm = TRUE)
-  if (is.null(numerator3) | is.null(denominator3)) {
-    avg_score3 <- NULL
-    agg_score3 <- NULL
-  } else {
-    avg_score3 <- mean(numerator3 / denominator3, na.rm = TRUE)
-    agg_score3 <- sum(numerator3, na.rm = TRUE) / sum(denominator3, na.rm = TRUE)
+check_score_test <- function(test_predict_info, predict_info) {
+  cbd_predict_info <- rbind(predict_info, test_predict_info)
+  score_test_1.n <- stats::weighted.mean(test_predict_info$score_pred_1, rep(1, nrow(test_predict_info)), na.rm = TRUE)
+  score_test_1.w <- length(stats::na.omit(test_predict_info$score_pred_1))
+  score_test_1_adj.n <- stats::weighted.mean(test_predict_info$score_pred_1, ifelse(test_predict_info$adjustment, 0, 1), na.rm = TRUE)
+  score_test_1_adj.w <- length(stats::na.omit(test_predict_info$score_pred_1[which(!test_predict_info$adjustment)]))
+  score_test_2.n <- stats::weighted.mean(test_predict_info$score_pred_2, rep(1, nrow(test_predict_info)), na.rm = TRUE)
+  score_test_2.w <- length(stats::na.omit(test_predict_info$score_pred_2))
+  score_test_2_adj.n <- stats::weighted.mean(test_predict_info$score_pred_2, ifelse(test_predict_info$adjustment, 0, 1), na.rm = TRUE)
+  score_test_2_adj.w <- length(stats::na.omit(test_predict_info$score_pred_2[which(!test_predict_info$adjustment)]))
+  test_sim_result <- sim_result(type = "test",
+                               score1.n = score_test_1.n,
+                               score1.w = score_test_1.w,
+                               score1_adj.n = score_test_1_adj.n,
+                               score1_adj.w = score_test_1_adj.w,
+                               score2.n = score_test_2.n,
+                               score2.w = score_test_2.w,
+                               score2_adj.n = score_test_2_adj.n,
+                               score2_adj.w = score_test_2_adj.w)
+  return(list("cbd_predict_info" = cbd_predict_info, "test_sim_result" = test_sim_result))
+}
+
+
+#' Check Score Of An Entire Trace.
+#'
+#' @description Check the score information of an entire trace based on actual observations and predictions.
+#' @param predict_info A dataframe representing past prediction information.
+#' @return A sim_result object.
+#' @keywords internal
+check_score_trace <- function(predict_info) {
+  score_trace_1.n <- stats::weighted.mean(predict_info$score_pred_1, rep(1, nrow(predict_info)), na.rm = TRUE)
+  score_trace_1.w <- length(stats::na.omit(predict_info$score_pred_1))
+  score_trace_1_adj.n <- stats::weighted.mean(predict_info$score_pred_1, ifelse(predict_info$adjustment, 1, 0), na.rm = TRUE)
+  score_trace_1_adj.w <- length(stats::na.omit(predict_info$score_pred_1))
+  score_trace_2.n <- stats::weighted.mean(predict_info$score_pred_2, rep(1, nrow(predict_info)), na.rm = TRUE)
+  score_trace_2.w <- length(stats::na.omit(predict_info$score_pred_2))
+  score_trace_2_adj.n <- stats::weighted.mean(predict_info$score_pred_2, ifelse(predict_info$adjustment, 1, 0), na.rm = TRUE)
+  score_trace_2_adj.w <- length(stats::na.omit(predict_info$score_pred_2))
+  trace_sim_result <- sim_result(type = "trace",
+                                score1.n = score_trace_1.n,
+                                score1.w = score_trace_1.w,
+                                score1_adj.n = score_trace_1_adj.n,
+                                score1_adj.w = score_trace_1_adj.w,
+                                score2.n = score_trace_2.n,
+                                score2.w = score_trace_2.w,
+                                score2_adj.n = score_trace_2_adj.n,
+                                score2_adj.w = score_trace_2_adj.w)
+  return(trace_sim_result)
+}
+
+
+#' Check If Performacne is Good Enough
+#'
+#' @description Check if the scheduling performance reaches target on score1.
+#' @param score_result A sim_result object representing testing result on a testing batch.
+#' @param target_score_1 A numeric value representing target of score1 overall.
+#' @return A logical value \code{TRUE} if performance is good enough, \code{FALSE}, otherwise.
+#' @keywords internal
+is_well_performed <- function(score_result, target_score_1) {
+  if (is.null(score_result)) {
+    return(FALSE)
   }
-  return(list("avg_score1" = avg_score1, "avg_score2" = avg_score2, "avg_score3" = avg_score3, "agg_score1" = agg_score1, "agg_score2" = agg_score2, "agg_score3" = agg_score3))
+  if (is.na(score_result@score1.n) | is.na(score_result@score1_adj.n)) {
+    return(FALSE)
+  } else if (score_result@score1.n >= target_score_1 | score_result@score1_adj.n >= target_score_1) {
+    return(TRUE)
+  } else {
+    return(FALSE)
+  }
+}
+
+
+#' Compare Performance of Two Models On A Test Batch
+#'
+#' @description Check if model 1 outperforms model 2 on a test batch.
+#' @param score_result1 A sim_result object representing testing result on a testing batch for model 1.
+#' @param score_result2 A sim_result object representing testing result on a testing batch for model 2.
+#' @param target_score_1 A numeric value representing target of score1 overall.
+#' @return A logical value \code{TRUE} if model 1 outperforms model 2, \code{FALSE} otherwise.
+#' @keywords internal
+out_performs <- function(score_result1, score_result2, target_score_1) {
+  if (is.null(score_result1)) {
+    return(FALSE)
+  }
+  if (is.null(score_result2)) {
+    return(TRUE)
+  }
+  if (is.na(score_result1)) {
+    return(FALSE)
+  }
+  if (is.na(score_result2)) {
+    return(TRUE)
+  }
+  m1_good_enough <- is_well_performed(score_result1, target_score_1)
+  m2_good_enough <- is_well_performed(score_result2, target_score_1)
+  if (m1_good_enough & m2_good_enough) {
+    return(ifelse(score_result1@score2.n > score_result2@score2.n, TRUE, FALSE))
+  } else if (m1_good_enough) {
+    return(TRUE)
+  } else if (m2_good_enough) {
+    return(FALSE)
+  } else {
+    if (score_result1@score1.n == score_result2@score1.n) {
+      return(ifelse(score_result1@score2.n > score_result2@score2.n, TRUE, FALSE))
+    } else {
+      return(ifelse(score_result1@score1.n > score_result2@score1.n, TRUE, FALSE))
+    }
+  }
+}
+
+
+#' Find Best Performed Model In Candidate Models.
+#'
+#' @description Find best performed model based on each model performance history.
+#' @param candidate_model A numeric vector representing the pool from which the best candidate model will be selected.
+#' @param predict_results A list of sim_result objects representing the prediction histories of models.
+#' @return The index of best performance candidate model.
+#' @keywords internal
+find_best_candidate <- function(candidate_model, predict_histories) {
+  best_idx <- candidate_model[1]
+  if (length(candidate_model) == 1) {
+    return(best_idx)
+  } else {
+    for (i in 2:length(candidate_model)) {
+      if (out_performs(predict_histories[[letters[candidate_model[i]]]], predict_histories[[letters[best_idx]]], -Inf)) {
+        best_idx <- candidate_model[i]
+      }
+    }
+    return(best_idx)
+  }
+}
+
+
+#' Find Worst Performed Model In Candidate Models.
+#'
+#' @description Find worst performed model based on each model performance history to be replaced by new model.
+#' @param model_num A numeric number representing the total number of models to keep and switch within.
+#' @param predict_histories A list of sim_result objects representing the prediction histories of models.
+#' @return The index of worst performance candidate model.
+#' @keywords internal
+find_worst_candidate <- function(model_num, predict_histories) {
+  worst_idx <- 1
+  if (model_num == 1) {
+    return(worst_idx)
+  } else {
+    for (i in 2:model_num) {
+      if (out_performs(predict_histories[[letters[worst_idx]]], predict_histories[[letters[i]]], Inf)) {
+        worst_idx <- i
+      }
+    }
+    return(worst_idx)
+  }
+}
+
+
+#' Combine Two Simulation Result.
+#'
+#' @description Combine two sim_result object and return the combined object.
+#' @param object1 A sim_result object to be combined with another.
+#' @param object2 A sim_result object to be combined with another.
+#' @return A sim_result object with type being the higher level of the two objects being combined.
+#' @keywords internal
+combine_result <- function(object1, object2) {
+  ordering <- c("test", "train", "trace", "param")
+  idx_1 <- which(object1@type == ordering)
+  idx_2 <- which(object2@type == ordering)
+  cbd_type <- ordering[max(idx_1, idx_2)]
+  cbd_score1.n <- stats::weighted.mean(x = c(object1@score1.n, object2@score1.n), w = c(object1@score1.w, object2@score1.w), na.rm = TRUE)
+  cbd_score1.w <- sum(object1@score1.w, object2@score1.w)
+  cbd_score1_adj.n <- stats::weighted.mean(x = c(object1@score1_adj.n, object2@score1_adj.n), w = c(object1@score1_adj.w, object2@score1_adj.w), na.rm = TRUE)
+  cbd_score1_adj.w <- sum(object1@score1_adj.w, object2@score1_adj.w)
+  cbd_score2.n <- stats::weighted.mean(x = c(object1@score2.n, object2@score2.n), w = c(object1@score2.w, object2@score2.w), na.rm = TRUE)
+  cbd_score2.w <- sum(object1@score2.w, object2@score2.w)
+  cbd_score2_adj.n <- stats::weighted.mean(x = c(object1@score2_adj.n, object2@score2_adj.n), w = c(object1@score2_adj.w, object2@score2_adj.w), na.rm = TRUE)
+  cbd_score2_adj.w <- sum(object1@score2_adj.w, object2@score2_adj.w)
+  cbd_sim_result <- sim_result(type = cbd_type,
+                               score1.n = cbd_score1.n,
+                               score1.w = cbd_score1.w,
+                               score1_adj.n = cbd_score1_adj.n,
+                               score1_adj.w = cbd_score1_adj.w,
+                               score2.n = cbd_score2.n,
+                               score2.w = cbd_score2.w,
+                               score2_adj.n = cbd_score2_adj.n,
+                               score2_adj.w = cbd_score2_adj.w)
+  return(cbd_sim_result)
 }
 
 
@@ -475,103 +423,15 @@ find_state_num <- function(obs, state_num) {
 }
 
 
-#' Generate The Result Of Simulation
+#' Check Write Location
 #'
-#' @param object A subclass of S4 sim object.
-#' @param evaluation The evaluation dataframe with each row representing each trace, and the columns consists of performance information.
-#' @param write_result A logical TRUE/FALSE argument to determine whether to store the result of simulation to a file to location stored as an attribute in sim object.
-#' @return A list consists of summary of simulation result.
+#' @param ... The name of parent directories that will be used for path of parent directory.
+#' @param file_name The name of file.
 #' @keywords internal
-generate_result <- function(object, evaluation, write_result) {
-  if (object@type == "scheduling") {
-    overall_result <- find_overall_evaluation(evaluation$correct_scheduled_num, evaluation$scheduled_num, evaluation$correct_unscheduled_num, evaluation$unscheduled_num)
-    print(paste("Avg Correct Scheduled Rate:", overall_result$avg_score1))
-    print(paste("Agg Correct Scheduled Rate:", overall_result$agg_score1))
-    print(paste("Avg Correct Unscheduled Rate:", overall_result$avg_score2))
-    print(paste("Agg Correct Unscheduled Rate:", overall_result$agg_score2))
-  } else {
-    overall_result <- find_overall_evaluation(evaluation$sur_num, evaluation$sur_den, evaluation$util_num, evaluation$util_den, evaluation$util_num, evaluation$util_den_opt)
-    print(paste("Avg Survival Rate:", overall_result$avg_score1))
-    print(paste("Agg Survival Rate:", overall_result$agg_score1))
-    print(paste("Avg Utilization Rate:", overall_result$avg_score2))
-    print(paste("Agg Utilization Rate:", overall_result$agg_score2))
-    print(paste("Avg Utilization Rate wrt Optimal:", overall_result$avg_score3))
-    print(paste("Agg Utilization Rate wrt Optimal:", overall_result$agg_score3))
+write_location_check <- function(..., file_name) {
+  parent_dir <- fs::path(...)
+  if (!fs::dir_exists(parent_dir)) {
+    fs::dir_create(parent_dir)
   }
-
-  if (write_result) {
-    file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
-    fp <- fs::path(paste0(object@result_loc, file_name), ext = "csv")
-    param <- methods::as(object, "data.frame")
-    new_row <- data.frame()
-    new_row <- rbind(new_row, c(param, overall_result$avg_score1, overall_result$agg_score1, overall_result$avg_score2, overall_result$agg_score2, overall_result$avg_score3, overall_result$agg_score3))
-    if (object@type == "scheduling") {
-      colnames(new_row) <- c(colnames(param), "avg_correct_scheduled_rate", "agg_correct_scheduled_rate", "avg_correct_unscheduled_rate", "agg_correct_unscheduled_rate")
-    } else {
-      colnames(new_row) <- c(colnames(param), "avg_survival_rate", "agg_survival_rate", "avg_utilization_rate", "agg_utilization_rate", "avg_utilization_opt_rate", "agg_utilization_opt_rate")
-    }
-    if (!fs::file_exists(fp)) {
-      fs::file_create(fp)
-      utils::write.table(new_row, file = fp, append = FALSE, quote = FALSE, col.names = TRUE, row.names = FALSE, sep = ",")
-    } else {
-      utils::write.table(new_row, file = fp, append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE, sep = ",")
-    }
-  }
-  return(overall_result)
-}
-
-
-#' Calculate Sample Covariance in Time Series
-#'
-#' This function calculates \eqn{\frac{1}{n} \sum_{i=1}^{n-k}(x_i - \bar{x})^r(x_{i+k} - \bar{x})^s}, a numeric estimator for \eqn{E[(X_t - E[X_t])^r(X_{t+k} - E[X_{t+k}])^s]}
-#'
-#' @param dataset An observed dataset.
-#' @param k lag
-#' @param r power
-#' @return A numeric value calculated
-#' @keywords internal
-sample_moment_lag <- function(dataset, k, r, s) {
-  n <- length(dataset)
-  term1 <- (dataset[1:(n - k)] - mean(dataset)) ^ r
-  term2 <- (dataset[(1 + k):n] - mean(dataset)) ^ s
-  result <- (term1 %*% term2) / n
-  return(result[1,1])
-}
-
-
-#' Split A Sim Object Into Sim Objects With Length 1 Slots
-#'
-#' @param object An S4 sim object
-#' @return A list containing all the sim objects with uni-length slots
-#' @keywords internal
-split_to_uni <- function(object) {
-  methods::validObject(object)
-  result <- list()
-  numeric_lst <- get_param_slots(object)
-  character_slots <- setdiff(methods::slotNames(object), names(numeric_lst))
-  cmb <- expand.grid(numeric_lst)
-  counter <- 1
-  for (j in 1:nrow(cmb)) {
-    info <- cmb[j,]
-    uni <- methods::new(class(object))
-    error <- FALSE
-    for (k in names(numeric_lst)) {
-      tryCatch({
-        methods::slot(uni, k, check = TRUE) <- as.numeric(info[k])
-      }, error = function(cond) {
-        error <- TRUE
-      })
-      if (error) {
-        break
-      }
-    }
-    if (!error) {
-      for (l in character_slots) {
-        methods::slot(uni, l) <- slot(object, l)
-      }
-      result[[counter]] <- uni
-      counter <- counter + 1
-    }
-  }
-  return(result)
+  return(fs::path(parent_dir, file_name))
 }

@@ -8,9 +8,6 @@ NULL
 #' @keywords internal
 check_valid_sim <- function(object) {
   type_choices <- c("scheduling", "predicting")
-  train_policy_choices <- c("once", "fixed", "dynamic")
-  schedule_policy_choices <- c("disjoint", "dynamic")
-  adjust_policy_choices <- c("back_off", "none")
   response_choices <- c("max", "avg")
   errors <- character()
   if (length(object@name) != 1 | is.na(object@name)) {
@@ -21,52 +18,32 @@ check_valid_sim <- function(object) {
     msg <- paste0("type must be one of ", paste(type_choices, collapse = " "), ".")
     errors <- c(errors, msg)
   }
-  if (any(is.na(object@window_size)) | any(object@window_size %% 1 != 0) | any(object@window_size <= 0)) {
-    msg <- paste0("window_size must only consist positive integers.")
+  if (is.na(object@window_size) | object@window_size %% 1 != 0 | object@window_size <= 0) {
+    msg <- paste0("window_size must be a positive integer.")
     errors <- c(errors, msg)
   }
-  if (any(is.na(object@cut_off_prob)) | any(object@cut_off_prob <= 0) | any(object@cut_off_prob >= 1)) {
-    msg <- paste0("cut_off_prob must only consist numeric values within 0 and 1, exclusively.")
+  if (is.na(object@cut_off_prob) | object@cut_off_prob <= 0 | object@cut_off_prob >= 1) {
+    msg <- paste0("cut_off_prob must be numeric values within 0 and 1, exclusively.")
     errors <- c(errors, msg)
   }
-  if (any(is.na(object@granularity)) | any(object@granularity < 0) | any(object@granularity >= 100)) {
-    msg <- paste0("granularity must only consist non-negative numeric values that are less than 100.")
+  if (is.na(object@granularity) | object@granularity < 0 | object@granularity >= 100) {
+    msg <- paste0("granularity must be non-negative numeric values that are less than 100.")
     errors <- c(errors, msg)
   }
-  if (any(is.na(object@train_size)) | any(object@train_size %% 1 != 0) | any(object@train_size <= 0)) {
-    msg <- paste0("train_size must only consist positive integers.")
+  if (is.na(object@train_size) | object@train_size %% 1 != 0 | object@train_size <= 0) {
+    msg <- paste0("train_size must be a positive integer.")
     errors <- c(errors, msg)
   }
-  if (any(is.na(object@update_freq)) | any(object@update_freq %% 1 != 0) | any(object@update_freq <= 0) | all(object@update_freq %% object@window_size != 0)) {
-    msg <- paste0("update_freq must consist positive integers that at least one multiple of one of the window_size.")
+  if (is.na(object@model_num) | object@model_num %% 1 != 0 | object@model_num <= 0 | object@model_num > 26) {
+    msg <- paste0("model_num must be a positive integer smaller than 26.")
     errors <- c(errors, msg)
   }
-  if (length(object@train_policy) != 1 | is.na(object@train_policy) |  all(object@train_policy != train_policy_choices)) {
-    msg <- paste0("train_policy must be one of ", paste(train_policy_choices, collapse = " "), ".")
+  if (is.na(object@update_freq) | object@update_freq %% 1 != 0 | object@update_freq <= 0 | object@update_freq %% object@window_size != 0) {
+    msg <- paste0("update_freq must be a positive integer that is multiple of the window_size.")
     errors <- c(errors, msg)
   }
-  if (length(object@schedule_policy) != 1 | is.na(object@schedule_policy) |  all(object@schedule_policy != schedule_policy_choices)) {
-    msg <- paste0("schedule_policy must be one of ", paste(schedule_policy_choices, collapse = " "), ".")
-    errors <- c(errors, msg)
-  }
-  if (length(object@adjust_policy) != 1 | is.na(object@adjust_policy) |  all(object@adjust_policy != adjust_policy_choices)) {
-    msg <- paste0("adjust_policy must be one of ", paste(adjust_policy_choices, collapse = " "), ".")
-    errors <- c(errors, msg)
-  }
-  if (length(object@result_loc) != 1 | is.na(object@result_loc) | !fs::dir_exists(object@result_loc)) {
-    msg <- paste0("result_loc does not exist.")
-    errors <- c(errors, msg)
-  }
-  if (all(is.na(object@tolerance1)) & all(is.na(object@tolerance2))) {
-    msg <- paste0("tolerance1 and tolerance2 cannot only be NAs.")
-    errors <- c(errors, msg)
-  }
-  if (any(object@tolerance1 <= 0, na.rm = TRUE) | any(object@tolerance1 >= 1, na.rm = TRUE)) {
-    msg <- paste0("tolerance1 must only consist numeric values within 0 and 1, exclusively, or NA.")
-    errors <- c(errors, msg)
-  }
-  if (any(object@tolerance2 <= 0, na.rm = TRUE) | any(object@tolerance2 >= 1, na.rm = TRUE)) {
-    msg <- paste0("tolerance2 must only consist numeric values within 0 and 1, exclusively, or NA.")
+  if (length(object@react_speed) != 2 | any(is.na(object@react_speed)) |  any(object@react_speed <= 0) | any(object@react_speed %% 1 != 0)) {
+    msg <- paste0("react_speed must be vector of length two consists of positive integers.")
     errors <- c(errors, msg)
   }
   if (length(object@response) != 1 | is.na(object@response) |  all(object@response != response_choices)) {
@@ -84,71 +61,59 @@ check_valid_sim <- function(object) {
 #' An S4 Class to Represent A Simulation.
 #'
 #' @slot name A character that represents the name of the simulation.
-#' @slot type A character that specify the type of simulation to run, this can either be \code{"scheduling"} or \code{"predicting"}.
-#' @slot window_size A numeric vector that can only be integers to specify how many observations to be aggregated as one.
-#' @slot cut_off_prob A numeric vector that is the the maximum probability allowed to have next scheduling failing if \code{type = "scheduling"}, and the level of the prediction interval if \code{type = "predicting"}. Default values are \code{0.005, 0.01, 0.1}.
-#' @slot granularity A numeric vector that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values are \code{100/32, 100/64, 0}.
-#' @slot train_size A numeric vector that specify the training size used for simulations. Default values are \code{2000, 3000, 4000}.
-#' @slot update_freq A numeric vector that specify the length of testing after each training step, also the amount of step to update after testing step is complete. Default values are \code{2000, 3000, 4000}.
-#' @slot train_policy A character that specify the training policy, this can either be \code{"once"}, \code{"fixed"} and \code{dynamic}. Default value is \code{"fixed"}.
-#' @slot schedule_policy A character that specify the scheduling policy, this can either be \code{"disjoint"} or \code{"dynamic"}. Default value is \code{"dynamic"}.
-#' @slot adjust_policy A character that specify the adjustment policy, this can either be \code{"back_off"} or \code{"none"}. Defaut is \code{"none"}.
-#' @slot tolerance1 A numeric vector that specify the minimum quantile of past performance needs to be achieved for score1, otherwise, re-train signal will be sent.
-#' @slot tolerance2 A numeric vector that specify the minimum quantile of past performance needs to be achieved for score2, otherwise, re-train signal will be sent.
+#' @slot window_size A numeric vector that can only be integers to specify how many observations to be aggregated as one. Default value is \code{12}.
+#' @slot cut_off_prob A numeric vector that is the level of the prediction interval and the target score for s\code{score1}. Default value is \code{0.005}.
+#' @slot granularity A numeric vector that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values is \code{100/32}.
+#' @slot train_size A numeric vector that specify the training size after aggregated by \code{window_size} used for simulations. Default values is \code{100}.
+#' @slot model_num A numeric number that specify the maximum number of models for switching. Default value is \code{2}.
+#' @slot update_freq A numeric vector that specify the length of testing after each training step after aggregated by \code{window_size}, also the amount of step to update after testing step is complete. Default values is \code{3}.
+#' @slot react_speed A numeric vector of length two that specify the number of failed/successfull predictions needed to activate/deactive backing off strategy. Default is \code{c(1,1)}.
 #' @slot response A character that specify the targeting trace to be tested on, this can either be \code{"max"} or \code{"avg"} for max traces and average traces respectively.
-#' @slot result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @name sim-class
 #' @rdname sim-class
 #' @exportClass sim
 sim <- setClass("sim",
                 slots = list(name = "character",
-                             type = "character",
                              window_size = "numeric",
                              cut_off_prob = "numeric",
                              granularity = "numeric",
                              train_size = "numeric",
+                             model_num = "numeric",
                              update_freq = "numeric",
-                             train_policy = "character",
-                             schedule_policy = "character",
-                             adjust_policy = "character",
-                             tolerance1 = "numeric",
-                             tolerance2 = "numeric",
-                             response = "character",
-                             result_loc = "character"),
+                             react_speed = "numeric",
+                             response = "character"),
                 prototype = list(name = NA_character_,
-                                 type = NA_character_,
-                                 window_size = c(12),
-                                 cut_off_prob = c(0.005, 0.01, 0.1),
-                                 granularity = c(3.125, 1.5625, 0),
-                                 train_size = c(2000, 3000, 4000),
-                                 update_freq = c(36, 72, 108),
-                                 train_policy = "fixed",
-                                 schedule_policy = "dynamic",
-                                 adjust_policy = "none",
-                                 tolerance1 = c(0.25, 0.75),
-                                 tolerance2 = c(0.5, NA_real_),
-                                 response = "max",
-                                 result_loc = getwd()),
+                                 window_size = 12,
+                                 cut_off_prob = 0.005,
+                                 granularity = 3.125,
+                                 train_size = 100,
+                                 model_num = 2,
+                                 update_freq = 3,
+                                 react_speed = c(1, 1),
+                                 response = "max"),
                 validity = check_valid_sim)
 
 
-#' An S4 Class to Represent A Hidden Processing Simulation
+#' An S4 Class to Represent A Simulation Result.
 #'
-#' This Class is not created mannually by user, but produced as the result of generic functions: \code{train_model} and \code{do_prediction}. It should extend the corresponding sim object.
-#'
-#' @slot trained_model An additional slot to \code{sim} object, typically a list to store all the information that could represent a trained model. This information should be used in \code{do_prediction} generic function.
-#' @slot predict_result An additional slot to \code{sim} object, typically a list to store all the information about predicted information. This information should be used in \code{compute_pi_up} generic function.
-#' @seealso \code{\link{sim-class}} for super class, \code{\link{train_model}} for producing \code{sim_process} object, \code{\link{do_prediction}} and \code{\link{compute_pi_up}} for use of \code{sim_process} object.
-#' @name sim_process-class
-NULL
-
-
-#' An S4 Class to Represent Result of Simulation
-#'
-#' This Class is not created mannually by user, but produced as the result of the main simulation functions: \code{run_sim}.
-#'
-#' @slot result A dataframe object storing the result of simulation for each trace, each row represents one trace, and the columns represent the performance information.
-#' @slot summ A list representing the summary of all traces, with four elements: average, aggregated score 1 and score 2.
-#' @seealso \code{\link{sim-class}} for super class.
+#' @slot type A character that represents the type of the simulation result, it should be either \code{"test"} for a testing batch, \code{"train"} for training model life time, \code{"trace"} for an entire trace, \code{"param"} for all traces in same parameter setting.
+#' @slot score1.n A numeric value that represents the performance on score 1 consistent with \code{type}.
+#' @slot score1.w A numeric value that represents the weight of \code{score1.n}.
+#' @slot score1_adj.n A numeric value that represents the performance on adjusted score1 consistent with \code{type}.
+#' @slot score1_adj.w A numeric value that represents the weight of \code{score1_adj.n}.
+#' @slot score2.n A numeric value that represents the performance on score 2 consistent with \code{type}.
+#' @slot score2.w A numeric value that represents the weight of \code{score2.w}.
+#' @slot score2_adj.n A numeric value that represents the performance on adjusted score 2 consistent with \code{type}.
+#' @slot score2_adj.w A numeric value that represents the weight of \code{score2_adj.n}.
 #' @name sim_result-class
-NULL
+#' @rdname sim_result-class
+sim_result <- setClass("sim_result",
+                       slots = list(type = "character",
+                                    score1.n = "numeric",
+                                    score1.w = "numeric",
+                                    score1_adj.n = "numeric",
+                                    score1_adj.w = "numeric",
+                                    score2.n = "numeric",
+                                    score2.w = "numeric",
+                                    score2_adj.n = "numeric",
+                                    score2_adj.w = "numeric"))

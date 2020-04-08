@@ -1,20 +1,6 @@
 #' @include sim_class.R
 NULL
 
-#' Getter/Setter for Simulation Type
-#'
-#' A type is the type of simulation, that can only take \code{"predicting"} and \code{"scheduling"}. If \code{"scheduling"} is provided, simulation sequantially training and testing by scheduling a job with job size supplied by cpu_required, if \code{"predicting"} is supplied, sequential training and testing is made by predictions based on previous observations.
-#'
-#' @param object An S4 sim object.
-#' @rdname type
-#' @export
-setGeneric("type", function(object) standardGeneric("type"))
-
-#' @param value A character value that can either be \code{"predicting"} or \code{"scheduling"}.
-#' @rdname type
-#' @export
-setGeneric("type<-", function(object, value) standardGeneric("type<-"))
-
 
 #' Getter/Setter for Window Size
 #'
@@ -91,51 +77,6 @@ setGeneric("update_freq", function(object) standardGeneric("update_freq"))
 setGeneric("update_freq<-", function(object, value) standardGeneric("update_freq<-"))
 
 
-#' Getter/Setter for Training Policy
-#'
-#' Training policy specifies the training scheme, as in offline training, online training with fixed frequency, or online training based on current and previous evaluations.
-#'
-#' @param object An S4 sim object.
-#' @rdname train_policy
-#' @export
-setGeneric("train_policy", function(object) standardGeneric("train_policy"))
-
-#' @param value A character value that can either be \code{"once"} for offline training, or \code{"fixed"} for online training with fixed frequency, or \code{"dynamic"} for online training based on evalutions.
-#' @rdname train_policy
-#' @export
-setGeneric("train_policy<-", function(object, value) standardGeneric("train_policy<-"))
-
-
-#' Getter/Setter for Schedule Policy
-#'
-#' Scheduling policy specifies the scheduling scheme, as in scheduling with fixed frequency, or retrying to schedule immediately after a job has failed.
-#'
-#' @param object An S4 sim object.
-#' @rdname schedule_policy
-#' @export
-setGeneric("schedule_policy", function(object) standardGeneric("schedule_policy"))
-
-#' @param value A character value that can either be \code{"disjoint"} for scheduling with fixed frequency, or \code{"dynamic"} for scheduling with dynamic strategy.
-#' @rdname schedule_policy
-#' @export
-setGeneric("schedule_policy<-", function(object, value) standardGeneric("schedule_policy<-"))
-
-
-#' Getter/Setter for Adjust Policy
-#'
-#' Adjust policy specifies the adjustment scheme for sequential scheduling/prediction failures. \code{"back_off"} enforeces backing off strategy that stops scheduling/predicting after a scheduling/prediction has failed, and resume scheduling/predicting after a scheuling/prediction has survived.
-#'
-#' @param object An S4 sim object.
-#' @rdname adjust_policy
-#' @export
-setGeneric("adjust_policy", function(object) standardGeneric("adjust_policy"))
-
-#' @param value A character value that can either be \code{"back_off"} for backing off strategy or \code{"none"}.
-#' @rdname adjust_policy
-#' @export
-setGeneric("adjust_policy<-", function(object, value) standardGeneric("adjust_policy<-"))
-
-
 #' Getter/Setter for Result Location
 #'
 #' Result location is a path to a directory you wish to store the result to, the default is the current work directory.
@@ -150,32 +91,6 @@ setGeneric("result_loc", function(object) standardGeneric("result_loc"))
 #' @export
 setGeneric("result_loc<-", function(object, value) standardGeneric("result_loc<-"))
 
-#' Getter/Setter for Tolerance
-#'
-#' Tolerance is used for dynamic scheme training policy. It controls the minimum quantile of past evaluation the current evaluation needs to supass, otherwise a retrain signal is sent for step. Evaluations consist of two scores, when \code{type} equals to \code{scheduling}, score1 corresponds to correct_scheduled_rate, score2 corresponds to correct_unscheduled_rate, when \code{type} equals \code{predicting}, score1 corresponds to survival_rate, and score2 corresponds to utilization_rate.
-#'
-#' @param object An S4 sim object
-#' @name tolerance
-NULL
-
-#' @rdname tolerance
-#' @export
-setGeneric("tolerance1", function(object) standardGeneric("tolerance1"))
-
-#' @param value A numeric value that is between 0 and 1, exclusive or NA_real_.
-#' @rdname tolerance
-#' @export
-setGeneric("tolerance1<-", function(object, value) standardGeneric("tolerance1<-"))
-
-
-#' @rdname tolerance
-#' @export
-setGeneric("tolerance2", function(object) standardGeneric("tolerance2"))
-
-#' @param value A numeric value that is between 0 and 1, exclusive or NA_real_.
-#' @rdname tolerance
-#' @export
-setGeneric("tolerance2<-", function(object, value) standardGeneric("tolerance2<-"))
 
 #' Getter/Setter for Response
 #'
@@ -242,35 +157,33 @@ setGeneric("get_characteristic_slots", function(object) standardGeneric("get_cha
 #'
 #' Plot overall result for simulation with each datapoint corresponds to average scores of all traces with one configuration.
 #' @param object An S4 sim object
-#' @param overall_summ A dataframe with each row representing a parameter setting, and the performance of such setting.
+#' @param overall_summ A dataframe containing the scores in all parameter settings.
+#' @param result_loc A character that specify the path to which the result of simulations will be saved to.
 #' @rdname plot_sim_overall
-setGeneric("plot_sim_overall", function(object, overall_summ) standardGeneric("plot_sim_overall"))
+setGeneric("plot_sim_overall", function(object, overall_summ, result_loc) standardGeneric("plot_sim_overall"))
 
 
 #' Plot Simulation Result Type Tracewise
 #'
 #' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
 #' @param object An S4 sim object.
-#' @param index A numeric number representing the index of current parameter setting.
-#' @param trace_name A character representation of name of current trace.
-#' @param trainset A dataframe with two columns each representing training set of maximum and training set of average.
-#' @param testset A dataframe with two columns each representing test set of maximum and test set of average.
-#' @param prev_score A dataframe with two columns each representing the score 1 and score 2 from past evaluation.s
-#' @param last_score A numeric vector of length 2 each representing score 1 and score 2 of current evaluation.
-#' @param decision A list representing the decisions made by current algorithm.
-#' @rdname plot_sim_tracewise
-setGeneric("plot_sim_tracewise", function(object, index, trace_name, trainset, testset, prev_score, last_score, decision) standardGeneric("plot_sim_tracewise"))
-
-
-#' Plot Simulation Result Type Tracewise
-#'
-#' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
-#' @param object An S4 sim object.
-#' @param index A numeric number representing the index of current parameter setting.
-#' @param score A dataframe representing score1 and score2 for each trace.
-#' @param summ A list containing summary of simulation result.
+#' @param score A dataframe containing the scores for all traces.
+#' @param summ A vector containing the summary of scores for this parameter setting.
+#' @param result_loc A character that specify the path to which the result of simulations will be saved to.
 #' @rdname plot_sim_paramwise
-setGeneric("plot_sim_paramwise", function(object, index, score, summ) standardGeneric("plot_sim_paramwise"))
+setGeneric("plot_sim_paramwise", function(object, score, summ, result_loc) standardGeneric("plot_sim_paramwise"))
+
+
+#' Plot Simulation Result Type Tracewise
+#'
+#' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
+#' @param object An S4 sim object.
+#' @param trace_name A character representing name of current trace.
+#' @param trained_result A list or other class returend by \code{train_model}, containing trained model information.
+#' @param predict_info A dataframe containing all the past predicted information.
+#' @param result_loc A character that specify the path to which the result of simulations will be saved to.
+#' @rdname plot_sim_tracewise
+setGeneric("plot_sim_tracewise", function(object, trace_name, trained_result, predict_info, result_loc) standardGeneric("plot_sim_tracewise"))
 
 
 #' Train Model
@@ -278,12 +191,12 @@ setGeneric("plot_sim_paramwise", function(object, index, score, summ) standardGe
 #' This is a generic function that trains model according to the input object type, with additional arguments supplied by attributes of the object.
 #'
 #' @param object An S4 sim object.
-#' @param trainset_max A matrix of size \eqn{n \times m} representing the training set of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
-#' @param trainset_avg A matrix of size \eqn{n \times m} representing the training set of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.
+#' @param train_x A numeric of length m representing the training set.
+#' @param train_xreg A numeric or matrix of length or row number m representing the additional regressors for training.
 #' @return A list containing trained result.
 #' @name train_model
 #' @rdname train_model
-setGeneric("train_model", function(object, trainset_max, trainset_avg) standardGeneric("train_model"))
+setGeneric("train_model", function(object, train_x, train_xreg) standardGeneric("train_model"))
 
 
 #' Do Prediction
@@ -291,24 +204,10 @@ setGeneric("train_model", function(object, trainset_max, trainset_avg) standardG
 #' This is a generic function that do prediction according to the input object type.
 #'
 #' @param object An S4 sim process object
-#' @param trained_result A list containing trained model information.
-#' @param last_obs_max A numeric vector representing the last observation of maximum.
-#' @param last_obs_avg A numeric vector representing the last observation of average.
-#' @param last_res A numeric vector representing the last residuals.
-#' @param level The level in \eqn{Pr(Y_{t+1}|Y_{t}) \leq level} to be computed.
-#' @return Prediction information.
+#' @param trained_result A list or other class returend by \code{train_model}, containing trained model information.
+#' @param predict_info A dataframe representing all the past predicted or scheduled information.
+#' @return The updated \code{predict_info} on the last row.
 #' @name do_prediction
 #' @rdname do_prediction
-setGeneric("do_prediction", function(object, trained_result, last_obs_max, last_obs_avg, last_res, level) standardGeneric("do_prediction"))
+setGeneric("do_prediction", function(object, trained_result, predict_info) standardGeneric("do_prediction"))
 
-
-#' Compute Prediction Interval Upper Bound
-#'
-#' This is a generic function that computes the upper bound of prediction interval according to the type of input object.
-#'
-#' @param object An S4 sim process object.
-#' @param predicted_result A list containing predicted result information.
-#' @return A numeric value representing the maximum of prediction interval upper bound in the forecasting steps.
-#' @name compute_pi_up
-#' @rdname compute_pi_up
-setGeneric("compute_pi_up", function(object, predicted_result) standardGeneric("compute_pi_up"))

@@ -4,18 +4,18 @@
 \alias{svt_predicting_sim}
 \title{Simulation of Scheduling Jobs Based On Predictions On A Single Trace With AR1 Model}
 \usage{
-svt_predicting_sim(ts_num, index, object, dataset_max, dataset_avg, do_plot)
+svt_predicting_sim(ts_num, object, x, xreg = NULL, plot_type, result_loc)
 }
 \arguments{
 \item{ts_num}{The corresponding trace/column in \code{dataset}.}
 
-\item{index}{A numeric number representing the index of current parameter setting.}
+\item{x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
-\item{dataset_max}{A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
+\item{xreg}{A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.}
 
-\item{dataset_avg}{A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
+\item{plot_type}{A character that can be one of "overall", "tracewise", "paramwise" or "none".}
 
-\item{do_plot}{A logical value TRUE/FALSE to plot tracewise performance.}
+\item{result_loc}{A character that specify the path to which the result of simulations will be saved to.}
 }
 \value{
 A list containing the resulting prediction informations.

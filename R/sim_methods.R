@@ -1,25 +1,6 @@
 #' @include sim_class.R
 NULL
 
-#' @rdname type
-#' @return A character representing type of simulation.
-#' @export
-setMethod("type",
-          signature(object = "sim"),
-          function(object){
-            return(object@type)
-          })
-
-#' @rdname type
-#' @export
-setReplaceMethod("type",
-                 signature(object = "sim", value = "character"),
-                 function(object, value) {
-                   object@type <- value
-                   methods::validObject(object)
-                   return(object)
-                 })
-
 
 #' @rdname window_size
 #' @return A numeric vector representing window size of simulation.
@@ -121,46 +102,6 @@ setReplaceMethod("update_freq",
                  })
 
 
-#' @rdname tolerance
-#' @return A numeric vector representing tolerance1 of score1.
-#' @export
-setMethod("tolerance1",
-          signature(object = "sim"),
-          function(object){
-            return(object@tolerance1)
-          })
-
-#' @rdname tolerance
-#' @export
-setReplaceMethod("tolerance1",
-                 signature(object = "sim", value = "numeric"),
-                 function(object, value) {
-                   object@tolerance1 <- value
-                   methods::validObject(object)
-                   return(object)
-                 })
-
-
-#' @rdname tolerance
-#' @return A numeric vector representing tolerance2 of score2.
-#' @export
-setMethod("tolerance2",
-          signature(object = "sim"),
-          function(object){
-            return(object@tolerance2)
-          })
-
-#' @rdname tolerance
-#' @export
-setReplaceMethod("tolerance2",
-                 signature(object = "sim", value = "numeric"),
-                 function(object, value) {
-                   object@tolerance2 <- value
-                   methods::validObject(object)
-                   return(object)
-                 })
-
-
 #' @rdname response
 #' @return A character representing response of simulation.
 #' @export
@@ -181,307 +122,146 @@ setReplaceMethod("response",
                  })
 
 
-#' @rdname train_policy
-#' @return A character representing training policy of simulation.
+#' @return A list containing all numeric parameter informations.
+#' @rdname get_param_slots
 #' @export
-setMethod("train_policy",
+setMethod("get_param_slots",
           signature(object = "sim"),
-          function(object){
-            return(object@train_policy)
-          })
-
-#' @rdname train_policy
-#' @export
-setReplaceMethod("train_policy",
-                 signature(object = "sim", value = "character"),
-                 function(object, value) {
-                   object@train_policy <- value
-                   methods::validObject(object)
-                   return(object)
-                 })
-
-
-#' @rdname schedule_policy
-#' @return A character vector representing schedule policy of simulation.
-#' @export
-setMethod("schedule_policy",
-          signature(object = "sim"),
-          function(object){
-            return(object@schedule_policy)
-          })
-
-#' @rdname schedule_policy
-#' @export
-setReplaceMethod("schedule_policy",
-                 signature(object = "sim", value = "character"),
-                 function(object, value) {
-                   object@schedule_policy <- value
-                   methods::validObject(object)
-                   return(object)
-                 })
-
-
-#' @rdname adjust_policy
-#' @return A numeric vector representing adjust policy of simulation.
-#' @export
-setMethod("adjust_policy",
-          signature(object = "sim"),
-          function(object){
-            return(object@adjust_policy)
-          })
-
-#' @rdname adjust_policy
-#' @export
-setReplaceMethod("adjust_policy",
-                 signature(object = "sim", value = "character"),
-                 function(object, value) {
-                   object@adjust_policy <- value
-                   methods::validObject(object)
-                   return(object)
-                 })
-
-
-#' @rdname result_loc
-#' @return A character vector representing result location of simulation.
-#' @export
-setMethod("result_loc",
-          signature(object = "sim"),
-          function(object){
-            return(object@result_loc)
-          })
-
-#' @rdname result_loc
-#' @export
-setReplaceMethod("result_loc",
-                 signature(object = "sim", value = "character"),
-                 function(object, value) {
-                   object@result_loc <- value
-                   methods::validObject(object)
-                   return(object)
-                 })
-
-
-#' @return A plot object
-#' @rdname plot_sim_overall
-setMethod("plot_sim_overall",
-          signature(object = "sim", overall_summ = "data.frame"),
-          function(object, overall_summ) {
-            overall_summ$window_size_update_freq <- paste(overall_summ$window_size, overall_summ$update_freq)
-            if (object@type == "scheduling") {
-              if (object@train_policy == "dynamic") {
-                overall_summ$tolerance <- paste(overall_summ$tolerance1, overall_summ$tolerance2)
-                plt <- ggplot2::ggplot(overall_summ, ggplot2::aes(x = overall_summ$agg_correct_scheduled_rate, y = overall_summ$agg_correct_unscheduled_rate)) +
-                  ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = overall_summ$window_size_update_freq, alpha = as.factor(overall_summ$granularity), fill = as.factor(overall_summ$train_size), color = as.factor(overall_summ$tolerance))) +
-                  ggplot2::stat_ellipse(aes(linetype = as.factor(overall_summ$cut_off_prob)), type = "norm") +
-                  ggplot2::ylab("Correct Scheduled Rate") +
-                  ggplot2::xlab("Correct Unscheduled Rate") +
-                  ggplot2::scale_color_brewer(name = "tolerance", palette = "Set1", guide = ggplot2::guide_legend(ncol = 2))
-              } else {
-                plt <- ggplot2::ggplot(overall_summ, ggplot2::aes(x = overall_summ$agg_correct_scheduled_rate, y = overall_summ$agg_correct_unscheduled_rate)) +
-                  ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = overall_summ$window_size_update_freq, alpha = as.factor(overall_summ$granularity), fill = as.factor(overall_summ$train_size))) +
-                  ggplot2::stat_ellipse(aes(linetype = as.factor(overall_summ$cut_off_prob)), type = "norm") +
-                  ggplot2::ylab("Correct Scheduled Rate") +
-                  ggplot2::xlab("Correct Unscheduled Rate")
-              }
-            } else {
-              if (object@train_policy == "dynamic") {
-                overall_summ$tolerance <- paste(overall_summ$tolerance1, overall_summ$tolerance2)
-                plt <- ggplot2::ggplot(overall_summ, ggplot2::aes(x = overall_summ$agg_survival_rate, y = overall_summ$agg_utilization_rate)) +
-                  ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = overall_summ$window_size_update_freq, alpha = as.factor(overall_summ$granularity), fill = as.factor(overall_summ$train_size), color = as.factor(overall_summ$tolerance))) +
-                  ggplot2::stat_ellipse(aes(linetype = as.factor(overall_summ$cut_off_prob)), type = "norm") +
-                  ggplot2::geom_vline(xintercept = 0.99, linetype = "dashed", color = "red") +
-                  ggplot2::ylab("Utilization") +
-                  ggplot2::xlab("Survival Rate") +
-                  ggplot2::scale_color_brewer(name = "tolerance", palette = "Set1", guide = ggplot2::guide_legend(ncol = 2))
-              } else {
-                plt <- ggplot2::ggplot(overall_summ, ggplot2::aes(x = overall_summ$agg_survival_rate, y = overall_summ$agg_utilization_rate)) +
-                  ggplot2::geom_point(na.rm = TRUE, ggplot2::aes(shape = overall_summ$window_size_update_freq, alpha = as.factor(overall_summ$granularity), fill = as.factor(overall_summ$train_size))) +
-                  ggplot2::stat_ellipse(aes(linetype = as.factor(overall_summ$cut_off_prob)), type = "norm") +
-                  ggplot2::geom_vline(xintercept = 0.99, linetype = "dashed", color = "red") +
-                  ggplot2::ylab("Utilization") +
-                  ggplot2::xlab("Survival Rate")
-              }
+          function(object) {
+            numeric_slots <- c("cut_off_prob", "granularity", "train_size", "model_num", "update_freq", "react_speed")
+            numeric_lst <- list()
+            for (i in numeric_slots) {
+              numeric_lst[[i]] <- methods::slot(object, i)
             }
-
-            file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
-
-            plt <- plt +
-              ggplot2::scale_linetype(name = "cut_off_prob", guide = ggplot2::guide_legend(ncol = 2)) +
-              ggplot2::scale_shape_manual(name = "window_size by update_freq", values = 21:25, guide = ggplot2::guide_legend(ncol = 2)) +
-              ggplot2::scale_alpha_discrete(name = "granularity", guide = ggplot2::guide_legend(ncol = 2)) +
-              ggplot2::scale_fill_brewer(name = "train_size", palette = "Set3") +
-              ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2)) +
-              ggplot2::ggtitle(paste("Model Performance of", file_name))
-
-            fp <- fs::path(paste0(object@result_loc, "overall_plots/", file_name), ext = "png")
-            ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
-            return(plt)
+            return(numeric_lst)
           })
+
+
+#' @return A list containing all character parameter informations.
+#' @rdname get_characteristic_slots
+#' @export
+setMethod("get_characteristic_slots",
+          signature(object = "sim"),
+          function(object) {
+            character_slots <- c("name", "window_size", "response")
+            character_lst <- list()
+            for (i in character_slots) {
+              character_lst[[i]] <- methods::slot(object, i)
+            }
+            return(character_lst)
+          })
+
+
+#' @export
+setAs("data.frame", "sim",
+      function(from) {
+        if (nrow(from) == 1) {
+          return(list(methods::as(from, paste0(tolower(from[, "name"]), "_sim"))))
+        } else {
+          return(lapply(1:nrow(from), function(rownum) {methods::as(from[rownum,], "sim")[[1]]}))
+        }
+      })
 
 
 #' @rdname plot_sim_paramwise
 #' @export
 setMethod("plot_sim_paramwise",
-          signature(object = "sim", index = "numeric", score = "data.frame", summ = "list"),
-          function(object, index, score, summ) {
-            if (object@type == "scheduling") {
-              score$trace_score1 <- score$correct_scheduled_num / score$scheduled_num
-              score$trace_score2 <- score$correct_unscheduled_num / score$unscheduled_num
-              msg1.1 <- paste("The Agg Overall Correct scheduled Rate is", summ$agg_score1)
-              msg1.2 <- paste("The Agg Overall Correct unscheduled Rate is", summ$agg_score2)
-              msg2.1 <- paste("The Avg Overall Correct scheduled Rate is", summ$avg_score1)
-              msg2.2 <- paste("The Avg Overall Correct unscheduled Rate is", summ$avg_score2)
-              under_performed_score1 <- sum(score$trace_score1 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
-              under_performed_score2 <- sum(score$trace_score2 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
-              msg3.1 <- paste(under_performed_score1, "of traces underperformed on Correct Scheduled Rate.")
-              msg3.2 <- paste(under_performed_score2, "of traces underperformed on Correct Unscheduled Rate.")
+          signature(object = "sim", score = "data.frame", summ = "list", result_loc = "character"),
+          function(object, score, summ, result_loc) {
+            score$trace_score1 <- score$sur_num / score$sur_den
+            score$trace_score2 <- score$util_num / score$util_den
+            msg1 <- paste("The Overall Score 1 is", summ$score_param_adj_1)
+            msg2 <- paste("The Overall Score 2 is", summ$score_param_adj_2)
+            under_performed_score1 <- sum(score$score_trace_adj_1.n < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
+            under_performed_score2 <- sum(score$score_trace_adj_2.n < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
+            msg3 <- paste(under_performed_score1, "of traces underperformed on Score 1 by equally weighting.")
+            msg4 <- paste(under_performed_score2, "of traces underperformed on Score 2 by equally weighting.")
 
-              sorted_by_score1 <- score[order(score$trace_score1),]
-              under_performed_traces_1 <- rownames(sorted_by_score1)[which(sorted_by_score1$trace_score1 < 1 - object@cut_off_prob)]
-              if (length(under_performed_traces_1) > 0) {
-                msg4.1 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_1, 3), collapse = " "), "for underperforming.")
-              } else {
-                msg4.1 <- paste("No traces underperformed.")
-              }
-
-              sorted_by_score2 <- score[order(score$trace_score2),]
-              under_performed_traces_2 <- rownames(sorted_by_score2)[which(sorted_by_score2$trace_score2 < 1 - object@cut_off_prob)]
-              if (length(under_performed_traces_2) > 0) {
-                msg4.2 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_2, 3), collapse = " "), "for underperforming")
-              } else {
-                msg4.2 <- paste("No traces underperformed.")
-              }
-
-              result1 <- data.frame("score" = score$trace_score1)
-              plt1 <- ggplot2::ggplot(result1, aes(x = result1$score)) +
-                ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE, color = "red") +
-                ggplot2::theme(legend.position = "none") +
-                ggplot2::ggtitle(paste("Performance of param index", index, "on Correct Scheduled Rate")) +
-                ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1.1, msg2.1, msg3.1, msg4.1)) +
-                ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple") +
-                ggplot2::xlab("Correct Scheduled Rate")
-
-              result2 <- data.frame("score" = score$trace_score2)
-              plt2 <- ggplot2::ggplot(result2, aes(x = result2$score)) +
-                ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE, color = "blue") +
-                ggplot2::theme(legend.position = "none") +
-                ggplot2::ggtitle(paste("Performance of param index", index, "on Correct Unscheduled Rate")) +
-                ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1.2, msg2.2, msg3.2, msg4.2)) +
-                ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple") +
-                ggplot2::xlab("Correct Unscheduled Rate")
-
+            sorted_by_score1 <- score[order(score$score_trace_adj_1.n),]
+            under_performed_traces_1 <- sorted_by_score1[which(sorted_by_score1$score_trace_adj_1.n < 1 - object@cut_off_prob)]
+            if (length(under_performed_traces_1) > 0) {
+              msg5 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_1$tracename, 3), collapse = ","), "for underperforming.")
+              msg6 <- paste("Their weights are ", paste0(utils::head(under_performed_traces_1$score_trace_adj_1.w, 3), collapse = ","))
             } else {
-              score$trace_score1 <- score$sur_num / score$sur_den
-              score$trace_score2 <- score$util_num / score$util_den
-              msg1.1 <- paste("The Agg Overall Survival Rate is", summ$agg_score1)
-              msg1.2 <- paste("The Agg Overall Utilization Rate is", summ$agg_score2)
-              msg1.3 <- paste("The Agg Overall Utilization wrt Optimal is", summ$agg_score3)
-              msg2.1 <- paste("The Avg Overall Survival Rate is", summ$avg_score1)
-              msg2.2 <- paste("The Avg Overall Utilization Rate is", summ$agg_score2)
-              msg2.3 <- paste("The Avg Overall Utilization wrt Optimal is", summ$avg_score3)
-              under_performed_score1 <- sum(score$trace_score1 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
-              under_performed_score2 <- sum(score$trace_score2 < 1 - object@cut_off_prob, na.rm = TRUE) / nrow(score)
-              msg3.1 <- paste(under_performed_score1, "of traces underperformed.")
-              msg3.2 <- paste(under_performed_score2, "of traces underperformed.")
-
-              sorted_by_score1 <- score[order(score$trace_score1),]
-              under_performed_traces_1 <- rownames(sorted_by_score1)[which(sorted_by_score1$trace_score1 < 1 - object@cut_off_prob)]
-              if (length(under_performed_traces_1) > 0) {
-                msg4.1 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_1, 3), collapse = ","), "for underperforming.")
-              } else {
-                msg4.1 <- paste("No traces underperformed on Survival Rate.")
-              }
-
-              sorted_by_score2 <- score[order(score$trace_score2),]
-              under_performed_traces_2 <- rownames(sorted_by_score2)[which(sorted_by_score2$trace_score2 < 1 - object@cut_off_prob)]
-              if (length(under_performed_traces_2) > 0) {
-                msg4.2 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_2, 3), collapse = ","), "for underperforming.")
-              } else {
-                msg4.2 <- paste("No traces underperformed on Utilization Rate.")
-              }
-
-              result1 <- data.frame("score" = score$trace_score1)
-              plt1 <- ggplot2::ggplot(result1, aes(x = result1$score)) +
-                ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE, color = "red") +
-                ggplot2::theme(legend.position = "none") +
-                ggplot2::ggtitle(paste("Performance of param index", index, "on Survival Rate")) +
-                ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1.1, msg2.1, msg3.1, msg4.1)) +
-                ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple") +
-                ggplot2::xlab("Survival Rate")
-
-              result2 <- data.frame("score" = score$trace_score2)
-              plt2 <- ggplot2::ggplot(result2, aes(x = result2$score)) +
-                ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE, color = "blue") +
-                ggplot2::theme(legend.position = "none") +
-                ggplot2::ggtitle(paste("Performance of param index", index, "on Utilization Rate")) +
-                ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75, 7, 8.25), hjust = 0, label = c(msg1.2, msg1.3, msg2.2, msg2.3, msg3.2, msg4.2)) +
-                ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple") +
-                ggplot2::xlab("Utilization")
+              msg5 <- paste("No underperformed traces detected for Score 1.")
+              msg6 <- NULL
             }
 
-            file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
-            plt <- gridExtra::arrangeGrob(plt1, plt2, ncol = 2, nrow = 1)
-            fp <- fs::path(paste0(object@result_loc, "paramwise_plots/", file_name, " index ", index), ext = "png")
-            ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
+            sorted_by_score2 <- score[order(score$score_trace_adj_2.n),]
+            under_performed_traces_2 <- sorted_by_score2[which(sorted_by_score2$score_trace_adj_2.n < 1 - object@cut_off_prob)]
+            if (length(under_performed_traces_2) > 0) {
+              msg5 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_2$tracename, 3), collapse = ","), "for underperforming.")
+              msg6 <- paste("Their weights are ", paste0(utils::head(under_performed_traces_2$score_trace_adj_2.w, 3), collapse = ","))
+            } else {
+              msg5 <- paste("No underperformed traces detected for Score 2.")
+              msg6 <- NULL
+            }
+
+            result1 <- data.frame("score" = score$score_trace_adj_1.n)
+            plt1 <- ggplot2::ggplot(result1, aes(x = result1$score)) +
+              ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE, color = "red") +
+              ggplot2::theme(legend.position = "none") +
+              ggplot2::ggtitle(paste("Performance of Survival Rate")) +
+              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4, msg5, msg6)) +
+              ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple") +
+              ggplot2::xlab("Survival Rate")
+
+            result2 <- data.frame("score" = score$trace_score2)
+            plt2 <- ggplot2::ggplot(result2, aes(x = result2$score)) +
+              ggplot2::geom_histogram(fill = "white", binwidth = object@cut_off_prob, na.rm = TRUE, color = "blue") +
+              ggplot2::theme(legend.position = "none") +
+              ggplot2::ggtitle(paste("Performance of Utilization Rate")) +
+              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75, 7, 8.25), hjust = 0, label = c(msg1, msg2, msg3, msg4, msg5, msg6)) +
+              ggplot2::geom_vline(xintercept = 1 - object@cut_off_prob, linetype = "dashed", color = "purple") +
+              ggplot2::xlab("Utilization")
+
+          plt <- gridExtra::arrangeGrob(plt1, plt2, ncol = 2, nrow = 1)
+          file_name <- paste("Performance Plot for Param", get_param_slots(object))
+          save_path <- write_location_check(result_loc, "paramwise_plots/", paste(unlist(get_characteristic_slots(object)), collapse = ","), file_name)
+          fp <- fs::path(save_path, file_name, ext = "png")
+          ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
           })
 
 
 #' @rdname plot_sim_tracewise
 #' @export
 setMethod("plot_sim_tracewise",
-          signature(object = "sim", index = "numeric", trace_name = "character", trainset = "data.frame", testset = "data.frame", prev_score = "data.frame", last_score = "numeric", decision = "list"),
-          function(object, index, trace_name, trainset, testset, prev_score, last_score, decision) {
-            if (object@response == "max") {
-              target_dataset <- c(utils::tail(trainset$trainset_max, 4 * nrow(testset)), testset$testset_max)
-            } else {
-              target_dataset <- c(utils::tail(trainset$trainset_avg, 4 * nrow(testset)), testset$testset_avg)
-            }
+          signature(object = "sim", trace_name = "character", trained_result = "list", predict_info = "data.frame", result_loc = "character"),
+          function(object, trace_name, trained_result, predict_info, result_loc) {
+            train_iter <- predict_info[nrow(predict_info), "train_iter"]
+            test_iter <- unique(predict_info[predict_info$train_iter == train_iter, "test_iter"])
 
-            train_or_test <- c(rep("train", 4 * nrow(testset)), rep("test", nrow(testset)))
-            t <- as.numeric(c(utils::tail(rownames(trainset), 4 * nrow(testset)), rownames(testset))) / 60
+            trainset <- trained_result$call$x
+            middleset <- predict_info[predict_info$train_iter != train_iter,]$actual
+            testset <- predict_info[predict_info$train_iter == train_iter,]$actual
 
-            train_decision <- decision$train_decision
-            test_decision <- decision$test_decision
+            target_dataset <- c(trainset, middleset, testset)
+            train_or_test <- c(rep("train", length(trainset)), rep("middle", length(middleset)), rep("test", length(testset)))
+            t <- c(as.numeric(names(trained_result$call$x)), predict_info$time)
 
-            train_sig <- train_decision$train_sig
-            iter <- train_decision$iter
+            pi_up <- c(rep(NA_real_, length(trainset) + length(middleset)), predict_info[predict_info$train_iter == train_iter,]$pi_up)
+            adjustment <- c(rep(NA_real_, length(trainset) + length(middleset)), predict_info[predict_info$train_iter == train_iter,]$adjustment)
 
-            pi_up <- c(rep(NA_real_, 4 * nrow(testset)), test_decision$pi_up)
-            adjust_switch <- c(rep(NA_integer_, 4 * nrow(testset)), test_decision$adjust_switch)
-            decision_opt <- c(rep(NA_integer_, 4 * nrow(testset)), test_decision$decision_opt)
-
-            msg1 <- paste("Current batch has performance of", paste(last_score, collapse = " "))
-            if (nrow(prev_score) == 0) {
-              msg2 <- paste("No historical score to compare with on score1.")
-              msg3 <- paste("No historical score to compare with on score2.")
-            } else {
-              msg2 <- paste("Current batch has performance not failing", sum(last_score[1] >= prev_score$prev_score1, na.rm = TRUE) / nrow(prev_score), "on score 1.")
-              msg3 <- paste("Current batch has performance not failing", sum(last_score[2] >= prev_score$prev_score2, na.rm = TRUE) / nrow(prev_score), "on score 2.")
-            }
-            msg4 <- paste("Based on tolerance level of", object@tolerance1, object@tolerance2, "the training signal is", train_sig, "for next iteration.")
-
-            result <- data.frame("target_dataset" = target_dataset, "time" = t, "train_or_test" = train_or_test, "pi_up" = pi_up, "adjust_switch" = adjust_switch, "decision_opt" = decision_opt)
-            plt <- ggplot2::ggplot(result, aes(x = result$time, y = result$target_dataset)) +
-              ggplot2::geom_line(aes(color = factor(result$train_or_test))) +
-              ggplot2::geom_line(aes(y = result$pi_up, color = as.factor(result$adjust_switch)), na.rm = TRUE) +
-              ggplot2::geom_line(aes(y = result$decision_opt, color = "darkcyan"), na.rm = TRUE) +
-              ggplot2::geom_hline(yintercept = 100, linetype = "dashed", color = "purple") +
-              ggplot2::xlab("Time (minutes)") +
+            # Time Series Plot
+            result <- data.frame("target_dataset" = target_dataset, "time" = t, "train_or_test" = train_or_test, "pi_up" = pi_up, "adjustment" = adjustment)
+            ts_plt <- ggplot2::ggplot(result, aes(x = time)) +
+              ggplot2::geom_line(aes(y = target_dataset, color = factor(train_or_test), group = 1)) +
+              ggplot2::geom_line(aes(y = pi_up, group = 2), color = "cyan", na.rm = TRUE) +
+              ggplot2::geom_point(aes(y = pi_up, color = factor(adjustment), group = 3), na.rm = TRUE) +
+              ggplot2::geom_hline(yintercept = 100, linetype = "dashed", color = "yellow") +
+              ggplot2::xlab("Time (5 minutes)") +
               ggplot2::ylab("Cpu (percent)") +
               ggplot2::theme(legend.position = "none") +
-              ggplot2::ggtitle(paste("Diagnostic Plot of", trace_name, "at Iteration", iter)) +
-              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75), hjust = 0, label = c(msg1, msg2, msg3, msg4))
+              ggplot2::ggtitle(paste("Diagnostic Plot of", trace_name, "at Train iteration", train_iter, "Test iterations to", test_iter[length(test_iter)]))
 
-            file_name <- paste(unlist(get_characteristic_slots(object)), collapse = " ")
-            fp <- fs::path(paste0(object@result_loc, "tracewise_plots/", file_name, " index ", index, " trace ", trace_name, " iter ", iter), ext = "png")
-            ggplot2::ggsave(fp, plot = plt, width = 12, height = 7)
+            file_name <- paste("Diagnostic Plot of", trace_name, "at Train iteration", train_iter, "Test iterations to", test_iter[length(test_iter)])
+            save_path <- write_location_check(result_loc, "tracewise_plots/", paste(unlist(get_characteristic_slots(object)), collapse = ","), paste(unlist(get_param_slots(object)), collapse = ","), file_name = file_name)
+            ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = ts_plt, width = 12, height = 7)
           })
 
 
 #' @export
-setAs("sim", "data.frame",
+setAs("sim_result", "data.frame",
       function(from) {
-        numeric_lst <- get_param_slots(from)
-        result_numeric <- as.data.frame(numeric_lst)
-        return(result_numeric)
+        return(data.frame("score1" = from@score1.n, "score1_adj" = from@score1_adj.n, "score2" = from@score2.n, "score2_adj" = from@score2_adj.n))
       })

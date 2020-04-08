@@ -4,7 +4,9 @@
 \name{periodic_max_78}
 \alias{periodic_max_78}
 \title{78 Samples of Periodic Azure Public Dataset V1}
-\format{A data frame with 8400 rows and 78 columns:}
+\format{
+A data frame with 8400 rows and 78 columns.
+}
 \source{
 \url{https://github.com/Azure/AzurePublicDataset/blob/master/AzurePublicDatasetV1.md}
 }

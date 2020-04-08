@@ -4,7 +4,9 @@
 \name{microsoft_avg_100}
 \alias{microsoft_avg_100}
 \title{100 Samples of Azure Public Dataset V1}
-\format{A data frame with 8000 rows and 100 columns:}
+\format{
+A data frame with 8000 rows and 100 columns.
+}
 \source{
 \url{https://github.com/Azure/AzurePublicDataset/blob/master/AzurePublicDatasetV1.md}
 }

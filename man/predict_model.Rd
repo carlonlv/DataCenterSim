@@ -4,21 +4,30 @@
 \alias{predict_model}
 \title{Schedule Jobs Using Predictions On Given Test Set}
 \usage{
-predict_model(object, trained_result, testset_max, testset_avg, do_plot)
+predict_model(
+  object,
+  trained_result,
+  test_x,
+  test_xreg,
+  predict_info,
+  switch_status
+)
 }
 \arguments{
 \item{object}{A S4 sim object.}
 
-\item{trained_result}{A list containing trained model information.}
+\item{trained_result}{A trained object depending on the model used for training.}
 
-\item{testset_max}{A numeric vector representing the test set of maximum, with the initial amount of test set that equals to window size are from training set.}
+\item{test_x}{A dataframe representing the test set, containing maximum and average of actual observations.}
 
-\item{testset_avg}{A numeric vector representing the test set of average, with the initial amount of test set that equals to window size are from training set.}
+\item{test_xreg}{A numeric vector or matrix representing the dataset that target dataset depends on for scheduling and evaluations.}
 
-\item{do_plot}{A logiical value}
+\item{predict_info}{A dataframe containing all the past predicted information.}
+
+\item{switch_status}{A list containing all the information about current switches and identifiers.}
 }
 \value{
-A list containing the resulting prediction informations.
+A dataframe containing the past predicted information and the current predicted information.
 }
 \description{
 Sequantially schedule jobs using predictions on provided test set.

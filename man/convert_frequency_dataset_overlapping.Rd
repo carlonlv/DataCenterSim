@@ -4,7 +4,12 @@
 \alias{convert_frequency_dataset_overlapping}
 \title{Convert Dataset Frequency Using Overlapping Windows.}
 \usage{
-convert_frequency_dataset_overlapping(dataset, new_freq, response)
+convert_frequency_dataset_overlapping(
+  dataset,
+  new_freq,
+  response,
+  keep.names = TRUE
+)
 }
 \arguments{
 \item{dataset}{A vector of numeric value.}

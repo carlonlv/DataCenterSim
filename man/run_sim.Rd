@@ -5,27 +5,24 @@
 \title{Run Simulation}
 \usage{
 run_sim(
-  object,
-  dataset_max,
-  dataset_avg,
-  cpu_required,
+  epoch_setting,
+  x,
+  xreg,
+  result_loc = getwd(),
   cores = parallel::detectCores(),
-  write_result = TRUE,
   plot_type
 )
 }
 \arguments{
-\item{object}{An S4 sim object.}
+\item{epoch_setting}{A dataframe representing a specific parameter setting.}
 
-\item{dataset_max}{A matrix of size \eqn{n \times m} representing the dataset of maximum for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
+\item{x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
-\item{dataset_avg}{A matrix of size \eqn{n \times m} representing the dataset of average for scheduling and evaluations, with the initial amount of test set that equals to window size are from training set.}
+\item{xreg}{A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.}
 
-\item{cpu_required}{A vector of length \eqn{m}, each element is the size of the job trying to be scheduled on corresponding machine, default value is \code{NULL}.}
+\item{result_loc}{A character that specify the path to which the result of simulations will be saved to. Default is your work directory.}
 
 \item{cores}{The number of threads for parallel programming for multiple traces, not supported for windows users.}
-
-\item{write_result}{TRUE if the result of the experiment is written to a file.}
 
 \item{plot_type}{A character that can be one of "overall", "tracewise", "paramwise" or "none".}
 }

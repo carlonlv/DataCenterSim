@@ -111,7 +111,7 @@ get_adjust_switch <- function(score1, react_counter, adjust_switch, react_speed)
         react_counter <- 0
       } else {
         react_counter <- react_counter + 1
-        if (react_counter >= react_speed[1]) {
+        if (react_counter >= react_speed[2]) {
           adjust_switch <- FALSE
           react_counter <- 0
         }
@@ -119,7 +119,7 @@ get_adjust_switch <- function(score1, react_counter, adjust_switch, react_speed)
     } else {
       if (!adjust_switch) {
         react_counter <- react_counter + 1
-        if (react_counter >= react_speed[2]) {
+        if (react_counter >= react_speed[1]) {
           adjust_switch <- TRUE
           react_counter <- 0
         }

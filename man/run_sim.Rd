@@ -10,6 +10,7 @@ run_sim(
   xreg,
   result_loc = getwd(),
   cores = parallel::detectCores(),
+  write_result = TRUE,
   plot_type
 )
 }
@@ -22,7 +23,9 @@ run_sim(
 
 \item{result_loc}{A character that specify the path to which the result of simulations will be saved to. Default is your work directory.}
 
-\item{cores}{The number of threads for parallel programming for multiple traces, not supported for windows users.}
+\item{cores}{A numeric numeb representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
+
+\item{write_result}{A logical value representing whether the final result of the simulation will be written as a csv file.}
 
 \item{plot_type}{A character that can be one of "overall", "tracewise", "paramwise" or "none".}
 }

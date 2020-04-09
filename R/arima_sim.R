@@ -77,7 +77,11 @@ setMethod("train_model",
             args.tsmethod <- c(object@train_args, list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "norm", "CSS-ML", "CSS"), "optim.method" = "BFGS", "optim.control" = list(maxit = 5000)))
             if (object@outlier_type == "None") {
               trained_result <- do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
-              trained_result$call$xreg <- as.matrix(new_train_xreg)
+              if (!(length(new_train_xreg) == 0)) {
+                trained_result$call$xreg <- as.matrix(new_train_xreg)
+              } else {
+                trained_result$call$xreg <- NULL
+              }
               trained_result$call$x <- new_train_x
             } else if (object@outlier_type == "All") {
               trained_result <- tryCatch({
@@ -112,29 +116,18 @@ setMethod("do_prediction",
             }
 
             if (nrow(predict_info) == 1) {
-              target_model <-  forecast::Arima(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
+              if (is.null(trained_result$call$xreg)) {
+                target_model <- forecast::Arima(y = trained_result$call$x, model = trained_result)
+              } else {
+                target_model <- forecast::Arima(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
+              }
             } else {
               prev_x <- trained_result$call$x
               new_x <- predict_info$actual[-nrow(predict_info)]
               names(new_x) <- predict_info$time[-nrow(predict_info)]
-
-              prev_xreg <- trained_result$call$xreg
-              if (is.null(prev_xreg)) {
-                new_xreg <- NULL
-              } else {
-                new_xreg <- matrix(unlist(predict_info$xreg[-nrow(predict_info)]), nrow = nrow(predict_info) - 1, byrow = TRUE)
-                if (ncol(new_xreg) < ncol(prev_xreg)) {
-                  new_ol <- matrix(0, nrow = nrow(new_xreg), ncol = ncol(prev_xreg) - ncol(new_xreg))
-                  new_xreg <- cbind(new_xreg, new_ol)
-                }
-                rownames(new_xreg) <- predict_info$time[-nrow(predict_info)]
-                colnames(new_xreg) <- colnames(prev_xreg)
-              }
-
               new_x <- c(prev_x, new_x)
-              new_xreg <- rbind(prev_xreg, new_xreg)
-              res <- stats::ts(c(trained_result$residuals, predict_info$residuals[-nrow(predict_info)]))
 
+              res <- stats::ts(c(trained_result$residuals, predict_info$residuals[-nrow(predict_info)]))
               pars <- tsoutliers::coefs2poly(trained_result)
 
               if (is.na(object@outlier_cval)) {
@@ -164,11 +157,29 @@ setMethod("do_prediction",
                   }
                 }
               }
-              target_model <- forecast::Arima(new_x, xreg = new_xreg, model = trained_result)
+
+              prev_xreg <- trained_result$call$xreg
+              if (is.null(prev_xreg)) {
+                target_model <- forecast::Arima(new_x, model = trained_result)
+              } else {
+                if (is.null(predict_info$xreg)) {
+                  new_xreg <- matrix(nrow = nrow(predict_info) - 1, ncol = 0)
+                } else {
+                  new_xreg <- matrix(unlist(predict_info$xreg[-nrow(predict_info)]), nrow = nrow(predict_info) - 1, byrow = TRUE)
+                }
+                if (ncol(new_xreg) < ncol(prev_xreg)) {
+                  new_ol <- matrix(0, nrow = nrow(new_xreg), ncol = ncol(prev_xreg) - ncol(new_xreg))
+                  new_xreg <- cbind(new_xreg, new_ol)
+                }
+                rownames(new_xreg) <- predict_info$time[-nrow(predict_info)]
+                colnames(new_xreg) <- colnames(prev_xreg)
+                new_xreg <- rbind(prev_xreg, new_xreg)
+                target_model <- forecast::Arima(new_x, xreg = new_xreg, model = trained_result)
+              }
             }
 
             if (is.null(trained_result$call$xreg)) {
-              xreg <- NULL
+              predict_result <- forecast::forecast(target_model, h = 1, bootstrap = bootstrap, level = level)
             } else {
               if (is.null(predict_info$xreg)) {
                 xreg <- matrix(0, nrow = 1, ncol = ncol(trained_result$call$xreg))
@@ -179,9 +190,8 @@ setMethod("do_prediction",
                 }
               }
               colnames(xreg) <- colnames(trained_result$call$xreg)
+              predict_result <- forecast::forecast(target_model, xreg = xreg, h = 1, bootstrap = bootstrap, level = level)
             }
-
-            predict_result <- forecast::forecast(target_model, xreg = xreg, h = 1, bootstrap = bootstrap, level = level)
 
             expected <- as.numeric(predict_result$mean)
             pi_up <- as.numeric(predict_result$upper)

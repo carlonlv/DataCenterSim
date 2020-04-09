@@ -30,7 +30,7 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
                                   "score_pred_1" = numeric(0),
                                   "score_pred_2" = numeric(0),
                                   stringsAsFactors = FALSE)
-  if (!is.null(test_xreg)) {
+  if (!(length(test_xreg) == 0)) {
     test_predict_info$xreg <- numeric(0)
   }
 
@@ -44,7 +44,7 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
     start_time <- current_end
     end_time <- start_time + object@window_size - 1
 
-    if (!is.null(test_xreg)) {
+    if (!(length(test_xreg) == 0)) {
       if (methods::is(test_xreg, "matrix")) {
         test_predict_info[nrow(test_predict_info),]$xreg <- list(sapply(1:ncol(test_xreg), function(colnum) {
           x <- convert_frequency_dataset(test_xreg[start_time:end_time, colnum], object@window_size, object@type[2], keep.names = FALSE)
@@ -166,6 +166,9 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, plot_type, result_l
       train_end <- current + object@train_size * object@window_size - 1
       train_x <- svt_x[train_start:train_end]
       train_xreg <- svt_xreg[train_start:train_end]
+      if (length(train_xreg) == 0) {
+        train_xreg <- numeric(0)
+      }
 
       train_models[[letters[active_model]]] <- train_model(object, train_x, train_xreg)
       temp_switch_status <- list("train_iter" = train_iter, "test_iter" = 0, "react_counter" = 0, "adjust_switch" = FALSE)
@@ -183,6 +186,9 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, plot_type, result_l
     test_end <- current + object@train_size * object@window_size + object@update_freq * object@window_size - 1
     test_x <- svt_x[test_start:test_end]
     test_xreg <- svt_xreg[test_start:test_end]
+    if (length(test_xreg) == 0) {
+      test_xreg <- numeric(0)
+    }
 
     ## Test Model
     for (i in 1:object@model_num) {
@@ -264,11 +270,12 @@ predicting_sim <- function(object, x, xreg, cores, plot_type, result_loc) {
 #' @param x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param xreg A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
-#' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
+#' @param cores A numeric numeb representing the number of threads for parallel programming for multiple traces, not supported for windows users.
+#' @param write_result A logical value representing whether the final result of the simulation will be written as a csv file.
 #' @param plot_type A character that can be one of "overall", "tracewise", "paramwise" or "none".
 #' @return An S4 sim result object.
 #' @export
-run_sim <- function(epoch_setting, x, xreg, result_loc=getwd(), cores=parallel::detectCores(), plot_type) {
+run_sim <- function(epoch_setting, x, xreg, result_loc=getwd(), cores=parallel::detectCores(), write_result=TRUE, plot_type) {
   if (!(any(plot_type %in% c("overall", "tracewise", "paramwise", "none")))) {
     stop("plot_type must be one of overall, tracewise, paramwise and none.")
   }
@@ -281,6 +288,10 @@ run_sim <- function(epoch_setting, x, xreg, result_loc=getwd(), cores=parallel::
     score_param_info <- rbind(score_param_info, methods::as(uni_result[[i]], "data.frame"))
   }
   score_param_info <- cbind(epoch_setting, score_param_info)
+
+  if (write_result) {
+    write_sim_result(score_param_info, result_loc)
+  }
 
   if ("overall" %in% plot_type & !("none" %in% plot_type)) {
     plot_sim_overall(score_param_info, result_loc)

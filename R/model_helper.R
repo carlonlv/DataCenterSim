@@ -456,3 +456,16 @@ show_result <- function(param_predict_info, show_msg = TRUE) {
   }
   return(c(msg1, msg2, msg3, msg4))
 }
+
+
+#' Write The Result Of Simulation
+#'
+#' @description Write the result of a simulation to csv file.
+#' @param overall_summ A dataframe containing the scores in all parameter settings and their performance.
+#' @param result_loc A character that specify the path to which the result of simulations will be saved to.
+#' @keywords internal
+write_sim_result <- function(overall_summ, result_loc) {
+  file_name <- paste("Simulation Finished At", Sys.time(), "Sith", nrow(overall_summ), "Settings")
+  fp <- write_location_check(file_name = file_name, result_loc)
+  write.csv(overall_summ, file = fp)
+}

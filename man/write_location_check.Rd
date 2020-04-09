@@ -4,12 +4,12 @@
 \alias{write_location_check}
 \title{Check Write Location}
 \usage{
-write_location_check(..., file_name)
+write_location_check(file_name, ...)
 }
 \arguments{
-\item{...}{The name of parent directories that will be used for path of parent directory.}
-
 \item{file_name}{The name of file.}
+
+\item{...}{The name of parent directories that will be used for path of parent directory.}
 }
 \description{
 Check Write Location

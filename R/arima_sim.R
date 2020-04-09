@@ -260,8 +260,8 @@ setMethod("plot_sim_tracewise",
             adjustment <- c(rep(NA_real_, length(trainset) + length(middleset)), predict_info[predict_info$train_iter == train_iter,]$adjustment)
 
             # Time Series Plot
-            result <- data.frame("target_dataset" = target_dataset, "time" = t, "train_or_test" = train_or_test, "pi_up" = pi_up, "adjustment" = adjustment)
-            ts_plt <- ggplot2::ggplot(result, aes(x = time)) +
+            result <- data.frame("target_dataset" = target_dataset, "t" = t, "train_or_test" = train_or_test, "pi_up" = pi_up, "adjustment" = adjustment)
+            ts_plt <- ggplot2::ggplot(result, aes(x = t)) +
               ggplot2::geom_line(aes(y = target_dataset, color = factor(train_or_test), group = 1)) +
               ggplot2::geom_line(aes(y = pi_up, group = 2), color = "cyan", na.rm = TRUE) +
               ggplot2::geom_point(aes(y = pi_up, color = factor(adjustment), group = 3), na.rm = TRUE) +
@@ -294,8 +294,8 @@ setMethod("plot_sim_tracewise",
 
             # Time Series Plot of Residuals
             res <- c(as.numeric(trained_result$residuals), predict_info$residuals)
-            residual <- data.frame("res" = res, "time" = t, "train_or_test" = train_or_test)
-            ts_res <- ggplot2::ggplot(residual, aes(x = time, y = res)) +
+            residual <- data.frame("res" = res, "t" = t, "train_or_test" = train_or_test)
+            ts_res <- ggplot2::ggplot(residual, aes(x = t, y = res)) +
               ggplot2::geom_line(color = "green") +
               ggplot2::theme(legend.position = "none") +
               ggplot2::xlab("Time (5 minutes)") +
@@ -304,6 +304,6 @@ setMethod("plot_sim_tracewise",
             plt <- gridExtra::arrangeGrob(ts_plt, dens_res, ts_res, ncol = 2, nrow = 2, layout_matrix = rbind(c(1,1), c(2,3)))
 
             file_name <- paste("Diagnostic Plot of", trace_name, "at Train iteration", train_iter, "Test iterations to", test_iter[length(test_iter)])
-            save_path <- write_location_check(result_loc, "tracewise_plots/", paste(unlist(get_characteristic_slots(object)), collapse = ","), paste(unlist(get_param_slots(object)), collapse = ","), file_name = file_name)
+            save_path <- write_location_check(file_name = file_name, result_loc, "tracewise_plots/", paste(unlist(get_characteristic_slots(object)), collapse = ","), paste(unlist(get_param_slots(object)), collapse = ","))
             ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 12, height = 7)
           })

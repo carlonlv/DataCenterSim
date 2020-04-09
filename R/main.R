@@ -133,7 +133,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, plot_type, result_l
   train_iter <- 1
   while (current <= last_time_update) {
     if (switch_sig) {
-      if (plot_type == "tracewise") {
+      if ("tracewise" %in% plot_type & !("none" %in% plot_type)) {
         plot_sim_tracewise(object, trace_name, train_models[[letters[active_model]]], predict_info, result_loc)
       }
 
@@ -245,9 +245,12 @@ predicting_sim <- function(object, x, xreg, cores, plot_type, result_loc) {
     param_predict_info <- combine_result(param_predict_info, trace_score[[ts_num]])
     score_predict_info <- rbind(score_predict_info, methods::as(trace_score[[ts_num]], "data.frame"))
   }
+  score_predict_info$trace_name <- colnames(x)
 
-  if (plot_type == "paramwise") {
-    plot_sim_paramwise(object, score_predict_info, param_predict_info, result_loc)
+  show_result(param_predict_info)
+
+  if ("paramwise" %in% plot_type & !("none" %in% plot_type)) {
+    plot_sim_paramwise(object, param_predict_info, score_predict_info, result_loc)
   }
   return(param_predict_info)
 }
@@ -266,26 +269,21 @@ predicting_sim <- function(object, x, xreg, cores, plot_type, result_loc) {
 #' @return An S4 sim result object.
 #' @export
 run_sim <- function(epoch_setting, x, xreg, result_loc=getwd(), cores=parallel::detectCores(), plot_type) {
-  if (!(plot_type %in% c("overall", "tracewise", "paramwise", "none"))) {
+  if (!(any(plot_type %in% c("overall", "tracewise", "paramwise", "none")))) {
     stop("plot_type must be one of overall, tracewise, paramwise and none.")
   }
-
-  score_param_info <- data.frame("param_setting" = character(0),
-                                 "score_param_1" = numeric(0),
-                                 "score_param_2" = numeric(0),
-                                 "score_param_adj_1" = numeric(0),
-                                 "score_param_adj_2" = numeric(0),
-                                 stringsAsFactors = FALSE)
 
   uni_lst <- methods::as(epoch_setting, "sim")
   uni_result <- lapply(uni_lst, predicting_sim, x, xreg, cores, plot_type, result_loc)
 
+  score_param_info <- data.frame()
   for (i in 1:length(uni_result)) {
-    score_param_info[i,] <- c(paste(unlist(get_param_slots(uni_lst[[i]]))), uni_result[[i]])
+    score_param_info <- rbind(score_param_info, methods::as(uni_result[[i]], "data.frame"))
   }
+  score_param_info <- cbind(epoch_setting, score_param_info)
 
-  #if (plot_type == "overall") {
-    #plot_sim_overall(epoch_setting, score_param_info, result_loc)
-  #}
+  if ("overall" %in% plot_type & !("none" %in% plot_type)) {
+    plot_sim_overall(score_param_info, result_loc)
+  }
   return(score_param_info)
 }

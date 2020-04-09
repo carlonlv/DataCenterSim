@@ -77,21 +77,6 @@ setGeneric("update_freq", function(object) standardGeneric("update_freq"))
 setGeneric("update_freq<-", function(object, value) standardGeneric("update_freq<-"))
 
 
-#' Getter/Setter for Result Location
-#'
-#' Result location is a path to a directory you wish to store the result to, the default is the current work directory.
-#'
-#' @param object An S4 sim object
-#' @rdname result_loc
-#' @export
-setGeneric("result_loc", function(object) standardGeneric("result_loc"))
-
-#' @param value A character value of the path to a directory.
-#' @rdname result_loc
-#' @export
-setGeneric("result_loc<-", function(object, value) standardGeneric("result_loc<-"))
-
-
 #' Getter/Setter for Response
 #'
 #' Response describes the type of response variable, the maximum of trace to predict or the average of trace to predict.
@@ -156,22 +141,21 @@ setGeneric("get_characteristic_slots", function(object) standardGeneric("get_cha
 #' Plot Simulation Result Type Overall
 #'
 #' Plot overall result for simulation with each datapoint corresponds to average scores of all traces with one configuration.
-#' @param object An S4 sim object
-#' @param overall_summ A dataframe containing the scores in all parameter settings.
+#' @param overall_summ A dataframe containing the scores in all parameter settings and their performance.
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to.
 #' @rdname plot_sim_overall
-setGeneric("plot_sim_overall", function(object, overall_summ, result_loc) standardGeneric("plot_sim_overall"))
+setGeneric("plot_sim_overall", function(overall_summ, result_loc) standardGeneric("plot_sim_overall"))
 
 
 #' Plot Simulation Result Type Tracewise
 #'
 #' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
-#' @param object An S4 sim object.
-#' @param score A dataframe containing the scores for all traces.
-#' @param summ A vector containing the summary of scores for this parameter setting.
+#' @param object An S4 sim object
+#' @param param_result A S4 sim_result containing the summary.
+#' @param param_score A dataframe containing score information for all traces.
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to.
 #' @rdname plot_sim_paramwise
-setGeneric("plot_sim_paramwise", function(object, score, summ, result_loc) standardGeneric("plot_sim_paramwise"))
+setGeneric("plot_sim_paramwise", function(object, param_result, param_score, result_loc) standardGeneric("plot_sim_paramwise"))
 
 
 #' Plot Simulation Result Type Tracewise

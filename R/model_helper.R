@@ -249,11 +249,11 @@ check_score_trace <- function(predict_info) {
   score_trace_1.n <- stats::weighted.mean(predict_info$score_pred_1, rep(1, nrow(predict_info)), na.rm = TRUE)
   score_trace_1.w <- length(stats::na.omit(predict_info$score_pred_1))
   score_trace_1_adj.n <- stats::weighted.mean(predict_info$score_pred_1, ifelse(predict_info$adjustment, 1, 0), na.rm = TRUE)
-  score_trace_1_adj.w <- length(stats::na.omit(predict_info$score_pred_1))
+  score_trace_1_adj.w <- length(stats::na.omit(predict_info$score_pred_1[which(!predict_info$adjustment)]))
   score_trace_2.n <- stats::weighted.mean(predict_info$score_pred_2, rep(1, nrow(predict_info)), na.rm = TRUE)
   score_trace_2.w <- length(stats::na.omit(predict_info$score_pred_2))
   score_trace_2_adj.n <- stats::weighted.mean(predict_info$score_pred_2, ifelse(predict_info$adjustment, 1, 0), na.rm = TRUE)
-  score_trace_2_adj.w <- length(stats::na.omit(predict_info$score_pred_2))
+  score_trace_2_adj.w <- length(stats::na.omit(predict_info$score_pred_2[which(!predict_info$adjustment)]))
   trace_sim_result <- sim_result(type = "trace",
                                 score1.n = score_trace_1.n,
                                 score1.w = score_trace_1.w,
@@ -425,13 +425,34 @@ find_state_num <- function(obs, state_num) {
 
 #' Check Write Location
 #'
-#' @param ... The name of parent directories that will be used for path of parent directory.
 #' @param file_name The name of file.
+#' @param ... The name of parent directories that will be used for path of parent directory.
 #' @keywords internal
-write_location_check <- function(..., file_name) {
+write_location_check <- function(file_name, ...) {
   parent_dir <- fs::path(...)
   if (!fs::dir_exists(parent_dir)) {
     fs::dir_create(parent_dir)
   }
   return(fs::path(parent_dir, file_name))
+}
+
+
+#' Print The Result Of Simulation
+#'
+#' @description Show the result of a simulation for one specific parameter setting.
+#' @param param_predict_info A S4 sim result object.
+#' @param show_msg A logical value representing whether messages will printed.
+#' @return A list consists of summary of simulation result.
+#' @keywords internal
+show_result <- function(param_predict_info, show_msg = TRUE) {
+  msg1 <- paste("Score 1:", param_predict_info@score1.n, "with", param_predict_info@score1.w, "predictions.")
+  msg2 <- paste("Adjusted Score 1:", param_predict_info@score1_adj.n, "with", param_predict_info@score1_adj.w, "predictions.")
+  msg3 <- paste("Score 2:", param_predict_info@score2.n, "with", param_predict_info@score2.w, "predictions.")
+  msg4 <- paste("Adjusted Score 2:", param_predict_info@score2_adj.n, "with", param_predict_info@score2_adj.w, "predictions.")
+  if (show_msg) {
+    for (i in c(msg1, msg2, msg3, msg4)) {
+      print(i)
+    }
+  }
+  return(c(msg1, msg2, msg3, msg4))
 }

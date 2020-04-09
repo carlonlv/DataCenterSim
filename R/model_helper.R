@@ -303,10 +303,10 @@ out_performs <- function(score_result1, score_result2, target_score_1) {
   if (is.null(score_result2)) {
     return(TRUE)
   }
-  if (is.na(score_result1)) {
+  if (is.na(score_result1@score1.n) | is.na(score_result1@score1_adj.n)) {
     return(FALSE)
   }
-  if (is.na(score_result2)) {
+  if (is.na(score_result2@score1.n) | is.na(score_result2@score1_adj.n)) {
     return(TRUE)
   }
   m1_good_enough <- is_well_performed(score_result1, target_score_1)
@@ -467,5 +467,8 @@ show_result <- function(param_predict_info, show_msg = TRUE) {
 write_sim_result <- function(overall_summ, result_loc) {
   file_name <- paste("Simulation Finished At", Sys.time(), "Sith", nrow(overall_summ), "Settings")
   fp <- write_location_check(file_name = file_name, result_loc)
+  overall_summ$react_speed <- sapply(1:nrow(overall_summ), function(rownum){
+    paste(unlist(overall_summ[rownum,]$react_speed), collapse = ",")
+  })
   write.csv(overall_summ, file = fp)
 }

@@ -33,7 +33,6 @@ check_valid_arima_sim <- function(object) {
 
 #' @rdname sim-class
 #' @param res_dist The distribution of residual, \code{"normal"} for normal distribution or \code{"empirical"} for empirical distribution. Default value is \code{"normal"}.
-#' @param reg_num The number of past regressive observations needed to forecast next observation, not manually set by users.
 #' @param outlier_type The type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.
 #' @param outlier_cval The critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50).
 #' @export arima_sim

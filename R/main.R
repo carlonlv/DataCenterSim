@@ -294,7 +294,7 @@ run_sim <- function(epoch_setting, x, xreg, cores=parallel::detectCores(), write
                        score_param_lst <- lapply(param_uni_lst, predicting_sim, x, xreg, cores, write_type, plot_type, result_loc, name, get_representation(defau, "char_con"))
                        score_param_info <- data.frame()
                        for (i in 1:length(score_param_lst)) {
-                         score_param_info <- rbind(score_param_info, methods::as(param_uni_lst[[i]], "data.frame"))
+                         score_param_info <- rbind(score_param_info, methods::as(score_param_lst[[i]], "data.frame"))
                        }
                        file_name <- Sys.time()
                        if ("charwise" %in% write_type & !("none" %in% write_type)) {

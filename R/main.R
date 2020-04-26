@@ -298,7 +298,7 @@ run_sim <- function(epoch_setting, x, xreg, cores=parallel::detectCores(), write
                          param_uni_df <- rbind(param_uni_df, methods::as(param_uni_lst[[i]], "data.frame"))
                          score_param_df <- rbind(score_param_df, methods::as(score_param_lst[[i]], "data.frame"))
                        }
-                       file_name <- Sys.time()
+                       file_name <- as.character(Sys.time())
                        if ("charwise" %in% write_type & !("none" %in% write_type)) {
                          write_sim_result(score_param_df, "charwise", file_name, result_loc, name, get_representation(defau, "char_con"))
                        }

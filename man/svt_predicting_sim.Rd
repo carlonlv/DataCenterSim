@@ -4,7 +4,7 @@
 \alias{svt_predicting_sim}
 \title{Simulation of Scheduling Jobs Based On Predictions On A Single Trace With AR1 Model}
 \usage{
-svt_predicting_sim(ts_num, object, x, xreg = NULL, plot_type, result_loc)
+svt_predicting_sim(ts_num, object, x, xreg = NULL, write_type, plot_type, ...)
 }
 \arguments{
 \item{ts_num}{The corresponding trace/column in \code{dataset}.}
@@ -13,9 +13,11 @@ svt_predicting_sim(ts_num, object, x, xreg = NULL, plot_type, result_loc)
 
 \item{xreg}{A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.}
 
-\item{plot_type}{A character that can be one of "overall", "tracewise", "paramwise" or "none".}
+\item{write_type}{A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".}
 
-\item{result_loc}{A character that specify the path to which the result of simulations will be saved to.}
+\item{plot_type}{A character that can be one of "charwise", "tracewise", "paramwise" or "none".}
+
+\item{...}{Characters that represent the name of parent directories that will be passed to \code{write_location_check}.}
 }
 \value{
 A list containing the resulting prediction informations.

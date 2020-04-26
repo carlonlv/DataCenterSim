@@ -8,10 +8,10 @@ run_sim(
   epoch_setting,
   x,
   xreg,
-  result_loc = getwd(),
   cores = parallel::detectCores(),
-  write_result = TRUE,
-  plot_type
+  write_type,
+  plot_type,
+  result_loc = getwd()
 )
 }
 \arguments{
@@ -21,13 +21,13 @@ run_sim(
 
 \item{xreg}{A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.}
 
-\item{result_loc}{A character that specify the path to which the result of simulations will be saved to. Default is your work directory.}
-
 \item{cores}{A numeric numeb representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
 
-\item{write_result}{A logical value representing whether the final result of the simulation will be written as a csv file.}
+\item{write_type}{A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".}
 
-\item{plot_type}{A character that can be one of "overall", "tracewise", "paramwise" or "none".}
+\item{plot_type}{A character that represents how to plot the result of simulation can be one of "charwise", "tracewise", "paramwise" or "none".}
+
+\item{result_loc}{A character that specify the path to which the result of simulations will be saved to. Default is your work directory.}
 }
 \value{
 An S4 sim result object.

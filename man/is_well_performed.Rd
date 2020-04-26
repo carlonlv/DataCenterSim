@@ -9,7 +9,7 @@ is_well_performed(score_result, target_score_1)
 \arguments{
 \item{score_result}{A sim_result object representing testing result on a testing batch.}
 
-\item{target_score_1}{A numeric value representing target of score1 overall.}
+\item{target_score_1}{A numeric value representing target of score1.}
 }
 \value{
 A logical value \code{TRUE} if performance is good enough, \code{FALSE}, otherwise.

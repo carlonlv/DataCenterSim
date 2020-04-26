@@ -5,4 +5,6 @@
 #' @importFrom gridExtra grid.arrange
 #' @import tsoutliers
 #' @import forecast
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom grDevices colorRampPalette
 NULL

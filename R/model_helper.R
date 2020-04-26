@@ -271,7 +271,7 @@ check_score_trace <- function(predict_info) {
 #'
 #' @description Check if the scheduling performance reaches target on score1.
 #' @param score_result A sim_result object representing testing result on a testing batch.
-#' @param target_score_1 A numeric value representing target of score1 overall.
+#' @param target_score_1 A numeric value representing target of score1.
 #' @return A logical value \code{TRUE} if performance is good enough, \code{FALSE}, otherwise.
 #' @keywords internal
 is_well_performed <- function(score_result, target_score_1) {
@@ -293,7 +293,7 @@ is_well_performed <- function(score_result, target_score_1) {
 #' @description Check if model 1 outperforms model 2 on a test batch.
 #' @param score_result1 A sim_result object representing testing result on a testing batch for model 1.
 #' @param score_result2 A sim_result object representing testing result on a testing batch for model 2.
-#' @param target_score_1 A numeric value representing target of score1 overall.
+#' @param target_score_1 A numeric value representing target of score1.
 #' @return A logical value \code{TRUE} if model 1 outperforms model 2, \code{FALSE} otherwise.
 #' @keywords internal
 out_performs <- function(score_result1, score_result2, target_score_1) {
@@ -303,14 +303,10 @@ out_performs <- function(score_result1, score_result2, target_score_1) {
   if (is.null(score_result2)) {
     return(TRUE)
   }
-  if (is.na(score_result1@score1.n) | is.na(score_result1@score1_adj.n)) {
-    return(FALSE)
-  }
-  if (is.na(score_result2@score1.n) | is.na(score_result2@score1_adj.n)) {
-    return(TRUE)
-  }
+
   m1_good_enough <- is_well_performed(score_result1, target_score_1)
   m2_good_enough <- is_well_performed(score_result2, target_score_1)
+
   if (m1_good_enough & m2_good_enough) {
     return(ifelse(score_result1@score2.n > score_result2@score2.n, TRUE, FALSE))
   } else if (m1_good_enough) {
@@ -318,10 +314,20 @@ out_performs <- function(score_result1, score_result2, target_score_1) {
   } else if (m2_good_enough) {
     return(FALSE)
   } else {
-    if (score_result1@score1.n == score_result2@score1.n) {
-      return(ifelse(score_result1@score2.n > score_result2@score2.n, TRUE, FALSE))
+    m1_na_result <- is.na(score_result2@score1.n) | is.na(score_result2@score1_adj.n)
+    m2_na_result <- is.na(score_result1@score1.n) | is.na(score_result1@score1_adj.n)
+    if (m1_na_result & m2_na_result) {
+      return(FALSE)
+    } else if (m1_na_result) {
+      return(TRUE)
+    } else if (m2_na_result) {
+      return(FALSE)
     } else {
-      return(ifelse(score_result1@score1.n > score_result2@score1.n, TRUE, FALSE))
+      if (score_result1@score1.n == score_result2@score1.n) {
+        return(ifelse(score_result1@score2.n > score_result2@score2.n, TRUE, FALSE))
+      } else {
+        return(ifelse(score_result1@score1.n > score_result2@score1.n, TRUE, FALSE))
+      }
     }
   }
 }
@@ -426,8 +432,8 @@ find_state_num <- function(obs, state_num) {
 #' Check Write Location
 #'
 #' @param file_name The name of file.
-#' @param ... The name of parent directories that will be used for path of parent directory.
-#' @keywords internal
+#' @param ... Characters that represents the name of parent directories that will be used for path of parent directory.
+#' @export
 write_location_check <- function(file_name, ...) {
   parent_dir <- fs::path(...)
   if (!fs::dir_exists(parent_dir)) {
@@ -461,14 +467,23 @@ show_result <- function(param_predict_info, show_msg = TRUE) {
 #' Write The Result Of Simulation
 #'
 #' @description Write the result of a simulation to csv file.
-#' @param overall_summ A dataframe containing the scores in all parameter settings and their performance.
+#' @param summ_df A dataframe containing the scores in all parameter settings and their performance.
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to.
+#' @param result_type A character that can be one of \code{"charwise"}, \code{"tracewise"}, \code{"paramwise"} or \code{"none"}.
+#' @param name A character that identifies the name of the result.
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
 #' @keywords internal
-write_sim_result <- function(overall_summ, result_loc) {
-  file_name <- paste("Simulation Finished At", Sys.time(), "Sith", nrow(overall_summ), "Settings")
-  fp <- write_location_check(file_name = file_name, result_loc)
-  overall_summ$react_speed <- sapply(1:nrow(overall_summ), function(rownum){
-    paste(unlist(overall_summ[rownum,]$react_speed), collapse = ",")
+write_sim_result <- function(summ_df, result_type, name, ...) {
+  if (result_type == "tracewise") {
+    file_name <- paste("Tracewise Simulation With trace", name)
+  } else if (result_type == "paramwise") {
+    file_name <- paste("Paramwise Simulation With", name)
+  } else {
+    file_name <- paste("Charwise Simulation Started At", name)
+  }
+  fp <- write_location_check(file_name = file_name, ...)
+  summ_df$react_speed <- sapply(1:nrow(summ_df), function(rownum){
+    paste(unlist(summ_df[rownum,]$react_speed), collapse = ",")
   })
-  write.csv(overall_summ, file = fp)
+  utils::write.csv(summ_df, file = fs::path(fp, ext = "csv"))
 }

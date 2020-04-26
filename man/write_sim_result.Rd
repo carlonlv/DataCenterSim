@@ -4,10 +4,16 @@
 \alias{write_sim_result}
 \title{Write The Result Of Simulation}
 \usage{
-write_sim_result(overall_summ, result_loc)
+write_sim_result(summ_df, result_type, name, ...)
 }
 \arguments{
-\item{overall_summ}{A dataframe containing the scores in all parameter settings and their performance.}
+\item{summ_df}{A dataframe containing the scores in all parameter settings and their performance.}
+
+\item{result_type}{A character that can be one of \code{"charwise"}, \code{"tracewise"}, \code{"paramwise"} or \code{"none"}.}
+
+\item{name}{A character that identifies the name of the result.}
+
+\item{...}{Characters that represent the name of parent directories that will be passed to \code{write_location_check}.}
 
 \item{result_loc}{A character that specify the path to which the result of simulations will be saved to.}
 }

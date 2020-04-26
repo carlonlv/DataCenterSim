@@ -138,36 +138,36 @@ setGeneric("get_param_slots", function(object) standardGeneric("get_param_slots"
 setGeneric("get_characteristic_slots", function(object) standardGeneric("get_characteristic_slots"))
 
 
-#' Plot Simulation Result Type Overall
+#' Plot Simulation Result Type Charwise
 #'
-#' Plot overall result for simulation with each datapoint corresponds to average scores of all traces with one configuration.
-#' @param overall_summ A dataframe containing the scores in all parameter settings and their performance.
-#' @param result_loc A character that specify the path to which the result of simulations will be saved to.
-#' @rdname plot_sim_overall
-setGeneric("plot_sim_overall", function(overall_summ, result_loc) standardGeneric("plot_sim_overall"))
+#' Plot charwise result for simulation with each datapoint corresponds to average scores of all traces with one configuration.
+#' @param charwise_summ A dataframe containing the scores in all parameter settings and their performance.
+#' @param name A character that represents the identifier or name of the plot.
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
+#' @rdname plot_sim_charwise
+setGeneric("plot_sim_charwise", function(charwise_summ, name, ...) standardGeneric("plot_sim_charwise"))
 
 
 #' Plot Simulation Result Type Tracewise
 #'
 #' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
-#' @param object An S4 sim object
 #' @param param_result A S4 sim_result containing the summary.
 #' @param param_score A dataframe containing score information for all traces.
-#' @param result_loc A character that specify the path to which the result of simulations will be saved to.
+#' @param target A numeric value that is set to be the target of score 1 for all traces.
+#' @param name A character that represents the identifier or name of the plot.
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
 #' @rdname plot_sim_paramwise
-setGeneric("plot_sim_paramwise", function(object, param_result, param_score, result_loc) standardGeneric("plot_sim_paramwise"))
+setGeneric("plot_sim_paramwise", function(param_result, param_score, target, name, ...) standardGeneric("plot_sim_paramwise"))
 
 
 #' Plot Simulation Result Type Tracewise
 #'
 #' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
-#' @param object An S4 sim object.
-#' @param trace_name A character representing name of current trace.
-#' @param trained_result A list or other class returend by \code{train_model}, containing trained model information.
 #' @param predict_info A dataframe containing all the past predicted information.
-#' @param result_loc A character that specify the path to which the result of simulations will be saved to.
+#' @param name A character that represents the identifier or name of the plot.
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
 #' @rdname plot_sim_tracewise
-setGeneric("plot_sim_tracewise", function(object, trace_name, trained_result, predict_info, result_loc) standardGeneric("plot_sim_tracewise"))
+setGeneric("plot_sim_tracewise", function(predict_info, name, ...) standardGeneric("plot_sim_tracewise"))
 
 
 #' Train Model
@@ -187,7 +187,7 @@ setGeneric("train_model", function(object, train_x, train_xreg) standardGeneric(
 #'
 #' This is a generic function that do prediction according to the input object type.
 #'
-#' @param object An S4 sim process object
+#' @param object An S4 sim object.
 #' @param trained_result A list or other class returend by \code{train_model}, containing trained model information.
 #' @param predict_info A dataframe representing all the past predicted or scheduled information.
 #' @return The updated \code{predict_info} on the last row.
@@ -195,3 +195,14 @@ setGeneric("train_model", function(object, train_x, train_xreg) standardGeneric(
 #' @rdname do_prediction
 setGeneric("do_prediction", function(object, trained_result, predict_info) standardGeneric("do_prediction"))
 
+
+#' Get Representation
+#'
+#' This is a generic function that return a character representation according to the input object type.
+#'
+#' @param object An S4 sim object.
+#' @param type A character representing the different type of representation to be returned.
+#' @return A character representation of \code{object}.
+#' @name get_representation
+#' @rdname get_representation
+setGeneric("get_representation", function(object, type) standardGeneric("get_representation"))

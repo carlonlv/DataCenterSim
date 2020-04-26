@@ -2,21 +2,23 @@
 % Please edit documentation in R/generics.R, R/sim_methods.R
 \name{plot_sim_paramwise}
 \alias{plot_sim_paramwise}
-\alias{plot_sim_paramwise,sim,sim_result,data.frame,character-method}
+\alias{plot_sim_paramwise,sim_result,data.frame,numeric,character-method}
 \title{Plot Simulation Result Type Tracewise}
 \usage{
-plot_sim_paramwise(object, param_result, param_score, result_loc)
+plot_sim_paramwise(param_result, param_score, target, name, ...)
 
-\S4method{plot_sim_paramwise}{sim,sim_result,data.frame,character}(object, param_result, param_score, result_loc)
+\S4method{plot_sim_paramwise}{sim_result,data.frame,numeric,character}(param_result, param_score, target, name, ...)
 }
 \arguments{
-\item{object}{An S4 sim object}
-
 \item{param_result}{A S4 sim_result containing the summary.}
 
 \item{param_score}{A dataframe containing score information for all traces.}
 
-\item{result_loc}{A character that specify the path to which the result of simulations will be saved to.}
+\item{target}{A numeric value that is set to be the target of score 1 for all traces.}
+
+\item{name}{A character that represents the identifier or name of the plot.}
+
+\item{...}{Characters that represent the name of parent directories that will be passed to \code{write_location_check}.}
 }
 \description{
 Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.

@@ -9,9 +9,8 @@ write_location_check(file_name, ...)
 \arguments{
 \item{file_name}{The name of file.}
 
-\item{...}{The name of parent directories that will be used for path of parent directory.}
+\item{...}{Characters that represents the name of parent directories that will be used for path of parent directory.}
 }
 \description{
 Check Write Location
 }
-\keyword{internal}

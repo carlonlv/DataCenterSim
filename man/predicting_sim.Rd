@@ -4,7 +4,7 @@
 \alias{predicting_sim}
 \title{Simulation of Scheduling Jobs Based On Predictions With AR1 Model}
 \usage{
-predicting_sim(object, x, xreg, cores, plot_type, result_loc)
+predicting_sim(object, x, xreg, cores, write_type, plot_type, ...)
 }
 \arguments{
 \item{object}{A uni-length sim object that represents a specific parameter setting.}
@@ -15,9 +15,11 @@ predicting_sim(object, x, xreg, cores, plot_type, result_loc)
 
 \item{cores}{The number of threads for parallel programming for multiple traces, not supported for windows users.}
 
-\item{plot_type}{A character that can be one of "overall", "tracewise", "paramwise" or "none".}
+\item{write_type}{A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".}
 
-\item{result_loc}{A character that specify the path to which the result of simulations will be saved to.}
+\item{plot_type}{A character that represents how to plot the result of simulation can be one of "charwise", "tracewise", "paramwise" or "none".}
+
+\item{...}{Characters that represent the name of parent directories that will be passed to \code{write_location_check}.}
 }
 \value{
 An S4 sim result object.

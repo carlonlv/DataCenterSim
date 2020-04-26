@@ -137,6 +137,7 @@ setMethod("do_prediction",
               }
 
               if (object@outlier_type != "None") {
+                # Find outliers from past residuals and remove their effect.
                 if (object@outlier_type == "All") {
                   ol_type <- c("AO", "IO", "LS")
                 } else {
@@ -160,14 +161,19 @@ setMethod("do_prediction",
 
               prev_xreg <- trained_result$call$xreg
               if (is.null(prev_xreg)) {
+                # Outliers are not considered or outliers are not found, and no external regressor is considered.
                 target_model <- forecast::Arima(new_x, model = trained_result)
               } else {
-                if (is.null(predict_info$xreg)) {
+                # Outliers are considered and found, or external regressor is considered.
+                if (any(is.na(predict_info$xreg[-nrow(predict_info)]))) {
+                  # No external regressor is considered.
                   new_xreg <- matrix(nrow = nrow(predict_info) - 1, ncol = 0)
                 } else {
-                  new_xreg <- matrix(unlist(predict_info$xreg[-nrow(predict_info)]), nrow = nrow(predict_info) - 1, byrow = TRUE)
+                  # External regressor is considered.
+                  new_xreg <- matrix(predict_info$xreg[-nrow(predict_info)], nrow = nrow(predict_info) - 1, byrow = TRUE)
                 }
                 if (ncol(new_xreg) < ncol(prev_xreg)) {
+                  # Outliers are considered and found.
                   new_ol <- matrix(0, nrow = nrow(new_xreg), ncol = ncol(prev_xreg) - ncol(new_xreg))
                   new_xreg <- cbind(new_xreg, new_ol)
                 }
@@ -179,12 +185,15 @@ setMethod("do_prediction",
             }
 
             if (is.null(trained_result$call$xreg)) {
+              # Outliers are not considered or outliers are not found, and no external regressor is considered.
               predict_result <- forecast::forecast(target_model, h = 1, bootstrap = bootstrap, level = level)
             } else {
-              if (is.null(predict_info$xreg)) {
+              if (any(is.na(predict_info$xreg[-nrow(predict_info)]))) {
+                # No external regressor is considered.
                 xreg <- matrix(0, nrow = 1, ncol = ncol(trained_result$call$xreg))
               } else {
-                xreg <- matrix(unlist(predict_info$xreg[nrow(predict_info)]), nrow = 1, byrow = TRUE)
+                # External regressor is considered.
+                xreg <- matrix(predict_info$xreg[nrow(predict_info)], nrow = 1, byrow = TRUE)
                 if (ncol(xreg) < ncol(trained_result$call$xreg)) {
                   xreg <- cbind(xreg, matrix(0, nrow = 1, ncol = (ncol(trained_result$call$xreg) - ncol(xreg))))
                 }
@@ -232,87 +241,19 @@ setMethod("get_characteristic_slots",
 #' @export
 setAs("data.frame", "arima_sim",
       function(from) {
-        if (from[, "name"] == "ARIMA") {
-          object <- methods::new("arima_sim")
-          for (i in names(from)) {
-            if (i %in% methods::slotNames(object)) {
-              if (methods::is(from[, i], "list")) {
-                methods::slot(object, i) <- unlist(from[, i])
-              } else {
+        object <- methods::new("arima_sim")
+        for (i in names(from)) {
+          if (i %in% methods::slotNames(object)) {
+            if (methods::is(from[, i], "character")) {
+              if (length(strsplit(from[, i], ","))[[1]] == 1) {
                 methods::slot(object, i) <- from[, i]
+              } else {
+                methods::slot(object, i) <- as.numeric(strsplit(from[, i], ",")[[1]])
               }
+            } else {
+              methods::slot(object, i) <- from[, i]
             }
           }
-          return(object)
         }
+        return(object)
       })
-
-
-#' @rdname plot_sim_tracewise
-#' @export
-setMethod("plot_sim_tracewise",
-          signature(object = "arima_sim", trace_name = "character", trained_result = "list", predict_info = "data.frame", result_loc = "character"),
-          function(object, trace_name, trained_result, predict_info, result_loc) {
-            trained_result <- trained_result[[1]]
-            train_iter <- predict_info[nrow(predict_info), "train_iter"]
-            test_iter <- unique(predict_info[predict_info$train_iter == train_iter, "test_iter"])
-
-            trainset <- trained_result$call$x
-            middleset <- predict_info[predict_info$train_iter != train_iter,]$actual
-            testset <- predict_info[predict_info$train_iter == train_iter,]$actual
-
-            target_dataset <- c(trainset, middleset, testset)
-            train_or_test <- c(rep("train", length(trainset)), rep("middle", length(middleset)), rep("test", length(testset)))
-            t <- c(as.numeric(names(trained_result$call$x)), predict_info$time)
-
-            pi_up <- c(rep(NA_real_, length(trainset) + length(middleset)), predict_info[predict_info$train_iter == train_iter,]$pi_up)
-            adjustment <- c(rep(NA_real_, length(trainset) + length(middleset)), predict_info[predict_info$train_iter == train_iter,]$adjustment)
-
-            # Time Series Plot
-            result <- data.frame("target_dataset" = target_dataset, "t" = t, "train_or_test" = train_or_test, "pi_up" = pi_up, "adjustment" = adjustment)
-            ts_plt <- ggplot2::ggplot(result, aes(x = t)) +
-              ggplot2::geom_line(aes(y = target_dataset, color = factor(train_or_test), group = 1)) +
-              ggplot2::geom_line(aes(y = pi_up, group = 2), color = "cyan", na.rm = TRUE) +
-              ggplot2::geom_point(aes(y = pi_up, color = factor(adjustment), group = 3), na.rm = TRUE) +
-              ggplot2::geom_hline(yintercept = 100, linetype = "dashed", color = "yellow") +
-              ggplot2::xlab("Time (5 minutes)") +
-              ggplot2::ylab("Cpu (percent)") +
-              ggplot2::theme(legend.position = "none") +
-              ggplot2::ggtitle(paste("Diagnostic Plot of", trace_name, "at Train iteration", train_iter, "Test iterations to", test_iter[length(test_iter)]))
-
-            # Density Plot of Residuals
-            train_res <- as.numeric(trained_result$residuals)
-
-            wn_test <- stats::Box.test(train_res, lag = round(sqrt(length(train_res))), type = "Ljung-Box", fitdf = sum(trained_result$call$order))
-            msg1 <- paste("The White Noise Test for Residuals has p-value of", round(wn_test$p.value, 3), "for one-tailed test.")
-
-            residual <- data.frame("x" = train_res)
-            dens_res <- ggplot2::ggplot(residual, aes(x = train_res)) +
-              ggplot2::geom_density(fill = "red", alpha = 0.5)
-            if (object@res_dist == "normal") {
-              mu <- 0
-              sd <- sqrt(trained_result$sigma2)
-              dens_res <- dens_res +
-                ggplot2::stat_function(fun = stats::dnorm, n = nrow(residual), args = list("mean" = mu, "sd" = sd), color = "blue")
-            }
-            dens_res <- dens_res +
-              ggplot2::theme(legend.position = "none") +
-              ggplot2::ylab("density of residuals") +
-              ggplot2::xlab("residuals") +
-              ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2), hjust = 0, label = c(msg1))
-
-            # Time Series Plot of Residuals
-            res <- c(as.numeric(trained_result$residuals), predict_info$residuals)
-            residual <- data.frame("res" = res, "t" = t, "train_or_test" = train_or_test)
-            ts_res <- ggplot2::ggplot(residual, aes(x = t, y = res)) +
-              ggplot2::geom_line(color = "green") +
-              ggplot2::theme(legend.position = "none") +
-              ggplot2::xlab("Time (5 minutes)") +
-              ggplot2::ylab("residuals")
-
-            plt <- gridExtra::arrangeGrob(ts_plt, dens_res, ts_res, ncol = 2, nrow = 2, layout_matrix = rbind(c(1,1), c(2,3)))
-
-            file_name <- paste("Diagnostic Plot of", trace_name, "at Train iteration", train_iter, "Test iterations to", test_iter[length(test_iter)])
-            save_path <- write_location_check(file_name = file_name, result_loc, "tracewise_plots/", paste(unlist(get_characteristic_slots(object)), collapse = ","), paste(unlist(get_param_slots(object)), collapse = ","))
-            ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 12, height = 7)
-          })

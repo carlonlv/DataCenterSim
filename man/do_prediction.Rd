@@ -10,7 +10,7 @@ do_prediction(object, trained_result, predict_info)
 \S4method{do_prediction}{arima_sim,list,data.frame}(object, trained_result, predict_info)
 }
 \arguments{
-\item{object}{An S4 sim process object}
+\item{object}{An S4 sim object.}
 
 \item{trained_result}{A list or other class returend by \code{train_model}, containing trained model information.}
 

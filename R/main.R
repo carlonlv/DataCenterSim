@@ -234,8 +234,8 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
 predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
   ## Do Simulation
   start_time <- proc.time()
-  #trace_score <- parallel::mclapply(1:ncol(x), svt_predicting_sim, object, x, xreg, write_type, plot_type, mc.cores = cores)
-  trace_score <- lapply(1:ncol(x), svt_predicting_sim, object, x, xreg, write_type, plot_type, ..., get_representation(object, "param_con"))
+  trace_score <- parallel::mclapply(1:ncol(x), svt_predicting_sim, object, x, xreg, write_type, plot_type, mc.cores = cores, ..., get_representation(object, "param_con"))
+  #trace_score <- lapply(1:ncol(x), svt_predicting_sim, object, x, xreg, write_type, plot_type, ..., get_representation(object, "param_con"))
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -256,7 +256,7 @@ predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
     write_sim_result(score_predict_info, "paramwise", get_representation(object, "param_con"), ...)
   }
   if ("paramwise" %in% plot_type & !("none" %in% plot_type)) {
-    plot_sim_paramwise(param_predict_info, score_predict_info, 1 - object@cut_off_prob, ...)
+    plot_sim_paramwise(param_predict_info, score_predict_info, 1 - object@cut_off_prob, get_representation(object, "param_con"), ...)
   }
   return(param_predict_info)
 }

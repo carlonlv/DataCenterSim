@@ -201,7 +201,7 @@ setMethod("plot_sim_charwise",
               ggplot2::ggtitle(paste("Model Performance at", name))
 
             file_name <- paste("Model Performance at", name)
-            save_path <- write_location_check(file_name = name, ...)
+            save_path <- write_location_check(file_name = file_name, ...)
             ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 12, height = 7)
             return(plt)
           })
@@ -212,7 +212,7 @@ setMethod("plot_sim_charwise",
 setMethod("plot_sim_paramwise",
           signature(param_result = "sim_result", param_score = "data.frame", target = "numeric", name = "character"),
           function(param_result, param_score, target, name, ...) {
-            msg <- show_result(param_result)
+            msg <- show_result(param_result, show_msg = FALSE)
 
             under_performed_score1 <- sum(param_score$score1 < target, na.rm = TRUE) / length(stats::na.omit(param_score$score1))
             under_performed_score1_adj <- sum(param_score$score1_adj < target, na.rm = TRUE) / length(stats::na.omit(param_score$score1_adj))
@@ -240,8 +240,8 @@ setMethod("plot_sim_paramwise",
             score_adj1 <- param_score$score1_adj
             result1 <- data.frame("score1" = score1, "score_adj1" = score_adj1)
             plt1 <- ggplot2::ggplot(result1) +
-              ggplot2::geom_histogram(aes(x = score1), fill = "white", binwidth = 0.05, na.rm = TRUE, color = "red") +
-              ggplot2::geom_histogram(aes(x = score_adj1), fill = "white", binwidth = 0.05, na.rm = TRUE, color = "blue") +
+              ggplot2::geom_histogram(aes(x = score1), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
+              ggplot2::geom_histogram(aes(x = score_adj1), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
               ggplot2::theme(legend.position = "none") +
               ggplot2::ggtitle(paste("Performance of Score 1")) +
               ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25, 4.5, 5.75, 7, 8.25), hjust = 0, label = c(msg[1], msg[2], msg1, msg2, msg3, msg4)) +
@@ -252,8 +252,8 @@ setMethod("plot_sim_paramwise",
             score_adj2 <- param_score$score2_adj
             result2 <- data.frame("score2" = score2, "score_adj2" = score_adj2)
             plt2 <- ggplot2::ggplot(result2) +
-              ggplot2::geom_histogram(aes(x = score2), fill = "white", binwidth = target, na.rm = TRUE, color = "red") +
-              ggplot2::geom_histogram(aes(x = score_adj2), fill = "white", binwidth = target, na.rm = TRUE, color = "blue") +
+              ggplot2::geom_histogram(aes(x = score2), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
+              ggplot2::geom_histogram(aes(x = score_adj2), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
               ggplot2::theme(legend.position = "none") +
               ggplot2::ggtitle(paste("Performance of Score 2")) +
               ggplot2::annotate("text", x = -Inf, y = Inf, vjust = c(2, 3.25), hjust = 0, label = c(msg[3], msg[4])) +
@@ -327,11 +327,11 @@ setMethod("get_representation",
             if (type == "char_raw") {
               return(char_name)
             } else if (type == "char_con") {
-              return(paste(names(char_name), char_name, sep = ":", collapse = ","))
+              return(paste(names(char_name), char_name, sep = "-", collapse = ","))
             } else if (type == "param_raw") {
               return(param_name)
             } else if (type == "param_con") {
-              return(paste(names(param_name), param_name, sep = ":", collapse = ","))
+              return(paste(names(param_name), param_name, sep = "-", collapse = ","))
             } else {
               stop("Type must be one of char_raw, char_con, param_raw, param_con.")
             }

@@ -186,7 +186,7 @@ setMethod("do_prediction",
 
             if (is.null(trained_result$call$xreg)) {
               # Outliers are not considered or outliers are not found, and no external regressor is considered.
-              predict_result <- forecast::forecast(target_model, h = 1, bootstrap = bootstrap, level = level)
+              predict_result <- forecast::forecast(target_model, h = 1, bootstrap = bootstrap, napths = length(trained_result$call$x), level = level)
             } else {
               if (any(is.na(predict_info$xreg[-nrow(predict_info)]))) {
                 # No external regressor is considered.
@@ -199,7 +199,7 @@ setMethod("do_prediction",
                 }
               }
               colnames(xreg) <- colnames(trained_result$call$xreg)
-              predict_result <- forecast::forecast(target_model, xreg = xreg, h = 1, bootstrap = bootstrap, level = level)
+              predict_result <- forecast::forecast(target_model, xreg = xreg, h = 1, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
             }
 
             expected <- as.numeric(predict_result$mean)
@@ -245,7 +245,7 @@ setAs("data.frame", "arima_sim",
         for (i in names(from)) {
           if (i %in% methods::slotNames(object)) {
             if (methods::is(from[, i], "character")) {
-              if (length(strsplit(from[, i], ","))[[1]] == 1) {
+              if (length(strsplit(from[, i], ",")[[1]]) == 1) {
                 methods::slot(object, i) <- from[, i]
               } else {
                 methods::slot(object, i) <- as.numeric(strsplit(from[, i], ",")[[1]])

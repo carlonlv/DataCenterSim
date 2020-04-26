@@ -163,6 +163,31 @@ setAs("data.frame", "sim",
       })
 
 
+#' @export
+setAs("sim", "data.frame",
+      function(from) {
+        char_lst <- get_characteristic_slots(from)
+        char_df <- stats::setNames(data.frame(matrix(ncol = length(char_lst), nrow = 1)), names(char_lst))
+        for (i in names(char_lst)) {
+          if (length(char_lst[[i]]) == 1) {
+            char_df[1, i] <- char_lst[[i]]
+          } else {
+            char_df[1, i] <- paste(char_lst[[i]], collapse = ",")
+          }
+        }
+        param_lst <- get_param_slots(from)
+        param_df <- stats::setNames(data.frame(matrix(ncol = length(param_lst), nrow = 1)), names(param_lst))
+        for (i in names(param_lst)) {
+          if (length(param_lst[[i]]) == 1) {
+            param_df[1, i] <- param_lst[[i]]
+          } else {
+            param_df[1, i] <- paste(param_lst[[i]], collapse = ",")
+          }
+        }
+        return(cbind(char_df, param_df))
+        })
+
+
 #' @return A plot object
 #' @rdname plot_sim_charwise
 setMethod("plot_sim_charwise",
@@ -322,8 +347,15 @@ setAs("sim_result", "data.frame",
 setMethod("get_representation",
           signature(object = "sim", type = "character"),
           function(object, type) {
-            char_name <- unlist(get_characteristic_slots(object))
-            param_name <- unlist(get_param_slots(object))
+            df <- methods::as(object, "data.frame")
+
+            char_col <- names(unlist(get_characteristic_slots(object)))
+            param_col <- colnames(df)[-which(colnames(df) %in% char_col)]
+
+            char_name <- df[, char_col]
+            char_name <- stats::setNames(as.character(char_name), colnames(char_name))
+            param_name <- df[, param_col]
+            param_name <- stats::setNames(as.character(param_name), colnames(param_name))
             if (type == "char_raw") {
               return(char_name)
             } else if (type == "char_con") {

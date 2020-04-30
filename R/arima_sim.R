@@ -186,7 +186,7 @@ setMethod("do_prediction",
 
             if (is.null(trained_result$call$xreg)) {
               # Outliers are not considered or outliers are not found, and no external regressor is considered.
-              predict_result <- forecast::forecast(target_model, h = 1, bootstrap = bootstrap, napths = length(trained_result$call$x), level = level)
+              predict_result <- forecast::forecast(target_model, h = 1, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
             } else {
               if (any(is.na(predict_info$xreg[-nrow(predict_info)]))) {
                 # No external regressor is considered.

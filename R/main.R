@@ -130,9 +130,10 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
         predict_histories[[letters[active_model]]] <- NULL
         train_sig <- TRUE
       } else {
-        candidate_models <- which(sapply(c(1:object@model_num)[-active_model], function(model_idx) {
+        candidate_models <- which(sapply(c(1:object@model_num), function(model_idx) {
           is_well_performed(predict_histories[[letters[model_idx]]], 1 - object@cut_off_prob)
         }))
+        candidate_models <- candidate_models[candidate_models != active_model]
         if (length(candidate_models) == 0) {
           train_iter <- train_iter + 1
           active_model <- find_worst_candidate(object@model_num, predict_histories)
@@ -234,8 +235,11 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
 predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
   ## Do Simulation
   start_time <- proc.time()
-  trace_score <- parallel::mclapply(1:ncol(x), svt_predicting_sim, object, x, xreg, write_type, plot_type, mc.cores = cores, ..., get_representation(object, "param_con"))
-  #trace_score <- lapply(1:ncol(x), svt_predicting_sim, object, x, xreg, write_type, plot_type, ..., get_representation(object, "param_con"))
+  if (cores == 1) {
+    trace_score <- lapply(1:ncol(x), svt_predicting_sim, object = object, x = x, xreg = xreg, write_type = write_type, plot_type = plot_type, ..., get_representation(object, "param_con"))
+  } else {
+    trace_score <- parallel::mclapply(1:ncol(x), svt_predicting_sim, object = object, x = x, xreg = xreg, write_type = write_type, plot_type = plot_type, mc.cores = cores, ..., get_representation(object, "param_con"))
+  }
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -286,28 +290,26 @@ run_sim <- function(epoch_setting, x, xreg, cores=parallel::detectCores(), write
                      defau <- methods::new(paste0(tolower(as.character(name)), "_sim"))
                      char_defau <- names(get_representation(defau, "char_raw"))
                      char_epoch_setting <- dplyr::group_by_at(epoch_setting, c("name", colnames(other)[which(colnames(other) %in% char_defau)]))
-                     char_uni_lst <- dplyr::group_map(char_epoch_setting,
+                     score_char_lst <- dplyr::group_map(char_epoch_setting,
                                                       function(other, char) {
-                                                        methods::as(cbind(char, other), "sim")
-                                                        })
-                     score_char_lst <- lapply(char_uni_lst, function(param_uni_lst) {
-                       score_param_lst <- lapply(param_uni_lst, predicting_sim, x, xreg, cores, write_type, plot_type, result_loc, name, get_representation(defau, "char_con"))
-                       param_uni_df <- data.frame()
-                       score_param_df <- data.frame()
-                       for (i in 1:length(score_param_lst)) {
-                         param_uni_df <- rbind(param_uni_df, methods::as(param_uni_lst[[i]], "data.frame"))
-                         score_param_df <- rbind(score_param_df, methods::as(score_param_lst[[i]], "data.frame"))
-                       }
-                       file_name <- as.character(Sys.time())
-                       if ("charwise" %in% write_type & !("none" %in% write_type)) {
-                         write_sim_result(score_param_df, "charwise", file_name, result_loc, name, get_representation(defau, "char_con"))
-                       }
-                       if ("charwise" %in% plot_type & !("none" %in% plot_type)) {
-                         plot_sim_charwise(cbind(param_uni_df, score_param_df), file_name, result_loc, name, get_representation(defau, "char_con"))
-                       }
-                       return(score_param_lst)
-                     })
+                                                        param_uni_lst <- methods::as(cbind(char, other), "sim")
+                                                        score_param_lst <- lapply(param_uni_lst, predicting_sim, x, xreg, cores, write_type, plot_type, result_loc, name, get_representation(param_uni_lst[[1]], "char_con"), get_representation(param_uni_lst[[1]], "param_con"))
+                                                        param_uni_df <- data.frame()
+                                                        score_param_df <- data.frame()
+                                                        for (i in 1:length(score_param_lst)) {
+                                                          param_uni_df <- rbind(param_uni_df, methods::as(param_uni_lst[[i]], "data.frame"))
+                                                          score_param_df <- rbind(score_param_df, methods::as(score_param_lst[[i]], "data.frame"))
+                                                        }
+                                                        file_name <- as.character(Sys.time())
+                                                        if ("charwise" %in% write_type & !("none" %in% write_type)) {
+                                                          write_sim_result(score_param_df, "charwise", file_name, result_loc, as.character(name), get_representation(param_uni_lst[[1]], "char_con"))
+                                                        }
+                                                        if ("charwise" %in% plot_type & !("none" %in% plot_type)) {
+                                                          plot_sim_charwise(cbind(param_uni_df, score_param_df), file_name, result_loc, as.character(name), get_representation(param_uni_lst[[1]], "char_con"))
+                                                        }
+                                                        return(score_param_lst)
+                                                      })
                      return(score_char_lst)
-                   })
+                     })
   return(score_all_lst)
 }

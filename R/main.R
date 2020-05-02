@@ -257,10 +257,10 @@ predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
   }
 
   if ("paramwise" %in% write_type & !("none" %in% write_type)) {
-    write_sim_result(score_predict_info, "paramwise", ...)
+    write_sim_result(score_predict_info, "paramwise", get_representation(object, "param_con"), ...)
   }
   if ("paramwise" %in% plot_type & !("none" %in% plot_type)) {
-    plot_sim_paramwise(param_predict_info, score_predict_info, object@target, ...)
+    plot_sim_paramwise(param_predict_info, score_predict_info, object@target, get_representation(object, "param_con"), ...)
   }
   return(param_predict_info)
 }
@@ -293,7 +293,7 @@ run_sim <- function(epoch_setting, x, xreg, cores=parallel::detectCores(), write
                      score_char_lst <- dplyr::group_map(char_epoch_setting,
                                                       function(other, char) {
                                                         param_uni_lst <- methods::as(cbind(char, other), "sim")
-                                                        score_param_lst <- lapply(param_uni_lst, predicting_sim, x, xreg, cores, write_type, plot_type, result_loc, name, get_representation(param_uni_lst[[1]], "char_con"), get_representation(param_uni_lst[[1]], "param_con"))
+                                                        score_param_lst <- lapply(param_uni_lst, predicting_sim, x, xreg, cores, write_type, plot_type, result_loc, as.character(name), get_representation(param_uni_lst[[1]], "char_con"), get_representation(param_uni_lst[[1]], "param_con"))
                                                         param_uni_df <- data.frame()
                                                         score_param_df <- data.frame()
                                                         for (i in 1:length(score_param_lst)) {

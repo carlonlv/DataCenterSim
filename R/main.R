@@ -131,7 +131,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
         train_sig <- TRUE
       } else {
         candidate_models <- which(sapply(c(1:object@model_num), function(model_idx) {
-          is_well_performed(predict_histories[[letters[model_idx]]], 1 - object@cut_off_prob)
+          is_well_performed(predict_histories[[letters[model_idx]]], object@target)
         }))
         candidate_models <- candidate_models[candidate_models != active_model]
         if (length(candidate_models) == 0) {
@@ -163,7 +163,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
       temp_switch_status <- list("train_iter" = train_iter, "test_iter" = 0, "react_counter" = 0, "adjust_switch" = FALSE)
       train_test_result <- predict_model(object, train_models[[letters[active_model]]], train_x, train_xreg, NULL, temp_switch_status)[["test_sim_result"]]
 
-      if (is_well_performed(train_test_result, 1 - object@cut_off_prob)) {
+      if (is_well_performed(train_test_result, object@target)) {
         switch_status <- list("train_iter" = train_iter, "test_iter" = 1, "react_counter" = 0, "adjust_switch" = FALSE)
       } else {
         switch_status <- list("train_iter" = train_iter, "test_iter" = 1, "react_counter" = 0, "adjust_switch" = TRUE)
@@ -197,7 +197,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
     }
 
     ## Make scheduling decisions
-    if (is_well_performed(test_sim_result, 1 - object@cut_off_prob)) {
+    if (is_well_performed(test_sim_result, object@target)) {
       switch_sig <- FALSE
       train_sig <- FALSE
     } else {
@@ -257,10 +257,10 @@ predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
   }
 
   if ("paramwise" %in% write_type & !("none" %in% write_type)) {
-    write_sim_result(score_predict_info, "paramwise", get_representation(object, "param_con"), ...)
+    write_sim_result(score_predict_info, "paramwise", ...)
   }
   if ("paramwise" %in% plot_type & !("none" %in% plot_type)) {
-    plot_sim_paramwise(param_predict_info, score_predict_info, 1 - object@cut_off_prob, get_representation(object, "param_con"), ...)
+    plot_sim_paramwise(param_predict_info, score_predict_info, object@target, ...)
   }
   return(param_predict_info)
 }

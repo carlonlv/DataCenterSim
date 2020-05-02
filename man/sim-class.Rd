@@ -22,19 +22,21 @@ An S4 Class to Represent A Simulation.
 \describe{
 \item{\code{name}}{A character that represents the name of the simulation.}
 
-\item{\code{window_size}}{A numeric vector that can only be integers to specify how many observations to be aggregated as one. Default value is \code{12}.}
+\item{\code{window_size}}{A numeric number that can only be integers to specify how many observations to be aggregated as one. Default value is \code{12}.}
 
-\item{\code{cut_off_prob}}{A numeric vector that is the level of the prediction interval and the target score for s\code{score1}. Default value is \code{0.005}.}
+\item{\code{target}}{A numeric number that is the target score for \code{score1}. Default value is \code{0.01}.}
 
-\item{\code{granularity}}{A numeric vector that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values is \code{100/32}.}
+\item{\code{cut_off_prob}}{A numeric number that is the level of the prediction interval. Default value is \code{0.99}.}
 
-\item{\code{train_size}}{A numeric vector that specify the training size after aggregated by \code{window_size} used for simulations. Default values is \code{100}.}
+\item{\code{granularity}}{A numeric number that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values is \code{100/32}.}
+
+\item{\code{train_size}}{A numeric number that specify the training size after aggregated by \code{window_size} used for simulations. Default values is \code{100}.}
 
 \item{\code{model_num}}{A numeric number that specify the maximum number of models for switching. Default value is \code{2}.}
 
-\item{\code{update_freq}}{A numeric vector that specify the length of testing after each training step after aggregated by \code{window_size}, also the amount of step to update after testing step is complete. Default values is \code{3}.}
+\item{\code{update_freq}}{A numeric number that specify the length of testing after each training step after aggregated by \code{window_size}, also the amount of step to update after testing step is complete. Default values is \code{3}.}
 
-\item{\code{react_speed}}{A numeric vector of length two that specify the number of failed/successfull predictions needed to activate/deactive backing off strategy. Default is \code{c(1,1)}.}
+\item{\code{react_speed}}{A numeric number of length two that specify the number of failed/successfull predictions needed to activate/deactive backing off strategy. Default is \code{c(1,1)}.}
 
 \item{\code{response}}{A character that specify the targeting trace to be tested on, this can either be \code{"max"} or \code{"avg"} for max traces and average traces respectively.}
 }}

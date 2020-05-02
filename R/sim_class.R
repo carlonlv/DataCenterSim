@@ -22,12 +22,16 @@ check_valid_sim <- function(object) {
     msg <- paste0("window_size must be a positive integer.")
     errors <- c(errors, msg)
   }
+  if (is.na(object@target) | object@target <= 0 | object@target >= 1) {
+    msg <- paste0("target must be a numeric value within 0 and 1, exclusively.")
+    errors <- c(errors, msg)
+  }
   if (is.na(object@cut_off_prob) | object@cut_off_prob <= 0 | object@cut_off_prob >= 1) {
-    msg <- paste0("cut_off_prob must be numeric values within 0 and 1, exclusively.")
+    msg <- paste0("cut_off_prob must be a numeric value within 0 and 1, exclusively.")
     errors <- c(errors, msg)
   }
   if (is.na(object@granularity) | object@granularity < 0 | object@granularity >= 100) {
-    msg <- paste0("granularity must be non-negative numeric values that are less than 100.")
+    msg <- paste0("granularity must be a non-negative numeric value that are less than 100.")
     errors <- c(errors, msg)
   }
   if (is.na(object@train_size) | object@train_size %% 1 != 0 | object@train_size <= 0) {
@@ -61,13 +65,14 @@ check_valid_sim <- function(object) {
 #' An S4 Class to Represent A Simulation.
 #'
 #' @slot name A character that represents the name of the simulation.
-#' @slot window_size A numeric vector that can only be integers to specify how many observations to be aggregated as one. Default value is \code{12}.
-#' @slot cut_off_prob A numeric vector that is the level of the prediction interval and the target score for s\code{score1}. Default value is \code{0.005}.
-#' @slot granularity A numeric vector that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values is \code{100/32}.
-#' @slot train_size A numeric vector that specify the training size after aggregated by \code{window_size} used for simulations. Default values is \code{100}.
+#' @slot window_size A numeric number that can only be integers to specify how many observations to be aggregated as one. Default value is \code{12}.
+#' @slot target A numeric number that is the target score for \code{score1}. Default value is \code{0.01}.
+#' @slot cut_off_prob A numeric number that is the level of the prediction interval. Default value is \code{0.99}.
+#' @slot granularity A numeric number that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values is \code{100/32}.
+#' @slot train_size A numeric number that specify the training size after aggregated by \code{window_size} used for simulations. Default values is \code{100}.
 #' @slot model_num A numeric number that specify the maximum number of models for switching. Default value is \code{2}.
-#' @slot update_freq A numeric vector that specify the length of testing after each training step after aggregated by \code{window_size}, also the amount of step to update after testing step is complete. Default values is \code{3}.
-#' @slot react_speed A numeric vector of length two that specify the number of failed/successfull predictions needed to activate/deactive backing off strategy. Default is \code{c(1,1)}.
+#' @slot update_freq A numeric number that specify the length of testing after each training step after aggregated by \code{window_size}, also the amount of step to update after testing step is complete. Default values is \code{3}.
+#' @slot react_speed A numeric number of length two that specify the number of failed/successfull predictions needed to activate/deactive backing off strategy. Default is \code{c(1,1)}.
 #' @slot response A character that specify the targeting trace to be tested on, this can either be \code{"max"} or \code{"avg"} for max traces and average traces respectively.
 #' @name sim-class
 #' @rdname sim-class
@@ -75,6 +80,7 @@ check_valid_sim <- function(object) {
 sim <- setClass("sim",
                 slots = list(name = "character",
                              window_size = "numeric",
+                             target = "numeric",
                              cut_off_prob = "numeric",
                              granularity = "numeric",
                              train_size = "numeric",
@@ -84,7 +90,8 @@ sim <- setClass("sim",
                              response = "character"),
                 prototype = list(name = NA_character_,
                                  window_size = 12,
-                                 cut_off_prob = 0.005,
+                                 target = 0.99,
+                                 cut_off_prob = 0.01,
                                  granularity = 3.125,
                                  train_size = 100,
                                  model_num = 2,

@@ -249,7 +249,7 @@ check_score_test <- function(test_predict_info, predict_info) {
   score_test_2.w <- length(stats::na.omit(test_predict_info$score_pred_2))
   score_test_2_adj.n <- ifelse(!is.na(test_predict_info$score_pred_2) & test_predict_info$adjustment, 0, test_predict_info$score_pred_2)
   score_test_2_adj.n <- stats::weighted.mean(score_test_2_adj.n, rep(1, nrow(test_predict_info)), na.rm = TRUE)
-  score_test_2_adj.w <- length(stats::na.omit(score_test_2_adj.n))
+  score_test_2_adj.w <- length(stats::na.omit(test_predict_info$score_pred_2))
   test_sim_result <- sim_result(type = "test",
                                score1.n = score_test_1.n,
                                score1.w = score_test_1.w,
@@ -278,7 +278,7 @@ check_score_trace <- function(predict_info) {
   score_trace_2.w <- length(stats::na.omit(predict_info$score_pred_2))
   score_trace_2_adj.n <- ifelse(!is.na(predict_info$score_pred_2) & predict_info$adjustment, 0, predict_info$score_pred_2)
   score_trace_2_adj.n <- stats::weighted.mean(score_trace_2_adj.n, rep(1, nrow(predict_info)), na.rm = TRUE)
-  score_trace_2_adj.w <- length(stats::na.omit(score_trace_2_adj.n))
+  score_trace_2_adj.w <- length(stats::na.omit(predict_info$score_pred_2))
   trace_sim_result <- sim_result(type = "trace",
                                 score1.n = score_trace_1.n,
                                 score1.w = score_trace_1.w,

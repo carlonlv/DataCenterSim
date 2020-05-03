@@ -272,7 +272,7 @@ check_score_test <- function(test_predict_info, predict_info) {
 check_score_trace <- function(predict_info) {
   score_trace_1.n <- stats::weighted.mean(predict_info$score_pred_1, rep(1, nrow(predict_info)), na.rm = TRUE)
   score_trace_1.w <- length(stats::na.omit(predict_info$score_pred_1))
-  score_trace_1_adj.n <- stats::weighted.mean(predict_info$score_pred_1, ifelse(predict_info$adjustment, 1, 0), na.rm = TRUE)
+  score_trace_1_adj.n <- stats::weighted.mean(predict_info$score_pred_1, ifelse(predict_info$adjustment, 0, 1), na.rm = TRUE)
   score_trace_1_adj.w <- length(stats::na.omit(predict_info$score_pred_1[which(!predict_info$adjustment)]))
   score_trace_2.n <- stats::weighted.mean(predict_info$score_pred_2, rep(1, nrow(predict_info)), na.rm = TRUE)
   score_trace_2.w <- length(stats::na.omit(predict_info$score_pred_2))
@@ -303,9 +303,9 @@ is_well_performed <- function(score_result, target_score_1) {
   if (is.null(score_result)) {
     return(FALSE)
   }
-  if (is.na(score_result@score1.n) | is.na(score_result@score1_adj.n)) {
+  if (is.na(score_result@score1.n)) {
     return(FALSE)
-  } else if (score_result@score1.n >= target_score_1 | score_result@score1_adj.n >= target_score_1) {
+  } else if (score_result@score1.n >= target_score_1) {
     return(TRUE)
   } else {
     return(FALSE)
@@ -339,8 +339,8 @@ out_performs <- function(score_result1, score_result2, target_score_1) {
   } else if (m2_good_enough) {
     return(FALSE)
   } else {
-    m1_na_result <- is.na(score_result2@score1.n) | is.na(score_result2@score1_adj.n)
-    m2_na_result <- is.na(score_result1@score1.n) | is.na(score_result1@score1_adj.n)
+    m1_na_result <- is.na(score_result2@score1.n)
+    m2_na_result <- is.na(score_result1@score1.n)
     if (m1_na_result & m2_na_result) {
       return(FALSE)
     } else if (m1_na_result) {

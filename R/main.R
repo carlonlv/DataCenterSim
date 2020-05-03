@@ -244,9 +244,9 @@ predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
   print(end_time - start_time)
 
   ## Reformat Results
-  param_predict_info <- trace_score[[1]]
-  score_predict_info <- methods::as(trace_score[[1]], "data.frame")
-  for (ts_num in 2:ncol(x)) {
+  param_predict_info <- sim_result(type = "param")
+  score_predict_info <- data.frame()
+  for (ts_num in 1:ncol(x)) {
     param_predict_info <- combine_result(param_predict_info, trace_score[[ts_num]])
     score_predict_info <- rbind(score_predict_info, methods::as(trace_score[[ts_num]], "data.frame"))
   }
@@ -293,7 +293,7 @@ run_sim <- function(epoch_setting, x, xreg, cores=parallel::detectCores(), write
                      score_char_lst <- dplyr::group_map(char_epoch_setting,
                                                       function(other, char) {
                                                         param_uni_lst <- methods::as(cbind(char, other), "sim")
-                                                        score_param_lst <- lapply(param_uni_lst, predicting_sim, x, xreg, cores, write_type, plot_type, result_loc, as.character(name), get_representation(param_uni_lst[[1]], "char_con"), get_representation(param_uni_lst[[1]], "param_con"))
+                                                        score_param_lst <- lapply(param_uni_lst, predicting_sim, x, xreg, cores, write_type, plot_type, result_loc, as.character(name), get_representation(param_uni_lst[[1]], "char_con"))
                                                         param_uni_df <- data.frame()
                                                         score_param_df <- data.frame()
                                                         for (i in 1:length(score_param_lst)) {

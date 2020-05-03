@@ -338,7 +338,14 @@ setMethod("plot_sim_tracewise",
 #' @export
 setAs("sim_result", "data.frame",
       function(from) {
-        return(data.frame("score1" = from@score1.n, "score1_adj" = from@score1_adj.n, "score2" = from@score2.n, "score2_adj" = from@score2_adj.n))
+        return(data.frame("score1.n" = from@score1.n,
+                          "score1.w" = from@score1.w,
+                          "score1_adj.n" = from@score1_adj.n,
+                          "score1_adj.w" = from@score1_adj.w,
+                          "score2.n" = from@score2.n,
+                          "score2.w" = from@score2.w,
+                          "score2_adj.n" = from@score2_adj.n,
+                          "score2_adj.w" = from@score2_adj.w))
       })
 
 

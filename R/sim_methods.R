@@ -197,18 +197,15 @@ setMethod("plot_sim_charwise",
             charwise_summ$window_size_update_freq <- window_size_update_freq
             model_num_train_size <- paste(charwise_summ$model_num, charwise_summ$train_size)
             charwise_summ$model_num_train_size <- model_num_train_size
-            react_speed <- sapply(1:nrow(charwise_summ), function(rownum){
-              paste(unlist(charwise_summ[rownum,]$react_speed), collapse = ",")
-            })
-            charwise_summ$react_speed <- react_speed
-            score1 <- charwise_summ$score1
-            score2 <- charwise_summ$score2
-            score1_adj <- charwise_summ$score1_adj
-            score2_adj <- charwise_summ$score2_adj
+            react_speed <- charwise_summ$react_speed
+            score1 <- charwise_summ$score1.n
+            score2 <- charwise_summ$score2.n
+            score1_adj <- charwise_summ$score1_adj.n
+            score2_adj <- charwise_summ$score2_adj.n
             granularity <- charwise_summ$granularity
             cut_off_prob <- charwise_summ$cut_off_prob
 
-            plt <- ggplot2::ggplot(charwise_summ, aes(shape = window_size_update_freq, alpha = factor(granularity), fill = react_speed, color = model_num_train_size)) +
+            plt <- ggplot2::ggplot(charwise_summ, aes(shape = window_size_update_freq, alpha = factor(granularity), fill = factor(react_speed), color = factor(model_num_train_size))) +
               ggplot2::geom_point(aes(x = score1, y = score2, group = 1), size = 4, na.rm = TRUE) +
               ggplot2::geom_point(aes(x = score1_adj, y = score2_adj, group = 2), size = 6, na.rm = TRUE) +
               ggplot2::stat_ellipse(aes(x = score1, y = score2, linetype = factor(cut_off_prob), group = 3), color = "red", type = "norm") +
@@ -239,13 +236,13 @@ setMethod("plot_sim_paramwise",
           function(param_result, param_score, target, name, ...) {
             msg <- show_result(param_result, show_msg = FALSE)
 
-            under_performed_score1 <- sum(param_score$score1 < target, na.rm = TRUE) / length(stats::na.omit(param_score$score1))
-            under_performed_score1_adj <- sum(param_score$score1_adj < target, na.rm = TRUE) / length(stats::na.omit(param_score$score1_adj))
+            under_performed_score1 <- sum(param_score$score1.n < target, na.rm = TRUE) / length(stats::na.omit(param_score$score1.n))
+            under_performed_score1_adj <- sum(param_score$score1_adj.n < target, na.rm = TRUE) / length(stats::na.omit(param_score$score1_adj.n))
             msg1 <- paste(under_performed_score1, "of traces underperformed on Score 1.")
             msg2 <- paste(under_performed_score1_adj, "of traces underperformed on Score 1 Adjusted.")
 
-            sorted_by_score1 <- param_score[order(param_score$score1),]
-            sorted_by_score1_adj <- param_score[order(param_score$score1_adj),]
+            sorted_by_score1 <- param_score[order(param_score$score1.n),]
+            sorted_by_score1_adj <- param_score[order(param_score$score1_adj.n),]
 
             under_performed_traces_score1 <- sorted_by_score1[which(sorted_by_score1$score1 < target),]
             if (nrow(under_performed_traces_score1) > 0) {
@@ -261,8 +258,8 @@ setMethod("plot_sim_paramwise",
               msg4 <- paste("No underperformed traces detected for Score 1 adjusted.")
             }
 
-            score1 <- param_score$score1
-            score_adj1 <- param_score$score1_adj
+            score1 <- param_score$score1.n
+            score_adj1 <- param_score$score1_adj.n
             result1 <- data.frame("score1" = score1, "score_adj1" = score_adj1)
             plt1 <- ggplot2::ggplot(result1) +
               ggplot2::geom_histogram(aes(x = score1), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
@@ -273,8 +270,8 @@ setMethod("plot_sim_paramwise",
               ggplot2::geom_vline(xintercept = target, linetype = "dashed", color = "purple") +
               ggplot2::xlab("Score 1")
 
-            score2 <- param_score$score2
-            score_adj2 <- param_score$score2_adj
+            score2 <- param_score$score2.n
+            score_adj2 <- param_score$score2_adj.n
             result2 <- data.frame("score2" = score2, "score_adj2" = score_adj2)
             plt2 <- ggplot2::ggplot(result2) +
               ggplot2::geom_histogram(aes(x = score2), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +

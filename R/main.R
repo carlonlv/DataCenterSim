@@ -302,7 +302,7 @@ run_sim <- function(epoch_setting, x, xreg, cores=parallel::detectCores(), write
                                                         }
                                                         file_name <- as.character(Sys.time())
                                                         if ("charwise" %in% write_type & !("none" %in% write_type)) {
-                                                          write_sim_result(score_param_df, "charwise", file_name, result_loc, as.character(name), get_representation(param_uni_lst[[1]], "char_con"))
+                                                          write_sim_result(cbind(param_uni_df, score_param_df), "charwise", file_name, result_loc, as.character(name), get_representation(param_uni_lst[[1]], "char_con"))
                                                         }
                                                         if ("charwise" %in% plot_type & !("none" %in% plot_type)) {
                                                           plot_sim_charwise(cbind(param_uni_df, score_param_df), file_name, result_loc, as.character(name), get_representation(param_uni_lst[[1]], "char_con"))

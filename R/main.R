@@ -1,4 +1,4 @@
-#' @include model_helper.R
+#' @include model_helper.R plotting_tools.R
 NULL
 
 
@@ -244,25 +244,25 @@ predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
   print(end_time - start_time)
 
   ## Reformat Results
-  param_predict_info <- sim_result(type = "param")
-  score_predict_info <- data.frame()
+  trace_predict_info <- data.frame()
   for (ts_num in 1:ncol(x)) {
-    param_predict_info <- combine_result(param_predict_info, trace_score[[ts_num]])
-    score_predict_info <- rbind(score_predict_info, methods::as(trace_score[[ts_num]], "data.frame"))
+    trace_predict_info <- rbind(trace_predict_info, methods::as(trace_score[[ts_num]], "data.frame"))
   }
-  score_predict_info$trace_name <- colnames(x)
-
-  if (!("none" %in% write_type)) {
-    show_result(param_predict_info)
-  }
+  trace_predict_info$trace_name <- colnames(x)
 
   if ("paramwise" %in% write_type & !("none" %in% write_type)) {
-    write_sim_result(score_predict_info, "paramwise", get_representation(object, "param_con"), ...)
+    write_sim_result(trace_predict_info, "paramwise", as.character(Sys.time()), ..., get_representation(object, "param_con"))
   }
   if ("paramwise" %in% plot_type & !("none" %in% plot_type)) {
-    plot_sim_paramwise(param_predict_info, score_predict_info, object@target, get_representation(object, "param_con"), ...)
+    plot_sim_paramwise(trace_predict_info, object@target, as.character(Sys.time()), ..., get_representation(object, "param_con"))
   }
-  return(param_predict_info)
+
+
+  if (!("none" %in% write_type)) {
+    show_result(check_score_param(trace_predict_info))
+  }
+
+  return(trace_predict_info)
 }
 
 

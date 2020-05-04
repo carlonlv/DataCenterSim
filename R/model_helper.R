@@ -38,10 +38,12 @@ convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = 
       to <- i * new_freq
     }
 
-    if (response == 'max') {
+    if (response == "max") {
       new_val <- max(dataset[from:to], na.rm = TRUE)
-    } else {
+    } else if (response == "avg") {
       new_val <- mean(dataset[from:to], na.rm = TRUE)
+    } else {
+      stop("response must be one of max or avg.")
     }
 
     name <- NULL
@@ -288,6 +290,34 @@ check_score_trace <- function(predict_info) {
                                 score2.w = score_trace_2.w,
                                 score2_adj.n = score_trace_2_adj.n,
                                 score2_adj.w = score_trace_2_adj.w)
+  return(trace_sim_result)
+}
+
+
+#' Check Score Of An Entire Parameter Setting.
+#'
+#' @description Check the score information of an entire parameter based on actual observations and predictions.
+#' @param trace_predict_info A dataframe representing prediction information of different traces.
+#' @return A sim_result object.
+#' @keywords internal
+check_score_param <- function(trace_predict_info) {
+  score_param_1.n <- stats::weighted.mean(trace_predict_info$score1.n, trace_predict_info$score1.w, na.rm = TRUE)
+  score_param_1.w <- sum(trace_predict_info$score1.w)
+  score_param_1_adj.n <- stats::weighted.mean(trace_predict_info$score1_adj.n, trace_predict_info$score1_adj.w, na.rm = TRUE)
+  score_param_1_adj.w <- sum(trace_predict_info$score1_adj.w)
+  score_param_2.n <- stats::weighted.mean(trace_predict_info$score2.n, trace_predict_info$score2.w, na.rm = TRUE)
+  score_param_2.w <- sum(trace_predict_info$score2.w)
+  score_param_2_adj.n <- stats::weighted.mean(trace_predict_info$score2_adj.n, trace_predict_info$score2_adj.w, na.rm = TRUE)
+  score_param_2_adj.w <- sum(trace_predict_info$score2_adj.w)
+  trace_sim_result <- sim_result(type = "param",
+                                 score1.n = score_param_1.n,
+                                 score1.w = score_param_1.w,
+                                 score1_adj.n = score_param_1_adj.n,
+                                 score1_adj.w = score_param_1_adj.w,
+                                 score2.n = score_param_2.n,
+                                 score2.w = score_param_2.w,
+                                 score2_adj.n = score_param_2_adj.n,
+                                 score2_adj.w = score_param_2_adj.w)
   return(trace_sim_result)
 }
 

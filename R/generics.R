@@ -138,38 +138,6 @@ setGeneric("get_param_slots", function(object) standardGeneric("get_param_slots"
 setGeneric("get_characteristic_slots", function(object) standardGeneric("get_characteristic_slots"))
 
 
-#' Plot Simulation Result Type Charwise
-#'
-#' Plot charwise result for simulation with each datapoint corresponds to average scores of all traces with one configuration.
-#' @param charwise_summ A dataframe containing the scores in all parameter settings and their performance.
-#' @param name A character that represents the identifier or name of the plot.
-#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
-#' @rdname plot_sim_charwise
-setGeneric("plot_sim_charwise", function(charwise_summ, name, ...) standardGeneric("plot_sim_charwise"))
-
-
-#' Plot Simulation Result Type Tracewise
-#'
-#' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
-#' @param param_result A S4 sim_result containing the summary.
-#' @param param_score A dataframe containing score information for all traces.
-#' @param target A numeric value that is set to be the target of score 1 for all traces.
-#' @param name A character that represents the identifier or name of the plot.
-#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
-#' @rdname plot_sim_paramwise
-setGeneric("plot_sim_paramwise", function(param_result, param_score, target, name, ...) standardGeneric("plot_sim_paramwise"))
-
-
-#' Plot Simulation Result Type Tracewise
-#'
-#' Plot tracewise result for simulation with each plot corresponds to the performance of one single trace.
-#' @param predict_info A dataframe containing all the past predicted information.
-#' @param name A character that represents the identifier or name of the plot.
-#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
-#' @rdname plot_sim_tracewise
-setGeneric("plot_sim_tracewise", function(predict_info, name, ...) standardGeneric("plot_sim_tracewise"))
-
-
 #' Train Model
 #'
 #' This is a generic function that trains model according to the input object type, with additional arguments supplied by attributes of the object.

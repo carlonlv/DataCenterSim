@@ -63,14 +63,14 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
   sorted_by_score1 <- param_score[order(param_score$score1.n),]
   sorted_by_score1_adj <- param_score[order(param_score$score1_adj.n),]
 
-  under_performed_traces_score1 <- sorted_by_score1[which(sorted_by_score1$score1 < target),]
+  under_performed_traces_score1 <- sorted_by_score1[which(sorted_by_score1$score1.n < target),]
   if (nrow(under_performed_traces_score1) > 0) {
     msg3 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_score1$trace_name, 3), collapse = ","), "for underperforming on score1.")
   } else {
     msg3 <- paste("No underperformed traces detected for Score 1.")
   }
 
-  under_performed_traces_score1_adj <- sorted_by_score1_adj[which(sorted_by_score1_adj$score1_adj < target),]
+  under_performed_traces_score1_adj <- sorted_by_score1_adj[which(sorted_by_score1_adj$score1_adj.n < target),]
   if (nrow(under_performed_traces_score1_adj) > 0) {
     msg4 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_score1_adj$trace_name, 3), collapse = ","), "for underperforming on score1_adj.")
   } else {

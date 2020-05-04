@@ -42,7 +42,7 @@ arima_sim <- setClass("arima_sim",
                                  outlier_cval = "numeric",
                                  train_args = "list"),
                     contains = "sim",
-                    prototype = list(name = "ARMA",
+                    prototype = list(name = "ARIMA",
                                      res_dist = "normal",
                                      outlier_type = "None",
                                      outlier_cval = NA_real_,
@@ -234,6 +234,18 @@ setMethod("get_characteristic_slots",
             character_lst <- methods::callNextMethod(object)
             character_lst[["res_dist"]] <- methods::slot(object, "res_dist")
             character_lst[["outlier_type"]] <- methods::slot(object, "outlier_type")
+            return(character_lst)
+          })
+
+
+#' @return A list containing all character parameter informations.
+#' @rdname get_hidden_slots
+#' @export
+setMethod("get_hidden_slots",
+          signature(object = "arima_sim"),
+          function(object) {
+            character_lst <- methods::callNextMethod(object)
+            character_lst[["train_args"]] <- methods::slot(object, "train_args")
             return(character_lst)
           })
 

@@ -152,6 +152,16 @@ setMethod("get_characteristic_slots",
           })
 
 
+#' @return A list containing all hidden parameter informations.
+#' @rdname get_hidden_slots
+#' @export
+setMethod("get_hidden_slots",
+          signature(object = "sim"),
+          function(object) {
+            return(list())
+          })
+
+
 #' @export
 setAs("data.frame", "sim",
       function(from) {

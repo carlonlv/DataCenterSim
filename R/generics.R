@@ -138,6 +138,14 @@ setGeneric("get_param_slots", function(object) standardGeneric("get_param_slots"
 setGeneric("get_characteristic_slots", function(object) standardGeneric("get_characteristic_slots"))
 
 
+#' Get The Slots that Are Not Displayed
+#'
+#' @param object An S4 sim object
+#' @rdname get_hidden_slots
+#' @export
+setGeneric("get_hidden_slots", function(object) standardGeneric("get_hidden_slots"))
+
+
 #' Train Model
 #'
 #' This is a generic function that trains model according to the input object type, with additional arguments supplied by attributes of the object.

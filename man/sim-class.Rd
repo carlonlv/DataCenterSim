@@ -19,9 +19,9 @@
 
 \item{outlier_cval}{The critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50).}
 
-\item{state_num}{A numeric number that represents the number of states in Markov chain.}
+\item{state_num}{A numeric number that represents the number of states in Markov chain. Default value is \code{8}.}
 
-\item{reg_num}{The number of past regressive observations needed to forecast next observation.}
+\item{cluster_type}{A character that represents how each state is partitioned. It can only be either \code{"fixed"} for fixed partitioning from \code{0} to \code{100}, or \code{"quantile"} for dynamic partitioning from minimum value to maximum value using quantiles. Default value is \code{"fixed"}.}
 }
 \description{
 An S4 Class to Represent A Simulation.

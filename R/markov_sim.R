@@ -27,8 +27,8 @@ check_valid_markov_sim <- function(object) {
 
 
 #' @rdname sim-class
-#' @param state_num A numeric number that represents the number of states in Markov chain.
-#' @param reg_num The number of past regressive observations needed to forecast next observation.
+#' @param state_num A numeric number that represents the number of states in Markov chain. Default value is \code{8}.
+#' @param cluster_type A character that represents how each state is partitioned. It can only be either \code{"fixed"} for fixed partitioning from \code{0} to \code{100}, or \code{"quantile"} for dynamic partitioning from minimum value to maximum value using quantiles. Default value is \code{"fixed"}.
 #' @export markov_sim
 markov_sim <- setClass("markov_sim",
                        slots = list(state_num = "numeric",

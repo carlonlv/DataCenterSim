@@ -5,7 +5,7 @@
 \alias{do_prediction}
 \alias{do_prediction,arima_sim,list,data.frame-method}
 \alias{do_prediction,auto_arima_sim,list,data.frame-method}
-\alias{do_prediction,markov_sim,list,numeric-method}
+\alias{do_prediction,markov_sim,list,data.frame-method}
 \title{Do Prediction}
 \usage{
 do_prediction(object, trained_result, predict_info)
@@ -14,7 +14,7 @@ do_prediction(object, trained_result, predict_info)
 
 \S4method{do_prediction}{auto_arima_sim,list,data.frame}(object, trained_result, predict_info)
 
-\S4method{do_prediction}{markov_sim,list,numeric}(object, trained_result, predict_info)
+\S4method{do_prediction}{markov_sim,list,data.frame}(object, trained_result, predict_info)
 }
 \arguments{
 \item{object}{An S4 sim object.}
@@ -35,6 +35,6 @@ This is a generic function that do prediction according to the input object type
 
 \item \code{object = auto_arima_sim,trained_result = list,predict_info = data.frame}: Do prediction based on trained AR1 Model.
 
-\item \code{object = markov_sim,trained_result = list,predict_info = numeric}: Do prediction based on trained Markov Model.
+\item \code{object = markov_sim,trained_result = list,predict_info = data.frame}: Do prediction based on trained Markov Model.
 }}
 

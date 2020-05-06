@@ -165,7 +165,7 @@ setMethod("do_prediction",
                 target_model <- forecast::Arima(new_x, model = trained_result)
               } else {
                 # Outliers are considered and found, or external regressor is considered.
-                if (any(is.na(predict_info$xreg[-nrow(predict_info)]))) {
+                if (any(is.na(predict_info$xreg))) {
                   # No external regressor is considered.
                   new_xreg <- matrix(nrow = nrow(predict_info) - 1, ncol = 0)
                 } else {
@@ -188,7 +188,7 @@ setMethod("do_prediction",
               # Outliers are not considered or outliers are not found, and no external regressor is considered.
               predict_result <- forecast::forecast(target_model, h = 1, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
             } else {
-              if (any(is.na(predict_info$xreg[-nrow(predict_info)]))) {
+              if (any(is.na(predict_info$xreg))) {
                 # No external regressor is considered.
                 xreg <- matrix(0, nrow = 1, ncol = ncol(trained_result$call$xreg))
               } else {
@@ -218,9 +218,7 @@ setMethod("get_param_slots",
           signature(object = "auto_arima_sim"),
           function(object) {
             numeric_lst <- methods::callNextMethod(object)
-            if (object@outlier_type != "None") {
-              numeric_lst[["outlier_cval"]] <- methods::slot(object, "outlier_cval")
-            }
+            numeric_lst[["outlier_cval"]] <- methods::slot(object, "outlier_cval")
             return(numeric_lst)
           })
 
@@ -244,9 +242,9 @@ setMethod("get_characteristic_slots",
 setMethod("get_hidden_slots",
           signature(object = "auto_arima_sim"),
           function(object) {
-            character_lst <- methods::callNextMethod(object)
-            character_lst[["train_args"]] <- methods::slot(object, "train_args")
-            return(character_lst)
+            hidden_lst <- methods::callNextMethod(object)
+            hidden_lst[["train_args"]] <- methods::slot(object, "train_args")
+            return(hidden_lst)
           })
 
 

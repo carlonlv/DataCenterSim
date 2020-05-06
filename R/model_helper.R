@@ -46,9 +46,10 @@ convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = 
       stop("response must be one of max or avg.")
     }
 
-    name <- NULL
     if (keep.names & !is.null(names(dataset))) {
       name <- names(dataset)[to]
+    } else {
+      name <- NULL
     }
 
     if (right.aligned) {
@@ -58,9 +59,8 @@ convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = 
       new_dataset <- c(new_dataset, new_val)
       new_names <- c(new_names, name)
     }
-
-    names(new_dataset) <- new_names
   }
+  names(new_dataset) <- new_names
   return(new_dataset)
 }
 
@@ -75,21 +75,29 @@ convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = 
 #' @keywords internal
 convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, keep.names = TRUE) {
   new_dataset <- c()
-  last_window <- length(dataset) - new_freq + 1
-  for (i in 1:last_window) {
+  new_names <- c()
+  window_num <- length(dataset) - new_freq + 1
+  for (i in 1:window_num) {
     from <- i
     to <- i + new_freq - 1
-    new_val <- NULL
-    if (response == 'max') {
+
+    if (response == "max") {
       new_val <- max(dataset[from:to], na.rm = TRUE)
-    } else {
+    } else if (response == "avg") {
       new_val <- mean(dataset[from:to], na.rm = TRUE)
+    } else {
+      stop("response must be one of max or avg.")
+    }
+
+    if (keep.names & !is.null(names(dataset))) {
+      name <- names(dataset)[to]
+    } else {
+      name <- NULL
     }
     new_dataset <- c(new_dataset, new_val)
+    new_names <- c(new_names, name)
   }
-  if (keep.names & !is.null(names(dataset))) {
-    names(new_dataset) <- names(dataset)
-  }
+  names(new_dataset) <- new_names
   return(new_dataset)
 }
 
@@ -468,19 +476,29 @@ combine_result <- function(object1, object2) {
 #' Find Corresponding State
 #'
 #' @description Find the corresponding state for a specific observation with fixed partitioning method.
+#' @param type A character that can either be \code{"fixed"} or \code{"quantile"}.
 #' @param obs A numeric input of observation.
 #' @param state_num The total number of states.
 #' @return The corresponding state number.
 #' @keywords internal
-find_state_num <- function(obs, state_num) {
-  binsize <- 100 / state_num
-  state <- NULL
-  if (obs == 0) {
-    state <- 1
+find_state_num <- function(obs, type, state_num=NULL, quantiles=NULL) {
+  if (type == "fixed") {
+    binsize <- 100 / state_num
+    state <- NULL
+    if (obs == 0) {
+      state <- 1
+    } else {
+      state <- ceiling(obs / binsize)
+    }
+    return(state)
   } else {
-    state <- ceiling(obs / binsize)
+    if (obs == 0) {
+      state <- 1
+    } else {
+      state <- min(which(obs <= quantiles))
+    }
+    return(state)
   }
-  return(state)
 }
 
 

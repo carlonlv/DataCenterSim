@@ -52,8 +52,6 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
     test_predict_info <- do_prediction(object, trained_result, test_predict_info)
 
     actual_obs <- test_x[start_time:end_time]
-    names(actual_obs) <- names(test_x)[start_time:end_time]
-
     test_predict_info <- check_score_pred(switch_status$train_iter, switch_status$test_iter, predict_iter, object, test_predict_info, actual_obs, adjust_switch)
 
     ## Update step based on adjustment policy

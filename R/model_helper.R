@@ -537,8 +537,5 @@ write_sim_result <- function(summ_df, result_type, name, ...) {
     file_name <- paste("Charwise Simulation Started At", name)
   }
   fp <- write_location_check(file_name = file_name, ...)
-  summ_df$react_speed <- sapply(1:nrow(summ_df), function(rownum){
-    paste(unlist(summ_df[rownum,]$react_speed), collapse = ",")
-  })
   utils::write.csv(summ_df, file = fs::path(fp, ext = "csv"))
 }

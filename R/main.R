@@ -257,12 +257,12 @@ predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
     plot_sim_paramwise(trace_predict_info, object@target, as.character(Sys.time()), ..., get_representation(object, "param_con"))
   }
 
+  param_score <- check_score_param(trace_predict_info)
 
   if (!("none" %in% write_type)) {
-    show_result(check_score_param(trace_predict_info))
+    show_result(param_score)
   }
-
-  return(trace_predict_info)
+  return(param_score)
 }
 
 

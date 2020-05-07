@@ -4,12 +4,14 @@
 \alias{find_worst_candidate}
 \title{Find Worst Performed Model In Candidate Models.}
 \usage{
-find_worst_candidate(model_num, predict_histories)
+find_worst_candidate(model_num, predict_histories, target_score_1)
 }
 \arguments{
 \item{model_num}{A numeric number representing the total number of models to keep and switch within.}
 
 \item{predict_histories}{A list of sim_result objects representing the prediction histories of models.}
+
+\item{target_score_1}{A numeric value representing target of score1.}
 }
 \value{
 The index of worst performance candidate model.

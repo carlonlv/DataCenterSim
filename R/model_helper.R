@@ -369,16 +369,25 @@ out_performs <- function(score_result1, score_result2, target_score_1) {
 
   m1_good_enough <- is_well_performed(score_result1, target_score_1)
   m2_good_enough <- is_well_performed(score_result2, target_score_1)
-
   if (m1_good_enough & m2_good_enough) {
+    if (is.nan(score_result1@score2.n)) {
+      return(TRUE)
+    } else if (is.na(score_result1@score2.n)) {
+      return(FALSE)
+    }
+    if (is.nan(score_result2@score2.n)) {
+      return(FALSE)
+    } else if (is.na(score_result2@score2.n)) {
+      return(TRUE)
+    }
     return(ifelse(score_result1@score2.n > score_result2@score2.n, TRUE, FALSE))
   } else if (m1_good_enough) {
     return(TRUE)
   } else if (m2_good_enough) {
     return(FALSE)
   } else {
-    m1_na_result <- is.na(score_result2@score1.n)
-    m2_na_result <- is.na(score_result1@score1.n)
+    m1_na_result <- is.na(score_result1@score1.n)
+    m2_na_result <- is.na(score_result2@score1.n)
     if (m1_na_result & m2_na_result) {
       return(FALSE)
     } else if (m1_na_result) {
@@ -387,6 +396,16 @@ out_performs <- function(score_result1, score_result2, target_score_1) {
       return(FALSE)
     } else {
       if (score_result1@score1.n == score_result2@score1.n) {
+        if (is.nan(score_result1@score2.n)) {
+          return(TRUE)
+        } else if (is.na(score_result1@score2.n)) {
+          return(FALSE)
+        }
+        if (is.nan(score_result2@score2.n)) {
+          return(FALSE)
+        } else if (is.na(score_result2@score2.n)) {
+          return(TRUE)
+        }
         return(ifelse(score_result1@score2.n > score_result2@score2.n, TRUE, FALSE))
       } else {
         return(ifelse(score_result1@score1.n > score_result2@score1.n, TRUE, FALSE))
@@ -401,15 +420,16 @@ out_performs <- function(score_result1, score_result2, target_score_1) {
 #' @description Find best performed model based on each model performance history.
 #' @param candidate_model A numeric vector representing the pool from which the best candidate model will be selected.
 #' @param predict_results A list of sim_result objects representing the prediction histories of models.
+#' @param target_score_1 A numeric value representing target of score1.
 #' @return The index of best performance candidate model.
 #' @keywords internal
-find_best_candidate <- function(candidate_model, predict_histories) {
+find_best_candidate <- function(candidate_model, predict_histories, target_score_1) {
   best_idx <- candidate_model[1]
   if (length(candidate_model) == 1) {
     return(best_idx)
   } else {
     for (i in 2:length(candidate_model)) {
-      if (out_performs(predict_histories[[letters[candidate_model[i]]]], predict_histories[[letters[best_idx]]], -Inf)) {
+      if (out_performs(predict_histories[[letters[candidate_model[i]]]], predict_histories[[letters[best_idx]]], target_score_1)) {
         best_idx <- candidate_model[i]
       }
     }
@@ -423,15 +443,16 @@ find_best_candidate <- function(candidate_model, predict_histories) {
 #' @description Find worst performed model based on each model performance history to be replaced by new model.
 #' @param model_num A numeric number representing the total number of models to keep and switch within.
 #' @param predict_histories A list of sim_result objects representing the prediction histories of models.
+#' @param target_score_1 A numeric value representing target of score1.
 #' @return The index of worst performance candidate model.
 #' @keywords internal
-find_worst_candidate <- function(model_num, predict_histories) {
+find_worst_candidate <- function(model_num, predict_histories, target_score_1) {
   worst_idx <- 1
   if (model_num == 1) {
     return(worst_idx)
   } else {
     for (i in 2:model_num) {
-      if (out_performs(predict_histories[[letters[worst_idx]]], predict_histories[[letters[i]]], Inf)) {
+      if (out_performs(predict_histories[[letters[worst_idx]]], predict_histories[[letters[i]]], target_score_1)) {
         worst_idx <- i
       }
     }

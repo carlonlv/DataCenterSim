@@ -134,13 +134,13 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
         candidate_models <- candidate_models[candidate_models != active_model]
         if (length(candidate_models) == 0) {
           train_iter <- train_iter + 1
-          active_model <- find_worst_candidate(object@model_num, predict_histories)
+          active_model <- find_worst_candidate(object@model_num, predict_histories, object@target)
           train_models[[letters[active_model]]] <- NULL
           predict_histories[[letters[active_model]]] <- NULL
           train_sig <- TRUE
         } else {
           train_iter <- train_iter + 1
-          active_model <- find_best_candidate(candidate_models, predict_histories)
+          active_model <- find_best_candidate(candidate_models, predict_histories, object@target)
           train_sig <- FALSE
         }
       }

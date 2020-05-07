@@ -4,10 +4,12 @@
 \alias{find_best_candidate}
 \title{Find Best Performed Model In Candidate Models.}
 \usage{
-find_best_candidate(candidate_model, predict_histories)
+find_best_candidate(candidate_model, predict_histories, target_score_1)
 }
 \arguments{
 \item{candidate_model}{A numeric vector representing the pool from which the best candidate model will be selected.}
+
+\item{target_score_1}{A numeric value representing target of score1.}
 
 \item{predict_results}{A list of sim_result objects representing the prediction histories of models.}
 }

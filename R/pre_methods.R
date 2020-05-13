@@ -1,4 +1,4 @@
-#' @include sim_class.R
+#' @include pred_class.R
 NULL
 
 
@@ -6,9 +6,9 @@ NULL
 #' @rdname get_param_slots
 #' @export
 setMethod("get_param_slots",
-          signature(object = "sim"),
+          signature(object = "pred"),
           function(object) {
-            numeric_slots <- c("cut_off_prob", "granularity", "train_size", "model_num", "update_freq", "react_speed")
+            numeric_slots <- c("train_size", "update_freq")
             numeric_lst <- list()
             for (i in numeric_slots) {
               numeric_lst[[i]] <- methods::slot(object, i)
@@ -21,9 +21,9 @@ setMethod("get_param_slots",
 #' @rdname get_characteristic_slots
 #' @export
 setMethod("get_characteristic_slots",
-          signature(object = "sim"),
+          signature(object = "pred"),
           function(object) {
-            character_slots <- c("name", "window_size", "response", "target", "train_policy")
+            character_slots <- c("name", "target", "train_policy")
             character_lst <- list()
             for (i in character_slots) {
               character_lst[[i]] <- methods::slot(object, i)
@@ -36,25 +36,25 @@ setMethod("get_characteristic_slots",
 #' @rdname get_hidden_slots
 #' @export
 setMethod("get_hidden_slots",
-          signature(object = "sim"),
+          signature(object = "pred"),
           function(object) {
             return(list())
           })
 
 
 #' @export
-setAs("data.frame", "sim",
+setAs("data.frame", "pred",
       function(from) {
         if (nrow(from) == 1) {
-          return(list(methods::as(from, paste0(tolower(from[, "name"]), "_sim"))))
+          return(list(methods::as(from, paste0(tolower(from[, "name"]), "_pred"))))
         } else {
-          return(lapply(1:nrow(from), function(rownum) {methods::as(from[rownum,], "sim")[[1]]}))
+          return(lapply(1:nrow(from), function(rownum) {methods::as(from[rownum,], "pred")[[1]]}))
         }
       })
 
 
 #' @export
-setAs("sim", "data.frame",
+setAs("pred", "data.frame",
       function(from) {
         char_lst <- get_characteristic_slots(from)
         char_df <- stats::setNames(data.frame(matrix(ncol = length(char_lst), nrow = 1)), names(char_lst))
@@ -75,11 +75,11 @@ setAs("sim", "data.frame",
           }
         }
         return(cbind(char_df, param_df))
-        })
+      })
 
 
 #' @export
-setAs("sim_result", "data.frame",
+setAs("pred_result", "data.frame",
       function(from) {
         return(data.frame("score1.n" = from@score1.n,
                           "score1.w" = from@score1.w,
@@ -95,7 +95,7 @@ setAs("sim_result", "data.frame",
 #' @rdname get_representation
 #' @export
 setMethod("get_representation",
-          signature(object = "sim", type = "character"),
+          signature(object = "pred", type = "character"),
           function(object, type) {
             df <- methods::as(object, "data.frame")
 

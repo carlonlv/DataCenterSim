@@ -330,6 +330,47 @@ check_score_param <- function(trace_predict_info) {
 }
 
 
+#' Check Scores Of A Single Prediction Simplified.
+#'
+#' @description Check the score information of a prediction based on actual observations and predictions
+#' @param train_iter A numeric number representing the number of iteration of training step, used as identifier when evaluating training performance.
+#' @param test_iter A numeric number representing the number of iteration on testing step of the current training step.
+#' @param predict_iter A numeric number representing the number of iteration on prediction step of the current testing step.
+#' @param predict_info The dataframe storing the prediction info
+#' @param actual_obs The actual observation corresponding to the predictions.
+#' @return The updated prediction information dataframe with last row modified.
+#' @keywords internal
+check_score_pred_simplified <- function(train_iter, test_iter, predict_iter, predict_info, actual_obs) {
+  check_score1 <- function(pi_up, actual_obs) {
+    return(ifelse(actual_obs <= pi_up, TRUE, FALSE))
+  }
+  idx <- predict_info$train_iter == train_iter & predict_info$test_iter == test_iter & predict_info$predict_iter == predict_iter
+
+  pi_up <- predict_info[idx, "pi_up"]
+  score1 <- check_score1(pi_up, actual_obs)
+
+  predict_info[idx, "actual"] <- actual_obs
+  predict_info[idx, "score_pred_1"] <- score1
+  return(predict_info)
+}
+
+
+#' Check Score Of An Entire Parameter Setting Simplified.
+#'
+#' @description Check the score information of an entire parameter based on actual observations and predictions.
+#' @param trace_predict_info A dataframe representing prediction information of different traces.
+#' @return A sim_result object.
+#' @keywords internal
+check_score_param_simplified <- function(trace_predict_info) {
+  score_param_1.n <- stats::weighted.mean(trace_predict_info$score_pred_1, rep(1, nrow(trace_predict_info)))
+  score_param_1.w <- nrow(trace_predict_info)
+  trace_sim_result <- sim_result(type = "param",
+                                 score1.n = score_param_1.n,
+                                 score1.w = score_param_1.w)
+  return(trace_sim_result)
+}
+
+
 #' Check If Performacne is Good Enough
 #'
 #' @description Check if the scheduling performance reaches target on score1.

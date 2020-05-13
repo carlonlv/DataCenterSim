@@ -30,8 +30,8 @@ run_sim(
 \item{result_loc}{A character that specify the path to which the result of simulations will be saved to. Default is your work directory.}
 }
 \value{
-An S4 sim result object.
+A list of S4 sim result object.
 }
 \description{
-The simulation dependes on the \code{type} attribute of the sim object, if \code{"scheduling"} is provided, simulation sequantially training and testing by scheduling a job with job size supplied by \code{cpu_required}, if \code{"predicting"} is supplied, sequential training and testing is made by predictions based on previous observations.
+Run Simulation
 }

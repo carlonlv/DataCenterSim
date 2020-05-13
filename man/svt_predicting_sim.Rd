@@ -2,16 +2,16 @@
 % Please edit documentation in R/main.R
 \name{svt_predicting_sim}
 \alias{svt_predicting_sim}
-\title{Simulation of Scheduling Jobs Based On Predictions On A Single Trace With AR1 Model}
+\title{Simulation of Scheduling Jobs Based On Predictions On A Single Trace.}
 \usage{
 svt_predicting_sim(ts_num, object, x, xreg = NULL, write_type, plot_type, ...)
 }
 \arguments{
 \item{ts_num}{The corresponding trace/column in \code{dataset}.}
 
-\item{x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
+\item{x}{A numeric vector of length n representing the target dataset for scheduling and evaluations.}
 
-\item{xreg}{A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.}
+\item{xreg}{A numeric vector of length n representing the external regressor.}
 
 \item{write_type}{A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".}
 
@@ -23,6 +23,6 @@ svt_predicting_sim(ts_num, object, x, xreg = NULL, write_type, plot_type, ...)
 A list containing the resulting prediction informations.
 }
 \description{
-Sequantially training and testing by scheduling jobs based on predictions on a single trace using AR1 Model.
+Sequantially training and testing by scheduling jobs based on predictions on a single trace.
 }
 \keyword{internal}

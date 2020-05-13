@@ -44,6 +44,15 @@
 #' @source \url{https://github.com/Azure/AzurePublicDataset/blob/master/AzurePublicDatasetV1.md}
 "periodic_avg_78"
 
+#' 11409 Samples of Jobs of Google ClusterData 2011 traces
+#'
+#' A dataframe conataining job wise features and running time for each row.
+#' The running time of jobs is aggregated in 5 minutes.
+#'
+#' @format A dataframe with 11409 rows and 11 columns.
+#' @source \url{https://github.com/google/cluster-data/blob/master/ClusterData2011_2.md}
+"google_runtime_data"
+
 #' 128 Numbers of Parameter Settings
 #'
 #' A dataframe of parameter settings combining \code{window_size = c(12, 36)}, \code{cut_off_prob = c(0.005, 0.1)}, \code{granularity = c(100/32, 0)},

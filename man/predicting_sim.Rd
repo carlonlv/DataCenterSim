@@ -2,7 +2,7 @@
 % Please edit documentation in R/main.R
 \name{predicting_sim}
 \alias{predicting_sim}
-\title{Simulation of Scheduling Jobs Based On Predictions With AR1 Model}
+\title{Simulation of Scheduling Jobs Based On Predictions.}
 \usage{
 predicting_sim(object, x, xreg, cores, write_type, plot_type, ...)
 }
@@ -25,6 +25,6 @@ predicting_sim(object, x, xreg, cores, write_type, plot_type, ...)
 An S4 sim result object.
 }
 \description{
-Sequantially training and testing by scheduling a job using AR1 Model.
+Sequantially training and testing by scheduling a job.
 }
 \keyword{internal}

@@ -20,7 +20,7 @@ check_valid_arima_sim <- function(object) {
     errors <- c(errors, msg)
   }
   if (any(object@outlier_cval < 3, na.rm = TRUE) | any(object@outlier_cval > 4, na.rm = TRUE)) {
-    msg <- paste0("outlier_cval must only consist numeric values within 3 and 4, inclusively, or NA.")
+    msg <- paste0("outlier_cval must be a numeric value within 3 and 4, inclusively, or NA.")
     errors <- c(errors, msg)
   }
   if (length(errors) == 0) {
@@ -32,9 +32,10 @@ check_valid_arima_sim <- function(object) {
 
 
 #' @rdname sim-class
-#' @param res_dist The distribution of residual, \code{"normal"} for normal distribution or \code{"empirical"} for empirical distribution. Default value is \code{"normal"}.
-#' @param outlier_type The type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.
-#' @param outlier_cval The critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50).
+#' @param res_dist A character representing the distribution of residual, \code{"normal"} for normal distribution or \code{"empirical"} for empirical distribution. Default value is \code{"normal"}.
+#' @param outlier_type A character representing the type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.
+#' @param outlier_cval A numeric value representing the critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50). Default value is \code{NA_real_}.
+#' @param train_args A list representing additional call passed into the training function, \code{forecast::Arima}. Default value is \code{list("order" = c(1, 0, 0)}.
 #' @export arima_sim
 arima_sim <- setClass("arima_sim",
                     slots = list(res_dist = "character",

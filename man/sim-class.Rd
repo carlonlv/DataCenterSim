@@ -13,6 +13,8 @@
 \alias{markov_sim}
 \title{An S4 Class to Represent A Simulation.}
 \arguments{
+\item{train_args}{A list representing additional call passed into the training function, \code{forecast::Arima}. Default value is \code{list("order" = c(1, 0, 0)}.}
+
 \item{res_dist}{The distribution of residual, \code{"normal"} for normal distribution or \code{"empirical"} for empirical distribution. Default value is \code{"normal"}.}
 
 \item{outlier_type}{The type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.}
@@ -38,6 +40,8 @@ An S4 Class to Represent A Simulation.
 \item{\code{cut_off_prob}}{A numeric number that is the level of the prediction interval. Default value is \code{0.99}.}
 
 \item{\code{granularity}}{A numeric number that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values is \code{100/32}.}
+
+\item{\code{train_policy}}{A character that represents the type of training policy that can either be \code{"offline"}, \code{"fixed"} or \code{"dynamic"}. Default value is \code{"dynamic"}.}
 
 \item{\code{train_size}}{A numeric number that specify the training size after aggregated by \code{window_size} used for simulations. Default values is \code{100}.}
 

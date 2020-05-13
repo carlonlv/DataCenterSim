@@ -7,6 +7,7 @@ NULL
 #' @return \code{TRUE} if the input sim object is valid, vector of error messages otherwise.
 #' @keywords internal
 check_valid_sim <- function(object) {
+  train_policy_choices <- c("offline", "fixed")
   type_choices <- c("scheduling", "predicting")
   response_choices <- c("max", "avg")
   errors <- character()
@@ -32,6 +33,10 @@ check_valid_sim <- function(object) {
   }
   if (is.na(object@granularity) | object@granularity < 0 | object@granularity >= 100) {
     msg <- paste0("granularity must be a non-negative numeric value that are less than 100.")
+    errors <- c(errors, msg)
+  }
+  if (length(object@train_policy) != 1 | is.na(object@train_policy) |  all(object@train_policy != train_policy_choices)) {
+    msg <- paste0("train_policy must be one of ", paste(train_policy_choices, collapse = " "), ".")
     errors <- c(errors, msg)
   }
   if (is.na(object@train_size) | object@train_size %% 1 != 0 | object@train_size <= 0) {
@@ -69,6 +74,7 @@ check_valid_sim <- function(object) {
 #' @slot target A numeric number that is the target score for \code{score1}. Default value is \code{0.01}.
 #' @slot cut_off_prob A numeric number that is the level of the prediction interval. Default value is \code{0.99}.
 #' @slot granularity A numeric number that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values is \code{100/32}.
+#' @slot train_policy A character that represents the type of training policy that can either be \code{"offline"}, \code{"fixed"} or \code{"dynamic"}. Default value is \code{"dynamic"}.
 #' @slot train_size A numeric number that specify the training size after aggregated by \code{window_size} used for simulations. Default values is \code{100}.
 #' @slot model_num A numeric number that specify the maximum number of models for switching. Default value is \code{2}.
 #' @slot update_freq A numeric number that specify the length of testing after each training step after aggregated by \code{window_size}, also the amount of step to update after testing step is complete. Default values is \code{3}.
@@ -83,6 +89,7 @@ sim <- setClass("sim",
                              target = "numeric",
                              cut_off_prob = "numeric",
                              granularity = "numeric",
+                             train_policy = "character",
                              train_size = "numeric",
                              model_num = "numeric",
                              update_freq = "numeric",
@@ -93,6 +100,7 @@ sim <- setClass("sim",
                                  target = 0.99,
                                  cut_off_prob = 0.01,
                                  granularity = 3.125,
+                                 train_policy = "dynamic",
                                  train_size = 100,
                                  model_num = 2,
                                  update_freq = 3,

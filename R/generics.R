@@ -2,129 +2,9 @@
 NULL
 
 
-#' Getter/Setter for Window Size
-#'
-#' A window size is the length of aggregation of observations as an alternative or reduction of extrapolation in forecasting.
-#'
-#' @param object An S4 sim object.
-#' @rdname window_size
-#' @export
-setGeneric("window_size", function(object) standardGeneric("window_size"))
-
-#' @param value A numeric value that is a postive integer.
-#' @rdname window_size
-#' @export
-setGeneric("window_size<-", function(object, value) standardGeneric("window_size<-"))
-
-
-#' Getter/Setter for Cut Off Probability
-#'
-#' A cut off probability is the minimum probability allowed to have next observation below a input threshold, or equals to \eqn{\frac{1}{2}(1 - Prob)} as \eqn{Prob} stands for Probability in Prediction Interval.
-#'
-#' @param object An S4 sim object
-#' @rdname cut_off_prob
-#' @export
-setGeneric("cut_off_prob", function(object) standardGeneric("cut_off_prob"))
-
-#' @param value A numeric value between 0 and 1, exclusive.
-#' @rdname cut_off_prob
-#' @export
-setGeneric("cut_off_prob<-", function(object, value) standardGeneric("cut_off_prob<-"))
-
-
-#' Getter/Setter for Granularity
-#'
-#' Granularity in terms of cores equals to \eqn{100 / Num_of_cores}, as each task can only be dispatched in mutiples of granularity. If CPU resources can (ideally) be dispatched in real numbers, granularity can take input of \code{0}.
-#'
-#' @param object An S4 sim object.
-#' @rdname granularity
-#' @export
-setGeneric("granularity", function(object) standardGeneric("granularity"))
-
-#' @param value A numeric value that is beteen 0 and 100, right exclusive.
-#' @rdname granularity
-#' @export
-setGeneric("granularity<-", function(object, value) standardGeneric("granularity<-"))
-
-
-#' Getter/Setter for Traning Size
-#'
-#' Traning size is the amount of observations used to train a model, both in offline training and online training.
-#'
-#' @param object An S4 sim object
-#' @rdname train_size
-#' @export
-setGeneric("train_size", function(object) standardGeneric("train_size"))
-
-#' @param value A numeric value that is a positive integer.
-#' @rdname train_size
-#' @export
-setGeneric("train_size<-", function(object, value) standardGeneric("train_size<-"))
-
-
-#' Getter/Setter for Update Frequency
-#'
-#' Update frequency is the step size of each update in an online simulation with rolling windows, it also serves as the size of (batch) test set after each training step.
-#'
-#' @param object An S4 sim object.
-#' @rdname update_freq
-#' @export
-setGeneric("update_freq", function(object) standardGeneric("update_freq"))
-
-#' @param value A numeric value that is a positive integer.
-#' @rdname update_freq
-#' @export
-setGeneric("update_freq<-", function(object, value) standardGeneric("update_freq<-"))
-
-
-#' Getter/Setter for Response
-#'
-#' Response describes the type of response variable, the maximum of trace to predict or the average of trace to predict.
-#'
-#' @param object An S4 sim object
-#' @rdname response
-#' @export
-setGeneric("response", function(object) standardGeneric("response"))
-
-#' @param value A character value that is either \code{"max"} or \code{"avg"}.
-#' @rdname response
-#' @export
-setGeneric("response<-", function(object, value) standardGeneric("response<-"))
-
-
-#' Getter/Setter for Number of States
-#'
-#' State num is the number of states for Markov Models or Mixed models that contains Markov chain components.
-#'
-#' @param object An S4 sim object.
-#' @rdname state_num
-#' @export
-setGeneric("state_num", function(object) standardGeneric("state_num"))
-
-#' @param value A numeric value that is a positive integer.
-#' @rdname state_num
-#' @export
-setGeneric("state_num<-", function(object, value) standardGeneric("state_num<-"))
-
-
-#' Getter/Setter for Residual Distribution
-#'
-#' Res Dist is the Residual Distribution for ARIMA or VAR models.
-#'
-#' @param object An S4 sim object.
-#' @rdname res_dist
-#' @export
-setGeneric("res_dist", function(object) standardGeneric("res_dist"))
-
-#' @param value A character value that can either be "norm" or "skew_norm".
-#' @rdname res_dist
-#' @export
-setGeneric("res_dist<-", function(object, value) standardGeneric("res_dist<-"))
-
-
 #' Get The Slots that Are Considered Hyperparameters of Simulation
 #'
-#' @param object An S4 sim object
+#' @param object An S4 sim or pred object
 #' @rdname get_param_slots
 #' @export
 setGeneric("get_param_slots", function(object) standardGeneric("get_param_slots"))
@@ -132,7 +12,7 @@ setGeneric("get_param_slots", function(object) standardGeneric("get_param_slots"
 
 #' Get The Slots that Are Considered Charactersitics of Simulation
 #'
-#' @param object An S4 sim object
+#' @param object An S4 sim or pred object
 #' @rdname get_characteristic_slots
 #' @export
 setGeneric("get_characteristic_slots", function(object) standardGeneric("get_characteristic_slots"))
@@ -140,7 +20,7 @@ setGeneric("get_characteristic_slots", function(object) standardGeneric("get_cha
 
 #' Get The Slots that Are Not Displayed
 #'
-#' @param object An S4 sim object
+#' @param object An S4 sim or pred object
 #' @rdname get_hidden_slots
 #' @export
 setGeneric("get_hidden_slots", function(object) standardGeneric("get_hidden_slots"))

@@ -8,8 +8,8 @@ NULL
 #'
 #' @param object A S4 sim object.
 #' @param trained_result A trained object depending on the model used for training.
-#' @param test_x A dataframe representing the test set, containing maximum and average of actual observations.
-#' @param test_xreg A numeric vector or matrix representing the dataset that target dataset depends on for scheduling and evaluations.
+#' @param test_x A numeric vector representing the test set.
+#' @param test_xreg A numeric vector representing the dataset that target dataset depends on for scheduling and evaluations.
 #' @param predict_info A dataframe containing all the past predicted information.
 #' @param switch_status A list containing all the information about current switches and identifiers.
 #' @return A dataframe containing the past predicted information and the current predicted information.
@@ -70,13 +70,13 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
 }
 
 
-#' Simulation of Scheduling Jobs Based On Predictions On A Single Trace With AR1 Model
+#' Simulation of Scheduling Jobs Based On Predictions On A Single Trace.
 #'
-#' Sequantially training and testing by scheduling jobs based on predictions on a single trace using AR1 Model.
+#' Sequantially training and testing by scheduling jobs based on predictions on a single trace.
 #'
 #' @param ts_num The corresponding trace/column in \code{dataset}.
-#' @param x A matrix of size n by m representing the target dataset for scheduling and evaluations.
-#' @param xreg A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.
+#' @param x A numeric vector of length n representing the target dataset for scheduling and evaluations.
+#' @param xreg A numeric vector of length n representing the external regressor.
 #' @param write_type A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param plot_type A character that can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
@@ -217,9 +217,9 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
 }
 
 
-#' Simulation of Scheduling Jobs Based On Predictions With AR1 Model
+#' Simulation of Scheduling Jobs Based On Predictions.
 #'
-#' Sequantially training and testing by scheduling a job using AR1 Model.
+#' Sequantially training and testing by scheduling a job.
 #'
 #' @param object A uni-length sim object that represents a specific parameter setting.
 #' @param x A matrix of size n by m representing the target dataset for scheduling and evaluations.
@@ -266,8 +266,6 @@ predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
 
 #' Run Simulation
 #'
-#' The simulation dependes on the \code{type} attribute of the sim object, if \code{"scheduling"} is provided, simulation sequantially training and testing by scheduling a job with job size supplied by \code{cpu_required}, if \code{"predicting"} is supplied, sequential training and testing is made by predictions based on previous observations.
-#'
 #' @param epoch_setting A dataframe representing a specific parameter setting.
 #' @param x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param xreg A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.
@@ -275,7 +273,7 @@ predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
 #' @param write_type A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param plot_type A character that represents how to plot the result of simulation can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
-#' @return An S4 sim result object.
+#' @return A list of S4 sim result object.
 #' @export
 run_sim <- function(epoch_setting, x, xreg, cores=parallel::detectCores(), write_type, plot_type, result_loc=getwd()) {
   if (!(any(c(write_type, plot_type) %in% c("charwise", "tracewise", "paramwise", "none")))) {

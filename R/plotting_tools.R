@@ -281,7 +281,7 @@ plot_ecdf_acf <- function(dataset1, dataset2=NULL, lags, freqs, corr_method = "p
       ggplot2::stat_ecdf(na.rm = TRUE) +
       ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = length(names(na_percentage))), hjust = 0, label = paste("NA percentage at lag", names(na_percentage), "is", na_percentage)) +
       ggplot2::scale_color_manual(name = "lags", values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(lags))) +
-      ggplot2::geom_vline(xintercept = c(-1 / sqrt(length(val) / length(lags)), 1 / sqrt(length(val) / length(lags))), linetype = "dashed", color = "red") +
+      ggplot2::geom_vline(xintercept = c(-1.96 / sqrt(length(val) / length(lags)), 1.96 / sqrt(length(val) / length(lags))), linetype = "dashed", color = "red") +
       ggplot2::ylab("Fraction of Data") +
       ggplot2::ggtitle(paste("ECDF of Correlation at Different Lags Of Window Size", freq))
 

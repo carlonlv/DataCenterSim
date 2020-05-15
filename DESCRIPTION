@@ -38,6 +38,6 @@ Collate:
     'main.R'
     'main_pred.R'
     'markov_sim.R'
-    'pre_methods.R'
+    'pred_methods.R'
     'sim_methods.R'
     'surtree_pred.R'

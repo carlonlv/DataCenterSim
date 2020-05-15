@@ -23,7 +23,7 @@ setMethod("get_param_slots",
 setMethod("get_characteristic_slots",
           signature(object = "pred"),
           function(object) {
-            character_slots <- c("name", "train_policy", "quantile")
+            character_slots <- c("name", "train_policy")
             character_lst <- list()
             for (i in character_slots) {
               character_lst[[i]] <- methods::slot(object, i)
@@ -38,7 +38,12 @@ setMethod("get_characteristic_slots",
 setMethod("get_hidden_slots",
           signature(object = "pred"),
           function(object) {
-            return(list())
+            hidden_slots <- c("bins")
+            hidden_lst <- list()
+            for (i in hidden_slots) {
+              hidden_lst[[i]] <- methods::slot(object, i)
+            }
+            return(hidden_lst)
           })
 
 

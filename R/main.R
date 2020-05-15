@@ -144,9 +144,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
 
       if (length(candidate_models) == 0) {
         train_iter <- train_iter + 1
-        active_model <- traincan_model
-        train_models[[letters[active_model]]] <- NULL
-        predict_histories[[letters[active_model]]] <- NULL
+        active_model <- find_best_candidate(1:object@model_num, predict_histories, object@target)
         find_substitute_model <- TRUE
       } else {
         train_iter <- train_iter + 1
@@ -167,6 +165,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
       }
 
       train_models[[letters[traincan_model]]] <- train_model(object, train_x, train_xreg)
+      predict_histories[[letters[traincan_model]]] <- NULL
       temp_switch_status <- list("train_iter" = train_iter, "test_iter" = 0, "react_counter" = 0, "adjust_switch" = FALSE)
       train_test_result <- predict_model(object, train_models[[letters[traincan_model]]], train_x, train_xreg, NULL, temp_switch_status)[["test_sim_result"]]
 

@@ -27,7 +27,7 @@ An S4 Class to Represent A Prediction.
 \describe{
 \item{\code{name}}{A character that represents the name of the simulation.}
 
-\item{\code{quantile}}{A numeric number that is represents which quantile of the cluster will be returned. Default value is \code{0.99}.}
+\item{\code{bins}}{A numeric vector that represents how response variable is discretized into bins. Default value is \code{c(0,1,2,6,10,14,18,22,26,30,50,80,205)}.}
 
 \item{\code{train_policy}}{A character that represents the type of training policy that can either be \code{"offline"} or \code{"fixed"}. Default value is \code{"offline"}.}
 

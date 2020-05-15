@@ -82,8 +82,8 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained Markov Model.
 setMethod("do_prediction",
-          signature(object = "markov_sim", trained_result = "list", predict_info = "data.frame"),
-          function(object, trained_result, predict_info) {
+          signature(object = "markov_sim", trained_result = "list", predict_info = "data.frame", xreg = "numeric"),
+          function(object, trained_result, predict_info, xreg) {
             compute_pi_up <- function(prob, to_states) {
               current_state <- 1
               current_prob <- 0

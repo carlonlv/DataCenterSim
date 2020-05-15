@@ -46,10 +46,11 @@ setGeneric("train_model", function(object, train_x, train_xreg) standardGeneric(
 #' @param object An S4 sim object.
 #' @param trained_result A list or other class returend by \code{train_model}, containing trained model information.
 #' @param predict_info A dataframe representing all the past predicted or scheduled information.
+#' @param xreg A dataframe representing the external predictors.
 #' @return The updated \code{predict_info} on the last row.
 #' @name do_prediction
 #' @rdname do_prediction
-setGeneric("do_prediction", function(object, trained_result, predict_info) standardGeneric("do_prediction"))
+setGeneric("do_prediction", function(object, trained_result, predict_info, xreg) standardGeneric("do_prediction"))
 
 
 #' Get Representation

@@ -7,11 +7,11 @@
 run_pred(epoch_setting, x, xreg)
 }
 \arguments{
+\item{epoch_setting}{A dataframe representing a specific parameter setting.}
+
 \item{x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
 \item{xreg}{A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.}
-
-\item{object}{A uni-length pred object that represents a specific parameter setting.}
 }
 \value{
 A list of S4 pred result object.

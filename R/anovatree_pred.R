@@ -42,10 +42,9 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained GMM clustering Model.
 setMethod("do_prediction",
-          signature(object = "anovatree_pred", trained_result = "list", predict_info = "data.frame"),
-          function(object, trained_result, predict_info) {
+          signature(object = "anovatree_pred", trained_result = "list", predict_info = "data.frame", xreg = "data.frame"),
+          function(object, trained_result, predict_info, xreg) {
             trained_result <- trained_result[[1]]
-            predict_info[nrow(predict_info), "pi_up"] <- NA
             predict_info[nrow(predict_info), "cluster_info"] <- NA
             return(predict_info)
           })

@@ -104,8 +104,8 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained AR1 Model.
 setMethod("do_prediction",
-          signature(object = "auto_arima_sim", trained_result = "list", predict_info = "data.frame"),
-          function(object, trained_result, predict_info) {
+          signature(object = "auto_arima_sim", trained_result = "list", predict_info = "data.frame", xreg = "numeric"),
+          function(object, trained_result, predict_info, xreg) {
             trained_result <- trained_result[[1]]
             level <- (1 - object@cut_off_prob * 2) * 100
 

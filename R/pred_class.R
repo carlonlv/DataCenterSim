@@ -59,19 +59,3 @@ pred <- setClass("pred",
                                  train_size = 5000,
                                  update_freq = 5000),
                 validity = check_valid_pred)
-
-
-#' An S4 Class to Represent A Prediction Result.
-#'
-#' @slot type A character that represents the type of the prediction result, it should be either \code{"test"} for a testing batch, \code{"train"} for training model life time, \code{"trace"} for an entire trace, \code{"param"} for all traces in same parameter setting.
-#' @slot score1.n A numeric value that represents the performance on score 1 consistent with \code{type}.
-#' @slot score1.w A numeric value that represents the weight of \code{score1.n}.
-#' @name pred_result-class
-#' @rdname pred_result-class
-pred_result <- setClass("pred_result",
-                       slots = list(type = "character",
-                                    score1.n = "numeric",
-                                    score1.w = "numeric"),
-                       prototype = list(type = NA_character_,
-                                        score1.n = 0,
-                                        score1.w = 0))

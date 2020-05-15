@@ -43,13 +43,13 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
     end_time <- start_time + object@window_size - 1
 
     if (!(length(test_xreg) == 0)) {
-      test_predict_info[nrow(test_predict_info),]$xreg <- convert_frequency_dataset(test_xreg[start_time:end_time], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = FALSE)
+      xreg <- convert_frequency_dataset(test_xreg[start_time:end_time], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = FALSE)
     } else {
-      test_predict_info[nrow(test_predict_info),]$xreg <- NA
+      xreg <- NA
     }
 
     predict_iter <- predict_iter + 1
-    test_predict_info <- do_prediction(object, trained_result, test_predict_info)
+    test_predict_info <- do_prediction(object, trained_result, test_predict_info, xreg)
 
     actual_obs <- test_x[start_time:end_time]
     test_predict_info <- check_score_pred(switch_status$train_iter, switch_status$test_iter, predict_iter, object, test_predict_info, actual_obs, adjust_switch)

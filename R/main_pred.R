@@ -17,8 +17,6 @@ predict_pred <- function(object, trained_result, test_x, test_xreg, predict_info
                                   "job_id" = numeric(0),
                                   "cluster_info" = numeric(0),
                                   "actual" = numeric(0),
-                                  "pi_up" = numeric(0),
-                                  "score_pred_1" = numeric(0),
                                   stringsAsFactors = FALSE)
 
   predict_iter <- 0
@@ -26,15 +24,11 @@ predict_pred <- function(object, trained_result, test_x, test_xreg, predict_info
   while (current_end <= length(test_x)) {
     test_predict_info[nrow(test_predict_info) + 1,] <- c(switch_status$train_iter, switch_status$test_iter, predict_iter + 1, test_xreg[current_end, "job_ID"], rep(NA, ncol(test_predict_info) - 4))
 
-    start_time <- current_end
-    end_time <- start_time + object@window_size - 1
-
     predict_iter <- predict_iter + 1
-    test_predict_info <- do_prediction(object, trained_result, test_predict_info)
+    test_predict_info <- do_prediction(object, trained_result, test_predict_info, test_xreg[current_end,])
 
-    actual_obs <- test_x[start_time:end_time]
-    test_predict_info <- check_score_pred_simplified(switch_status$train_iter, switch_status$test_iter, predict_iter, test_predict_info, actual_obs)
-
+    actual_obs <- test_x[current_end]
+    test_predict_info[nrow(test_predict_info), "actual"] <- actual_obs
     current_end <- current_end + 1
   }
 
@@ -59,14 +53,12 @@ predicting_pred <- function(object, x, xreg) {
                              "job_id" = numeric(0),
                              "cluster_info" = numeric(0),
                              "actual" = numeric(0),
-                             "pi_up" = numeric(0),
-                             "score_pred_1" = numeric(0),
                              stringsAsFactors = FALSE)
 
   current <- 1
   last_time_update <- length(x) - object@update_freq - object@train_size + 1
 
-  trained_model <- NULL
+  trained_model <- list()
 
   train_sig <- TRUE
 
@@ -79,7 +71,7 @@ predicting_pred <- function(object, x, xreg) {
       train_x <- x[train_start:train_end]
       train_xreg <- xreg[,train_start:train_end]
 
-      trained_model <- train_model(object, train_x, train_xreg)
+      trained_model <- c(trained_model, train_model(object, train_x, train_xreg))
       switch_status <- list("train_iter" = train_iter, "test_iter" = 0)
       train_iter <- train_iter + 1
     }
@@ -91,7 +83,7 @@ predicting_pred <- function(object, x, xreg) {
     test_xreg <- xreg[, test_start:test_end]
 
     ## Test Model
-    score_switch_info <- predict_model(object, trained_model, test_x, test_xreg, predict_info, switch_status)
+    score_switch_info <- predict_pred(object, trained_model, test_x, test_xreg, predict_info, switch_status)
     switch_status <- score_switch_info[["switch_status"]]
     predict_info <- score_switch_info[["predict_info"]]
 
@@ -106,8 +98,7 @@ predicting_pred <- function(object, x, xreg) {
     current <- current + object@update_freq
   }
 
-  trace_score <- check_score_param_simplified(predict_info)
-  return(trace_score)
+  return(c(trained_model, predict_info))
 }
 
 
@@ -115,7 +106,7 @@ predicting_pred <- function(object, x, xreg) {
 #'
 #' Sequantially training and testing by predicting the runtime of a job.
 #'
-#' @param object A uni-length pred object that represents a specific parameter setting.
+#' @param epoch_setting A dataframe representing a specific parameter setting.
 #' @param x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param xreg A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.
 #' @return A list of S4 pred result object.
@@ -131,12 +122,6 @@ run_pred <- function(epoch_setting, x, xreg) {
                                                                          function(other, char) {
                                                                            param_uni_lst <- methods::as(cbind(char, other), "sim")
                                                                            score_param_lst <- lapply(param_uni_lst, predicting_pred, x, xreg)
-                                                                           param_uni_df <- data.frame()
-                                                                           score_param_df <- data.frame()
-                                                                           for (i in 1:length(score_param_lst)) {
-                                                                             param_uni_df <- rbind(param_uni_df, methods::as(param_uni_lst[[i]], "data.frame"))
-                                                                             score_param_df <- rbind(score_param_df, methods::as(score_param_lst[[i]], "data.frame"))
-                                                                           }
                                                                            return(score_param_lst)
                                                                          })
                                       return(score_char_lst)

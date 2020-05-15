@@ -78,20 +78,6 @@ setAs("pred", "data.frame",
       })
 
 
-#' @export
-setAs("pred_result", "data.frame",
-      function(from) {
-        return(data.frame("score1.n" = from@score1.n,
-                          "score1.w" = from@score1.w,
-                          "score1_adj.n" = from@score1_adj.n,
-                          "score1_adj.w" = from@score1_adj.w,
-                          "score2.n" = from@score2.n,
-                          "score2.w" = from@score2.w,
-                          "score2_adj.n" = from@score2_adj.n,
-                          "score2_adj.w" = from@score2_adj.w))
-      })
-
-
 #' @rdname get_representation
 #' @export
 setMethod("get_representation",
@@ -118,4 +104,3 @@ setMethod("get_representation",
               stop("Type must be one of char_raw, char_con, param_raw, param_con.")
             }
           })
-

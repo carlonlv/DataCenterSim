@@ -115,34 +115,43 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
   predict_histories <- list()
   active_model <- 1
 
-  train_sig <- TRUE
   switch_sig <- FALSE
+  find_substitute_model <- FALSE
 
   train_iter <- 1
   while (current <= last_time_update) {
-    if (switch_sig) {
-      if (object@model_num == 1) {
-        train_iter <- train_iter + 1
-        active_model <- 1
-        train_models[[letters[active_model]]] <- NULL
-        predict_histories[[letters[active_model]]] <- NULL
+    is_empty_model <- sapply(1:object@model_num, function(model_idx) {
+      is.null(train_models[[letters[model_idx]]])})
+    if (any(is_empty_model)) {
+      traincan_model <- which(is_empty_model)[1]
+      train_sig <- TRUE
+    } else {
+      if (object@train_policy == "offline") {
+        train_sig <- FALSE
+      } else if (object@train_policy == "fixed") {
         train_sig <- TRUE
       } else {
-        candidate_models <- which(sapply(c(1:object@model_num), function(model_idx) {
-          is_well_performed(predict_histories[[letters[model_idx]]], object@target)
-        }))
-        candidate_models <- candidate_models[candidate_models != active_model]
-        if (length(candidate_models) == 0) {
-          train_iter <- train_iter + 1
-          active_model <- find_worst_candidate(object@model_num, predict_histories, object@target)
-          train_models[[letters[active_model]]] <- NULL
-          predict_histories[[letters[active_model]]] <- NULL
-          train_sig <- TRUE
-        } else {
-          train_iter <- train_iter + 1
-          active_model <- find_best_candidate(candidate_models, predict_histories, object@target)
-          train_sig <- FALSE
-        }
+        train_sig <- find_substitute_model
+      }
+    }
+
+    if (switch_sig) {
+      traincan_model <- find_worst_candidate(object@model_num, predict_histories, object@target)
+
+      candidate_models <- which(sapply(1:object@model_num, function(model_idx) {
+        is_well_performed(predict_histories[[letters[model_idx]]], object@target)
+      }))
+
+      if (length(candidate_models) == 0) {
+        train_iter <- train_iter + 1
+        active_model <- traincan_model
+        train_models[[letters[active_model]]] <- NULL
+        predict_histories[[letters[active_model]]] <- NULL
+        find_substitute_model <- TRUE
+      } else {
+        train_iter <- train_iter + 1
+        active_model <- find_best_candidate(candidate_models, predict_histories, object@target)
+        find_substitute_model <- FALSE
       }
     }
 
@@ -157,15 +166,17 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
         train_xreg <- numeric(0)
       }
 
-      train_models[[letters[active_model]]] <- train_model(object, train_x, train_xreg)
+      train_models[[letters[traincan_model]]] <- train_model(object, train_x, train_xreg)
       temp_switch_status <- list("train_iter" = train_iter, "test_iter" = 0, "react_counter" = 0, "adjust_switch" = FALSE)
-      train_test_result <- predict_model(object, train_models[[letters[active_model]]], train_x, train_xreg, NULL, temp_switch_status)[["test_sim_result"]]
+      train_test_result <- predict_model(object, train_models[[letters[traincan_model]]], train_x, train_xreg, NULL, temp_switch_status)[["test_sim_result"]]
 
       if (is_well_performed(train_test_result, object@target)) {
         switch_status <- list("train_iter" = train_iter, "test_iter" = 1, "react_counter" = 0, "adjust_switch" = FALSE)
       } else {
         switch_status <- list("train_iter" = train_iter, "test_iter" = 1, "react_counter" = 0, "adjust_switch" = TRUE)
       }
+
+      train_sig <- FALSE
     }
 
     ## Get test set
@@ -197,7 +208,6 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
     ## Make scheduling decisions
     if (is_well_performed(test_sim_result, object@target)) {
       switch_sig <- FALSE
-      train_sig <- FALSE
     } else {
       switch_sig <- TRUE
     }

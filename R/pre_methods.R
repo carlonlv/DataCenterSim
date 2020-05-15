@@ -8,7 +8,7 @@ NULL
 setMethod("get_param_slots",
           signature(object = "pred"),
           function(object) {
-            numeric_slots <- c("train_size", "update_freq")
+              numeric_slots <- c("train_size", "update_freq")
             numeric_lst <- list()
             for (i in numeric_slots) {
               numeric_lst[[i]] <- methods::slot(object, i)
@@ -23,7 +23,7 @@ setMethod("get_param_slots",
 setMethod("get_characteristic_slots",
           signature(object = "pred"),
           function(object) {
-            character_slots <- c("name", "target", "train_policy")
+            character_slots <- c("name", "train_policy", "quantile")
             character_lst <- list()
             for (i in character_slots) {
               character_lst[[i]] <- methods::slot(object, i)

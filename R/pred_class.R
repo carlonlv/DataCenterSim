@@ -13,6 +13,10 @@ check_valid_pred <- function(object) {
     msg <- paste0("name must be a length 1 character.")
     errors <- c(errors, msg)
   }
+  if (length(object@quantile) != 1 | is.na(object@quantile) | object@quantile < 0 | object@quantile > 1) {
+    msg <- paste0("quantile must be a numeric value from 0 to 1.")
+    errors <- c(errors, msg)
+  }
   if (length(object@train_policy) != 1 | is.na(object@train_policy) |  all(object@train_policy != train_policy_choices)) {
     msg <- paste0("train_policy must be one of ", paste(train_policy_choices, collapse = " "), ".")
     errors <- c(errors, msg)
@@ -36,7 +40,7 @@ check_valid_pred <- function(object) {
 #' An S4 Class to Represent A Prediction.
 #'
 #' @slot name A character that represents the name of the simulation.
-#' @slot target A numeric number that is the target score for \code{score1}. Default value is \code{0.01}.
+#' @slot quantile A numeric number that is represents which quantile of the cluster will be returned. Default value is \code{0.99}.
 #' @slot train_policy A character that represents the type of training policy that can either be \code{"offline"} or \code{"fixed"}. Default value is \code{"offline"}.
 #' @slot train_size A numeric number that specify the training size after aggregated by \code{window_size} used for simulations. Default values is \code{100}.
 #' @slot update_freq A numeric number that specify the length of testing after each training step after aggregated by \code{window_size}, also the amount of step to update after testing step is complete. Default values is \code{3}.
@@ -45,12 +49,12 @@ check_valid_pred <- function(object) {
 #' @exportClass pred
 pred <- setClass("pred",
                 slots = list(name = "character",
-                             target = "numeric",
+                             quantile = "numeric",
                              train_policy = "character",
                              train_size = "numeric",
                              update_freq = "numeric"),
                 prototype = list(name = NA_character_,
-                                 target = 0.99,
+                                 quantile = 0.99,
                                  train_policy = "offline",
                                  train_size = 5000,
                                  update_freq = 5000),

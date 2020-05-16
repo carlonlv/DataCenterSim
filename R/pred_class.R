@@ -38,8 +38,8 @@ check_valid_pred <- function(object) {
 #' @slot name A character that represents the name of the simulation.
 #' @slot bins A numeric vector that represents how response variable is discretized into bins. Default value is \code{c(0,1,2,6,10,14,18,22,26,30,50,80,205)}.
 #' @slot train_policy A character that represents the type of training policy that can either be \code{"offline"} or \code{"fixed"}. Default value is \code{"offline"}.
-#' @slot train_size A numeric number that specify the training size after aggregated by \code{window_size} used for simulations. Default values is \code{100}.
-#' @slot update_freq A numeric number that specify the length of testing after each training step after aggregated by \code{window_size}, also the amount of step to update after testing step is complete. Default values is \code{3}.
+#' @slot train_size A numeric number that specify the training size after aggregated by \code{window_size} used for simulations. Default values is \code{5000}.
+#' @slot update_freq A numeric number that specify the length of testing after each training step after aggregated by \code{window_size}, also the amount of step to update after testing step is complete. Default values is \code{5000}.
 #' @name pred-class
 #' @rdname pred-class
 #' @exportClass pred

@@ -18,7 +18,11 @@ Imports:
   tsoutliers (>= 0.6-8),
   forecast (>= 8.11),
   RColorBrewer (>= 1.1-2),
-  grDevices (>= 3.6.0)
+  grDevices (>= 3.6.0),
+  survival (>= 2.44-1.1),
+  rpart (>= 4.1-15),
+  partykit (>= 1.2-7),
+  mclust(>= 5.4.5)
 License: GPL-2
 Encoding: UTF-8
 LazyData: true

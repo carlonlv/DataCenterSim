@@ -1,4 +1,4 @@
-#' Predict Runtime of Jobs On Given Test Set
+de#' Predict Runtime of Jobs On Given Test Set
 #'
 #' Sequantially predict running time of jobs on provided test set.
 #'
@@ -28,7 +28,7 @@ predict_pred <- function(object, trained_result, test_x, test_xreg, predict_info
     test_predict_info <- do_prediction(object, trained_result, test_predict_info, test_xreg[current_end,])
 
     actual_obs <- test_x[current_end]
-    test_predict_info[nrow(test_predict_info), "actual"] <- actual_obs
+    test_predict_info[nrow(test_predict_info), "actual"] <- discretization(object@bins, actual_obs)
     current_end <- current_end + 1
   }
 
@@ -66,10 +66,10 @@ predicting_pred <- function(object, x, xreg) {
   while (current <= last_time_update) {
     if (train_sig) {
       train_start <- current
-      train_end <- current + object@train_size * object@window_size - 1
+      train_end <- current + object@train_size - 1
 
       train_x <- x[train_start:train_end]
-      train_xreg <- xreg[,train_start:train_end]
+      train_xreg <- xreg[train_start:train_end,]
 
       trained_model <- c(trained_model, train_model(object, train_x, train_xreg))
       switch_status <- list("train_iter" = train_iter, "test_iter" = 0)
@@ -77,10 +77,10 @@ predicting_pred <- function(object, x, xreg) {
     }
 
     ## Get test set
-    test_start <- current + object@train_size * object@window_size
-    test_end <- current + object@train_size * object@window_size + object@update_freq * object@window_size - 1
+    test_start <- current + object@train_size
+    test_end <- current + object@train_size + object@update_freq - 1
     test_x <- x[test_start:test_end]
-    test_xreg <- xreg[, test_start:test_end]
+    test_xreg <- xreg[test_start:test_end,]
 
     ## Test Model
     score_switch_info <- predict_pred(object, trained_model, test_x, test_xreg, predict_info, switch_status)
@@ -115,12 +115,12 @@ run_pred <- function(epoch_setting, x, xreg) {
   name_epoch_setting <- dplyr::group_by_at(epoch_setting, "name")
   score_all_lst <- dplyr::group_map(name_epoch_setting,
                                     function(other, name) {
-                                      defau <- methods::new(paste0(tolower(as.character(name)), "_sim"))
+                                      defau <- methods::new(paste0(tolower(as.character(name)), "_pred"))
                                       char_defau <- names(get_representation(defau, "char_raw"))
                                       char_epoch_setting <- dplyr::group_by_at(epoch_setting, c("name", colnames(other)[which(colnames(other) %in% char_defau)]))
                                       score_char_lst <- dplyr::group_map(char_epoch_setting,
                                                                          function(other, char) {
-                                                                           param_uni_lst <- methods::as(cbind(char, other), "sim")
+                                                                           param_uni_lst <- methods::as(cbind(char, other), "pred")
                                                                            score_param_lst <- lapply(param_uni_lst, predicting_pred, x, xreg)
                                                                            return(score_param_lst)
                                                                          })

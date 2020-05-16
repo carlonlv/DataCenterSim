@@ -27,17 +27,39 @@ surtree_pred <- setClass("surtree_pred",
                                   train_args = "list"),
                      contains = "pred",
                      prototype = list(name = "SURTREE",
-                                      min_obs = 200,
+                                      min_obs = 500,
                                       train_args = list()),
                      validity = check_valid_surtree_pred)
 
 
 #' @describeIn train_model Train ARMA Model specific to surtree_pred object.
 setMethod("train_model",
-          signature(object = "surtree_pred", train_x = "numeric", train_xreg = "numeric"),
+          signature(object = "surtree_pred", train_x = "numeric", train_xreg = "data.frame"),
           function(object, train_x, train_xreg) {
+            training_data <- cbind(train_xreg, "task_duration" = train_x)
+            training_data$task_duration <- discretization(object@bins,training_data$task_duration)
             trained_result <- list()
-            ## TODO: put trained model into the list
+            Surv_tree <- function(training_data,minsize = 500){
+              response <- survival::Surv(training_data$task_duration,event = rep(1,length(training_data$task_duration)))
+              fit <- rpart::rpart(response ~ scheduling_class + priority + requestCPU + requestRAM + requestLocal_disk_space, data = training_data, method = "exp",control = rpart::rpart.control(minbucket = minsize))
+              tree_classify <- partykit::as.party(fit)
+              tree_classify
+            }
+            model <- Surv_tree(training_data)
+            Get_Training_ProbVec <- function(model,training_data,breakpoints){
+              probvec_Tree <- list()
+              cluster1 <- as.numeric(predict(model, training_data[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")], type = "node"))
+              for (i in 1:length(unique(cluster1))) {
+                datai <- training_data$task_duration[cluster1 == sort(unique(cluster1))[i]]
+                hist1 <- hist(datai,breaks = breakpoints,plot = F)
+                probvec_Tree[[i]] <- hist1$counts/sum(hist1$counts)
+              }
+              names(probvec_Tree) <- sort(unique(cluster1))
+              probvec_Tree
+            }
+            prob_vec <- Get_Training_ProbVec(model,training_data,object@bins)
+            trained_result$model <- model
+            trained_result$prob <- prob_vec
             return(trained_result)
           })
 
@@ -46,9 +68,9 @@ setMethod("train_model",
 setMethod("do_prediction",
           signature(object = "surtree_pred", trained_result = "list", predict_info = "data.frame", xreg = "data.frame"),
           function(object, trained_result, predict_info, xreg) {
-            trained_result <- trained_result[[1]]
-            ## TODO: do prediction and store prediction upper bound and cluster number
-            predict_info[nrow(predict_info), "cluster_info"] <- NA
+            model <- trained_result$model
+            test_clusters <- predict(model, xreg[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")], type = "node")
+            predict_info[nrow(predict_info), "cluster_info"] <- test_clusters
             return(predict_info)
           })
 
@@ -60,7 +82,7 @@ setMethod("get_param_slots",
           signature(object = "surtree_pred"),
           function(object) {
             numeric_lst <- methods::callNextMethod(object)
-            numeric_lst[["min_obs"]] <- methods::slot(object, "max_cluter")
+            numeric_lst[["min_obs"]] <- methods::slot(object, "min_obs")
             return(numeric_lst)
           })
 

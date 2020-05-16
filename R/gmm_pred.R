@@ -37,10 +37,30 @@ gmm_pred <- setClass("gmm_pred",
 
 #' @describeIn train_model Train ARMA Model specific to gmm_pred object.
 setMethod("train_model",
-          signature(object = "gmm_pred", train_x = "numeric", train_xreg = "numeric"),
+          signature(object = "gmm_pred", train_x = "numeric", train_xreg = "data.frame"),
           function(object, train_x, train_xreg) {
+            training_data <- cbind(train_xreg, "task_duration" = train_x)
+            training_data$task_duration <- discretization(object@bins,training_data$task_duration)
             trained_result <- list()
-            ## TODO: put trained model into the list
+            Train_GMM <- function(training_data,upper_limBIC = 10){
+              GMM <- mclust::Mclust(training_data[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")],G = 1:upper_limBIC)
+              GMM
+            }
+            model <- Train_GMM(training_data)
+            Get_Training_ProbVec <- function(model,training_data,breakpoints){
+              bins <- length(breakpoints) - 1
+              GMM_training_clusters <- model$classification
+              probvec_GMM <- list()
+              for (i in 1:length(sort(unique(GMM_training_clusters)))) {
+                datai <- training_data$task_duration[GMM_training_clusters == i]
+                hist1 <- hist(datai,breaks = breakpoints,plot = F)
+                probvec_GMM[[i]] <- hist1$counts/sum(hist1$counts)
+              }
+              probvec_GMM
+            }
+            prob_vec <- Get_Training_ProbVec(model,training_data,object@bins)
+            trained_result$model <- model
+            trained_result$prob <- prob_vec
             return(trained_result)
           })
 
@@ -49,9 +69,10 @@ setMethod("train_model",
 setMethod("do_prediction",
           signature(object = "gmm_pred", trained_result = "list", predict_info = "data.frame", xreg = "data.frame"),
           function(object, trained_result, predict_info, xreg) {
-            trained_result <- trained_result[[1]]
-            ## TODO: do prediction and store prediction upper bound and cluster number
-            predict_info[nrow(predict_info), "cluster_info"] <- NA
+            model <- trained_result$model
+            GMM_test <- predict(model,xreg[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")])
+            GMM_test_clusters <- GMM_test$classification
+            predict_info[nrow(predict_info), "cluster_info"] <- GMM_test_clusters
             return(predict_info)
           })
 

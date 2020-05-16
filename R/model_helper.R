@@ -578,3 +578,17 @@ write_sim_result <- function(summ_df, result_type, name, ...) {
   fp <- write_location_check(file_name = file_name, ...)
   utils::write.csv(summ_df, file = fs::path(fp, ext = "csv"))
 }
+
+#' Discretize A Vector of Duration Time.
+#'
+#' @description Discretize a vector of duration time according to specified bins.
+#' @param breakpoints A numeric vector specifies how do these times discretized into bins.
+#' @param vec A numeric vector of time to be discretized.
+#' @keywords internal
+discretization <- function(breakpoints, vec){
+  newvec <- numeric(length = length(vec))
+  for (i in 1:length(vec)) {
+    newvec[i] <- breakpoints[breakpoints >= vec[i]][1]
+  }
+  return(newvec)
+}

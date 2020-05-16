@@ -7,4 +7,6 @@
 #' @import forecast
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom grDevices colorRampPalette
+#' @importFrom graphics hist
+#' @importFrom stats predict
 NULL

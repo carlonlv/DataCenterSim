@@ -43,13 +43,13 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
     end_time <- start_time + object@window_size - 1
 
     if (!(length(test_xreg) == 0)) {
-      xreg <- convert_frequency_dataset(test_xreg[start_time:end_time], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = FALSE)
+      test_predict_info[nrow(test_predict_info),]$xreg <- convert_frequency_dataset(test_xreg[start_time:end_time], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = FALSE)
     } else {
-      xreg <- NA
+      test_predict_info[nrow(test_predict_info),]$xreg <- NA
     }
 
     predict_iter <- predict_iter + 1
-    test_predict_info <- do_prediction(object, trained_result, test_predict_info, xreg)
+    test_predict_info <- do_prediction(object, trained_result, test_predict_info, NA_real_)
 
     actual_obs <- test_x[start_time:end_time]
     test_predict_info <- check_score_pred(switch_status$train_iter, switch_status$test_iter, predict_iter, object, test_predict_info, actual_obs, adjust_switch)
@@ -113,12 +113,12 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
 
   train_models <- list()
   predict_histories <- list()
+
   active_model <- 1
 
   switch_sig <- FALSE
   find_substitute_model <- FALSE
-
-  train_iter <- 1
+  switch_status <- list("train_iter" = 1, "test_iter" = 1, "react_counter" = 0, "adjust_switch" = FALSE)
   while (current <= last_time_update) {
     is_empty_model <- sapply(1:object@model_num, function(model_idx) {
       is.null(train_models[[letters[model_idx]]])})
@@ -143,11 +143,11 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
       }))
 
       if (length(candidate_models) == 0) {
-        train_iter <- train_iter + 1
+        switch_status$train_iter <- switch_status$train_iter + 1
         active_model <- find_best_candidate(1:object@model_num, predict_histories, object@target)
         find_substitute_model <- TRUE
       } else {
-        train_iter <- train_iter + 1
+        switch_status$train_iter <- switch_status$train_iter + 1
         active_model <- find_best_candidate(candidate_models, predict_histories, object@target)
         find_substitute_model <- FALSE
       }
@@ -166,15 +166,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
 
       train_models[[letters[traincan_model]]] <- train_model(object, train_x, train_xreg)
       predict_histories[[letters[traincan_model]]] <- NULL
-      temp_switch_status <- list("train_iter" = train_iter, "test_iter" = 0, "react_counter" = 0, "adjust_switch" = FALSE)
-      train_test_result <- predict_model(object, train_models[[letters[traincan_model]]], train_x, train_xreg, NULL, temp_switch_status)[["test_sim_result"]]
-
-      if (is_well_performed(train_test_result, object@target)) {
-        switch_status <- list("train_iter" = train_iter, "test_iter" = 1, "react_counter" = 0, "adjust_switch" = FALSE)
-      } else {
-        switch_status <- list("train_iter" = train_iter, "test_iter" = 1, "react_counter" = 0, "adjust_switch" = TRUE)
-      }
-
+      switch_status$test_iter <- 1
       train_sig <- FALSE
     }
 

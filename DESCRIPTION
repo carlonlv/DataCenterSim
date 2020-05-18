@@ -35,7 +35,6 @@ Collate:
     'anovatree_pred.R'
     'arima_sim.R'
     'auto_arima_sim.R'
-    'combine_sim_pred.R'
     'data.R'
     'gmm_pred.R'
     'plotting_tools.R'

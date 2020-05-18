@@ -156,11 +156,7 @@ get_adjust_switch <- function(score1, react_counter, adjust_switch, react_speed)
 #' @keywords internal
 check_score_pred <- function(train_iter, test_iter, predict_iter, object, predict_info, actual_obs, adjust_switch) {
   check_residual <- function(expected, actual_obs) {
-    if (is.na(expected)) {
-      return(NA_real_)
-    } else {
-      return(actual_obs - expected)
-    }
+    return(ifelse(is.na(expected), NA_real_, actual_obs - expected))
   }
 
   check_score1 <- function(pi_up, actual_obs, granularity) {
@@ -228,8 +224,12 @@ check_score_pred <- function(train_iter, test_iter, predict_iter, object, predic
 
   pi_up <- predict_info[idx, "pi_up"]
   expected <- predict_info[idx, "expected"]
-  score1 <- check_score1(pi_up, actual, object@granularity)
-  score2 <- check_score2(pi_up, actual, object@granularity)
+  score1 <- min(sapply(1:object@extrap_step, function(pred_step) {
+    check_score1(pi_up[pred_step], actual[pred_step], object@granularity)
+  }))
+  score2 <- mean(sapply(1:object@extrap_step, function(pred_step){
+    check_score2(pi_up[pred_step], actual[pred_step], object@granularity)
+  }))
   res <- check_residual(expected, actual)
 
   predict_info[idx, "time"] <- time
@@ -251,6 +251,7 @@ check_score_pred <- function(train_iter, test_iter, predict_iter, object, predic
 #' @keywords internal
 check_score_test <- function(test_predict_info, predict_info) {
   cbd_predict_info <- rbind(predict_info, test_predict_info)
+  test_predict_info <- dplyr::distinct_at(test_predict_info, c("train_iter", "test_iter", "predict_iter"), .keep_all = TRUE)
   score_test_1.n <- stats::weighted.mean(test_predict_info$score_pred_1, rep(1, nrow(test_predict_info)), na.rm = TRUE)
   score_test_1.w <- length(stats::na.omit(test_predict_info$score_pred_1))
   score_test_1_adj.n <- stats::weighted.mean(test_predict_info$score_pred_1, ifelse(test_predict_info$adjustment, 0, 1), na.rm = TRUE)
@@ -280,6 +281,7 @@ check_score_test <- function(test_predict_info, predict_info) {
 #' @return A sim_result object.
 #' @keywords internal
 check_score_trace <- function(predict_info) {
+  predict_info <- dplyr::distinct_at(predict_info, c("train_iter", "test_iter", "predict_iter"), .keep_all = TRUE)
   score_trace_1.n <- stats::weighted.mean(predict_info$score_pred_1, rep(1, nrow(predict_info)), na.rm = TRUE)
   score_trace_1.w <- length(stats::na.omit(predict_info$score_pred_1))
   score_trace_1_adj.n <- stats::weighted.mean(predict_info$score_pred_1, ifelse(predict_info$adjustment, 0, 1), na.rm = TRUE)

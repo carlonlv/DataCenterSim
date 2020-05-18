@@ -43,11 +43,13 @@ An S4 Class to Represent A Simulation.
 
 \item{\code{train_policy}}{A character that represents the type of training policy that can either be \code{"offline"}, \code{"fixed"} or \code{"dynamic"}. Default value is \code{"dynamic"}.}
 
-\item{\code{train_size}}{A numeric number that specify the training size after aggregated by \code{window_size} used for simulations. Default values is \code{100}.}
+\item{\code{train_size}}{A numeric number that specify the training size used for simulations. Default values is \code{3000}.}
 
 \item{\code{model_num}}{A numeric number that specify the maximum number of models for switching. Default value is \code{2}.}
 
-\item{\code{update_freq}}{A numeric number that specify the length of testing after each training step after aggregated by \code{window_size}, also the amount of step to update after testing step is complete. Default values is \code{3}.}
+\item{\code{extrap_step}}{A numeric number that specify the number of steps after aggregated by \code{window_size} to predict into the future. Default value is \code{1}.}
+
+\item{\code{update_freq}}{A numeric number that specify the number of times to predict into the future after each training step after aggregated by \code{window_size}. Default values is \code{3}.}
 
 \item{\code{react_speed}}{A numeric number of length two that specify the number of failed/successfull predictions needed to activate/deactive backing off strategy. Default value is \code{c(1, 1)}.}
 

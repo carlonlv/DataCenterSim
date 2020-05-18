@@ -13,7 +13,7 @@ param_setting1
 }
 \description{
 A dataframe of parameter settings combining \code{window_size = c(12, 36)}, \code{cut_off_prob = c(0.005, 0.1)}, \code{granularity = c(100/32, 0)},
-\code{train_size = c(150, 300)}, \code{model_num = c(1, 3)}, \code{update_freq = c(3, 6)}, \code{react_speed = list(c(1,1), c(1,3))}.
+\code{train_size = c(2500, 5000)}, \code{model_num = c(1, 3)}, \code{update_freq = c(3, 6)}, \code{react_speed = list(c(1,1), c(1,3))}.
 In order to pass into the \code{run_sim} argument, correct \code{name} column must be supplied.
 }
 \keyword{datasets}

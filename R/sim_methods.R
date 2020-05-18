@@ -23,7 +23,7 @@ setMethod("get_param_slots",
 setMethod("get_characteristic_slots",
           signature(object = "sim"),
           function(object) {
-            character_slots <- c("name", "window_size", "response", "target", "train_policy")
+            character_slots <- c("name", "window_size", "extrap_step", "response", "target", "train_policy")
             character_lst <- list()
             for (i in character_slots) {
               character_lst[[i]] <- methods::slot(object, i)

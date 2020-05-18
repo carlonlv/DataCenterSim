@@ -4,10 +4,10 @@
 \name{do_prediction}
 \alias{do_prediction}
 \alias{do_prediction,anovatree_pred,list,data.frame,data.frame-method}
-\alias{do_prediction,arima_sim,list,data.frame,numeric-method}
-\alias{do_prediction,auto_arima_sim,list,data.frame,numeric-method}
+\alias{do_prediction,arima_sim,list,data.frame,data.frame-method}
+\alias{do_prediction,auto_arima_sim,list,data.frame,data.frame-method}
 \alias{do_prediction,gmm_pred,list,data.frame,data.frame-method}
-\alias{do_prediction,markov_sim,list,data.frame,numeric-method}
+\alias{do_prediction,markov_sim,list,data.frame,data.frame-method}
 \alias{do_prediction,surtree_pred,list,data.frame,data.frame-method}
 \title{Do Prediction}
 \usage{
@@ -15,13 +15,13 @@ do_prediction(object, trained_result, predict_info, xreg)
 
 \S4method{do_prediction}{anovatree_pred,list,data.frame,data.frame}(object, trained_result, predict_info, xreg)
 
-\S4method{do_prediction}{arima_sim,list,data.frame,numeric}(object, trained_result, predict_info, xreg)
+\S4method{do_prediction}{arima_sim,list,data.frame,data.frame}(object, trained_result, predict_info, xreg)
 
-\S4method{do_prediction}{auto_arima_sim,list,data.frame,numeric}(object, trained_result, predict_info, xreg)
+\S4method{do_prediction}{auto_arima_sim,list,data.frame,data.frame}(object, trained_result, predict_info, xreg)
 
 \S4method{do_prediction}{gmm_pred,list,data.frame,data.frame}(object, trained_result, predict_info, xreg)
 
-\S4method{do_prediction}{markov_sim,list,data.frame,numeric}(object, trained_result, predict_info, xreg)
+\S4method{do_prediction}{markov_sim,list,data.frame,data.frame}(object, trained_result, predict_info, xreg)
 
 \S4method{do_prediction}{surtree_pred,list,data.frame,data.frame}(object, trained_result, predict_info, xreg)
 }
@@ -44,13 +44,13 @@ This is a generic function that do prediction according to the input object type
 \itemize{
 \item \code{object = anovatree_pred,trained_result = list,predict_info = data.frame,xreg = data.frame}: Do prediction based on trained GMM clustering Model.
 
-\item \code{object = arima_sim,trained_result = list,predict_info = data.frame,xreg = numeric}: Do prediction based on trained AR1 Model.
+\item \code{object = arima_sim,trained_result = list,predict_info = data.frame,xreg = data.frame}: Do prediction based on trained AR1 Model.
 
-\item \code{object = auto_arima_sim,trained_result = list,predict_info = data.frame,xreg = numeric}: Do prediction based on trained AR1 Model.
+\item \code{object = auto_arima_sim,trained_result = list,predict_info = data.frame,xreg = data.frame}: Do prediction based on trained AR1 Model.
 
 \item \code{object = gmm_pred,trained_result = list,predict_info = data.frame,xreg = data.frame}: Do prediction based on trained GMM clustering Model.
 
-\item \code{object = markov_sim,trained_result = list,predict_info = data.frame,xreg = numeric}: Do prediction based on trained Markov Model.
+\item \code{object = markov_sim,trained_result = list,predict_info = data.frame,xreg = data.frame}: Do prediction based on trained Markov Model.
 
 \item \code{object = surtree_pred,trained_result = list,predict_info = data.frame,xreg = data.frame}: Do prediction based on trained GMM clustering Model.
 }}

@@ -51,38 +51,57 @@ setMethod("train_model",
               new_train_xreg <- NULL
             }
 
-            if (is.null(new_train_xreg)) {
-              from_quantiles <- stats::quantile(new_train_x[-length(new_train_x)], probs = seq(to = 1, by = 1 / object@state_num, length.out = object@state_num), names = FALSE)
-              from_states <- sapply(new_train_x[-length(new_train_x)], find_state_num, object@cluster_type, object@state_num, from_quantiles)
-              to_states <- sapply(new_train_x[-1], find_state_num, object@cluster_type, object@state_num, from_quantiles)
-            } else {
-              from_quantiles <- stats::quantile(new_train_xreg[-length(new_train_xreg)], probs = seq(to = 1, by = 1 / object@state_num, length.out = object@state_num), names = FALSE)
-              from_states <- sapply(new_train_xreg[-length(new_train_xreg)], find_state_num, object@cluster_type, object@state_num, from_quantiles)
-              to_states <- sapply(new_train_x[-1], find_state_num, object@cluster_type, object@state_num, from_quantiles)
+            from_quantiles_x <- stats::quantile(new_train_x[-length(new_train_x)], probs = seq(to = 1, by = 1 / object@state_num, length.out = object@state_num), names = FALSE)
+            from_states_x <- sapply(new_train_x[-length(new_train_x)], find_state_num, object@cluster_type, object@state_num, from_quantiles_x)
+            to_states_x <- sapply(new_train_x[-1], find_state_num, object@cluster_type, object@state_num, from_quantiles_x)
+
+            uncond_dist_x <- rep(0, object@state_num)
+            transition_x_x <- matrix(0, nrow = object@state_num, ncol = object@state_num)
+            for (i in 1:length(from_states_x)) {
+              from <- from_states_x[i]
+              to <- to_states_x[i]
+              transition_x_x[from, to] <- transition_x_x[from, to] + 1
+              uncond_dist_x[to] <- uncond_dist_x[to] + 1
             }
-            uncond_dist <- rep(0, object@state_num)
-            transition <- matrix(0, nrow = object@state_num, ncol = object@state_num)
-            for (i in 1:length(from_states)) {
-              from <- from_states[i]
-              to <- to_states[i]
-              transition[from, to] <- transition[from, to] + 1
-              uncond_dist[to] <- uncond_dist[to] + 1
-            }
-            for (r in 1:ncol(transition)) {
-              if (sum(transition[r,]) == 0) {
-                transition[r,] <- uncond_dist / sum(uncond_dist)
+            for (r in 1:ncol(transition_x_x)) {
+              if (sum(transition_x_x[r,]) == 0) {
+                transition_x_x[r,] <- uncond_dist_x / sum(uncond_dist_x)
               } else {
-                transition[r,] <- transition[r,] / sum(transition[r,])
+                transition_x_x[r,] <- transition_x_x[r,] / sum(transition_x_x[r,])
               }
             }
-            trained_result <- list("transition" = transition, "quantiles" = from_quantiles, "train_x" = train_x, "train_xreg" = train_xreg)
+
+            if (!is.null(new_train_xreg)) {
+              from_quantiles_xreg <- stats::quantile(new_train_xreg[-length(new_train_xreg)], probs = seq(to = 1, by = 1 / object@state_num, length.out = object@state_num), names = FALSE)
+              from_states_xreg <- sapply(new_train_xreg[-length(new_train_xreg)], find_state_num, object@cluster_type, object@state_num, from_quantiles_xreg)
+
+              transition_xreg_x <- matrix(0, nrow = object@state_num, ncol = object@state_num)
+              for (i in 1:length(from_states_xreg)) {
+                from <- from_states_xreg[i]
+                to <- to_states_x[i]
+                transition_xreg_x[from, to] <- transition_xreg_x[from, to] + 1
+                uncond_dist_x[to] <- uncond_dist_x[to] + 1
+              }
+              for (r in 1:ncol(transition_xreg_x)) {
+                if (sum(transition_xreg_x[r,]) == 0) {
+                  transition_xreg_x[r,] <- uncond_dist_x / sum(uncond_dist_x)
+                } else {
+                  transition_xreg_x[r,] <- transition_xreg_x[r,] / sum(transition_xreg_x[r,])
+                }
+              }
+            } else {
+              from_quantiles_xreg <- NULL
+              transition_xreg_x <- NULL
+            }
+
+            trained_result <- list("transition_x_x" = transition_x_x, "transition_xreg_x" = transition_xreg_x, "quantiles_x" = from_quantiles_x, "quantiles_xreg" = from_quantiles_xreg, "train_x" = train_x, "train_xreg" = train_xreg)
             return(trained_result)
           })
 
 
 #' @describeIn do_prediction Do prediction based on trained Markov Model.
 setMethod("do_prediction",
-          signature(object = "markov_sim", trained_result = "list", predict_info = "data.frame", xreg = "numeric"),
+          signature(object = "markov_sim", trained_result = "list", predict_info = "data.frame", xreg = "data.frame"),
           function(object, trained_result, predict_info, xreg) {
             compute_pi_up <- function(prob, to_states) {
               current_state <- 1
@@ -100,24 +119,36 @@ setMethod("do_prediction",
               return(pi_up)
             }
 
-            if (nrow(predict_info) == 1) {
+            if (nrow(predict_info) == object@extrap_step) {
               if (length(trained_result$train_xreg) == 0) {
                 from <- find_state_num(trained_result$train_x[length(trained_result$train_x)], object@cluster_type, object@state_num, trained_result$from_quantiles)
               } else {
-                from <- find_state_num(predict_info$xreg[nrow(predict_info)], object@cluster_type, object@state_num, trained_result$from_quantiles)
+                from <- find_state_num(xreg[nrow(xreg), 1], object@cluster_type, object@state_num, trained_result$from_quantiles)
               }
             } else {
               if (length(trained_result$train_xreg) == 0) {
-                from <- find_state_num(predict_info$actual[nrow(predict_info) - 1], object@cluster_type, object@state_num, trained_result$from_quantiles)
+                from <- find_state_num(predict_info$actual[nrow(predict_info) - object@extrap_step], object@cluster_type, object@state_num, trained_result$from_quantiles)
               } else {
-                from <- find_state_num(predict_info$xreg[nrow(predict_info)], object@cluster_type, object@state_num, trained_result$from_quantiles)
+                from <- find_state_num(xreg[nrow(xreg), 1], object@cluster_type, object@state_num, trained_result$from_quantiles)
               }
             }
-            to_states <- trained_result$transition[from,]
+
+            if (length(trained_result$train_xreg) == 0) {
+              final_transition <- trained_result$transition_x_x
+            } else {
+              final_transition <- trained_result$transition_xreg_x
+            }
+
+            if (object@extrap_step > 1) {
+              for (i in 1:(object@extrap_step - 1)) {
+                final_transition <- final_transition %*% trained_result$transition_x_x
+              }
+            }
+            to_states <- final_transition[from,]
 
             pi_up <- compute_pi_up(1 - object@cut_off_prob, to_states)
-            predict_info[nrow(predict_info), "pi_up"] <- pi_up
-            predict_info[nrow(predict_info), "expected"] <- NA
+            predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "pi_up"] <- pi_up
+            predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "expected"] <- NA
             return(predict_info)
           })
 

@@ -105,7 +105,7 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained AR1 Model.
 setMethod("do_prediction",
-          signature(object = "arima_sim", trained_result = "list", predict_info = "data.frame", xreg = "numeric"),
+          signature(object = "arima_sim", trained_result = "list", predict_info = "data.frame", xreg = "data.frame"),
           function(object, trained_result, predict_info, xreg) {
             trained_result <- trained_result[[1]]
             level <- (1 - object@cut_off_prob * 2) * 100
@@ -116,7 +116,7 @@ setMethod("do_prediction",
               bootstrap <- TRUE
             }
 
-            if (nrow(predict_info) == 1) {
+            if (nrow(predict_info) == object@extrap_step) {
               if (is.null(trained_result$call$xreg)) {
                 target_model <- forecast::Arima(y = trained_result$call$x, model = trained_result)
               } else {
@@ -124,11 +124,11 @@ setMethod("do_prediction",
               }
             } else {
               prev_x <- trained_result$call$x
-              new_x <- predict_info$actual[-nrow(predict_info)]
-              names(new_x) <- predict_info$time[-nrow(predict_info)]
+              new_x <- predict_info$actual[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
+              names(new_x) <- predict_info$time[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
               new_x <- c(prev_x, new_x)
 
-              res <- stats::ts(c(trained_result$residuals, predict_info$residuals[-nrow(predict_info)]))
+              res <- stats::ts(c(trained_result$residuals, predict_info$residuals[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]))
               pars <- tsoutliers::coefs2poly(trained_result)
 
               if (is.na(object@outlier_cval)) {
@@ -166,19 +166,19 @@ setMethod("do_prediction",
                 target_model <- forecast::Arima(new_x, model = trained_result)
               } else {
                 # Outliers are considered and found, or external regressor is considered.
-                if (any(is.na(predict_info$xreg))) {
+                if (nrow(xreg) == 0) {
                   # No external regressor is considered.
-                  new_xreg <- matrix(nrow = nrow(predict_info) - 1, ncol = 0)
+                  new_xreg <- matrix(nrow = nrow(predict_info) - object@extrap_step, ncol = 0)
                 } else {
                   # External regressor is considered.
-                  new_xreg <- matrix(predict_info$xreg[-nrow(predict_info)], nrow = nrow(predict_info) - 1, byrow = TRUE)
+                  new_xreg <- matrix(as.numeric(t(xreg[-nrow(xreg),])), ncol = 1, byrow = TRUE)
                 }
                 if (ncol(new_xreg) < ncol(prev_xreg)) {
                   # Outliers are considered and found.
                   new_ol <- matrix(0, nrow = nrow(new_xreg), ncol = ncol(prev_xreg) - ncol(new_xreg))
                   new_xreg <- cbind(new_xreg, new_ol)
                 }
-                rownames(new_xreg) <- predict_info$time[-nrow(predict_info)]
+                rownames(new_xreg) <- predict_info$time[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
                 colnames(new_xreg) <- colnames(prev_xreg)
                 new_xreg <- rbind(prev_xreg, new_xreg)
                 target_model <- forecast::Arima(new_x, xreg = new_xreg, model = trained_result)
@@ -187,27 +187,27 @@ setMethod("do_prediction",
 
             if (is.null(trained_result$call$xreg)) {
               # Outliers are not considered or outliers are not found, and no external regressor is considered.
-              predict_result <- forecast::forecast(target_model, h = 1, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
+              predict_result <- forecast::forecast(target_model, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
             } else {
-              if (any(is.na(predict_info$xreg))) {
+              if (nrow(xreg) == 0) {
                 # No external regressor is considered.
-                xreg <- matrix(0, nrow = 1, ncol = ncol(trained_result$call$xreg))
+                dxreg <- matrix(0, nrow = object@extrap_step, ncol = ncol(trained_result$call$xreg))
               } else {
                 # External regressor is considered.
-                xreg <- matrix(predict_info$xreg[nrow(predict_info)], nrow = 1, byrow = TRUE)
-                if (ncol(xreg) < ncol(trained_result$call$xreg)) {
-                  xreg <- cbind(xreg, matrix(0, nrow = 1, ncol = (ncol(trained_result$call$xreg) - ncol(xreg))))
+                dxreg <- matrix(as.numeric(xreg[nrow(xreg), ]), nrow = object@extrap_step, byrow = TRUE)
+                if (ncol(dxreg) < ncol(trained_result$call$xreg)) {
+                  dxreg <- cbind(dxreg, matrix(0, nrow = object@extrap_step, ncol = (ncol(trained_result$call$xreg) - ncol(xreg))))
                 }
               }
-              colnames(xreg) <- colnames(trained_result$call$xreg)
-              predict_result <- forecast::forecast(target_model, xreg = xreg, h = 1, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
+              colnames(dxreg) <- colnames(trained_result$call$xreg)
+              predict_result <- forecast::forecast(target_model, xreg = dxreg, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
             }
 
             expected <- as.numeric(predict_result$mean)
-            pi_up <- as.numeric(predict_result$upper)
+            pi_up <- max(as.numeric(predict_result$upper))
 
-            predict_info[nrow(predict_info), "pi_up"] <- pi_up
-            predict_info[nrow(predict_info), "expected"] <- expected
+            predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "pi_up"] <- pi_up
+            predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "expected"] <- expected
             return(predict_info)
           })
 

@@ -113,7 +113,7 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
   result3 <- data.frame("score1.n" = c(score1.n, score1_adj.n), "score1.w" = c(score1.w, score1_adj.w), "adjusted" = c(rep(FALSE, length(score1.n)), rep(TRUE, length(score1_adj.n))))
   adjusted <- result3$adjusted
   plt3 <- ggplot2::ggplot(result3) +
-    ggplot2::stat_density2d(aes(x = score1.n, y = score1.w, color = ..level.., linetype = factor(adjusted)), na.rm = TRUE) +
+    ggplot2::stat_density2d(aes(x = score1.n, y = score1.w, color = ..level.., linetype = factor(adjusted)), na.rm = TRUE, bins = c(30, 2000)) +
     ggplot2::scale_color_distiller(type = "div", palette = 9, direction = 1) +
     ggplot2::geom_point(aes(x = score1.n, y = score1.w, fill = factor(adjusted)), alpha = 0.8, na.rm = TRUE, shape = 21) +
     ggplot2::scale_fill_brewer(name = "adjusted", type = "div", palette = 2) +

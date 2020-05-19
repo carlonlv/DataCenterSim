@@ -51,7 +51,7 @@ setMethod("train_model",
               new_train_xreg <- NULL
             }
 
-            from_quantiles_x <- stats::quantile(new_train_x[-length(new_train_x)], probs = seq(to = 1, by = 1 / object@state_num, length.out = object@state_num), names = FALSE)
+            from_quantiles_x <- c(stats::quantile(new_train_x[-length(new_train_x)], probs = seq(to = 1, by = 1 / (object@state_num - 1), length.out = object@state_num - 1), names = FALSE), 100)
             from_states_x <- sapply(new_train_x[-length(new_train_x)], find_state_num, object@cluster_type, object@state_num, from_quantiles_x)
             to_states_x <- sapply(new_train_x[-1], find_state_num, object@cluster_type, object@state_num, from_quantiles_x)
 
@@ -72,7 +72,7 @@ setMethod("train_model",
             }
 
             if (!is.null(new_train_xreg)) {
-              from_quantiles_xreg <- stats::quantile(new_train_xreg[-length(new_train_xreg)], probs = seq(to = 1, by = 1 / object@state_num, length.out = object@state_num), names = FALSE)
+              from_quantiles_xreg <- c(stats::quantile(new_train_xreg[-length(new_train_xreg)], probs = seq(to = 1, by = 1 / (object@state_num - 1), length.out = object@state_num - 1), names = FALSE), 100)
               from_states_xreg <- sapply(new_train_xreg[-length(new_train_xreg)], find_state_num, object@cluster_type, object@state_num, from_quantiles_xreg)
 
               transition_xreg_x <- matrix(0, nrow = object@state_num, ncol = object@state_num)
@@ -103,7 +103,7 @@ setMethod("train_model",
 setMethod("do_prediction",
           signature(object = "markov_sim", trained_result = "list", predict_info = "data.frame", xreg = "data.frame"),
           function(object, trained_result, predict_info, xreg) {
-            compute_pi_up <- function(prob, to_states) {
+            compute_pi_up <- function(prob, to_states, quantiles=NULL) {
               current_state <- 1
               current_prob <- 0
               while (current_state <= length(to_states)) {
@@ -115,21 +115,25 @@ setMethod("do_prediction",
                   break
                 }
               }
-              pi_up <- current_state * (100 / length(to_states))
+              if (is.null(quantiles)) {
+                pi_up <- current_state * (100 / length(to_states))
+              } else {
+                pi_up <- quantiles[current_state]
+              }
               return(pi_up)
             }
 
             if (nrow(predict_info) == object@extrap_step) {
               if (length(trained_result$train_xreg) == 0) {
-                from <- find_state_num(trained_result$train_x[length(trained_result$train_x)], object@cluster_type, object@state_num, trained_result$from_quantiles)
+                from <- find_state_num(trained_result$train_x[length(trained_result$train_x)], object@cluster_type, object@state_num, trained_result$quantiles_x)
               } else {
-                from <- find_state_num(xreg[nrow(xreg), 1], object@cluster_type, object@state_num, trained_result$from_quantiles)
+                from <- find_state_num(xreg[nrow(xreg), 1], object@cluster_type, object@state_num, trained_result$quantiles_xreg)
               }
             } else {
               if (length(trained_result$train_xreg) == 0) {
-                from <- find_state_num(predict_info$actual[nrow(predict_info) - object@extrap_step], object@cluster_type, object@state_num, trained_result$from_quantiles)
+                from <- find_state_num(predict_info$actual[nrow(predict_info) - object@extrap_step], object@cluster_type, object@state_num, trained_result$quantiles_x)
               } else {
-                from <- find_state_num(xreg[nrow(xreg), 1], object@cluster_type, object@state_num, trained_result$from_quantiles)
+                from <- find_state_num(xreg[nrow(xreg), 1], object@cluster_type, object@state_num, trained_result$quantiles_xreg)
               }
             }
 
@@ -146,7 +150,15 @@ setMethod("do_prediction",
             }
             to_states <- final_transition[from,]
 
-            pi_up <- compute_pi_up(1 - object@cut_off_prob, to_states)
+            if (object@cluster_type == "fixed") {
+              pi_up <- compute_pi_up(1 - object@cut_off_prob, to_states, NULL)
+            } else {
+              if (length(trained_result$train_xreg) == 0) {
+                pi_up <- compute_pi_up(1 - object@cut_off_prob, to_states, trained_result$quantiles_x)
+              } else {
+                pi_up <- compute_pi_up(1 - object@cut_off_prob, to_states, trained_result$quantiles_xreg)
+              }
+            }
             predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "pi_up"] <- pi_up
             predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "expected"] <- NA
             return(predict_info)

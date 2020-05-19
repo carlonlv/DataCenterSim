@@ -268,6 +268,8 @@ predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
   param_score <- check_score_param(trace_predict_info)
 
   if (!("none" %in% write_type)) {
+    print(get_representation(object, "char_con"))
+    print(get_representation(object, "param_con"))
     show_result(param_score)
   }
   return(param_score)

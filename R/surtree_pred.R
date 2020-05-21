@@ -57,6 +57,8 @@ setMethod("train_model",
               probvec_Tree
             }
             prob_vec <- Get_Training_ProbVec(model,training_data,object@bins)
+            trained_result$nodes <- as.numeric(names(prob_vec))
+            names(prob_vec) <- 1:length(sort(unique(as.numeric(names(prob_vec)))))
             trained_result$model <- model
             trained_result$prob <- prob_vec
             return(trained_result)
@@ -68,8 +70,10 @@ setMethod("do_prediction",
           signature(object = "surtree_pred", trained_result = "list", predict_info = "data.frame", xreg = "data.frame"),
           function(object, trained_result, predict_info, xreg) {
             model <- trained_result$model
+            nodes <- trained_result$nodes
             test_clusters <- predict(model, xreg[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")], type = "node")
-            predict_info[nrow(predict_info), "cluster_info"] <- test_clusters
+            test_clusters2 <- which(nodes %in% test_clusters)
+            predict_info[nrow(predict_info), "cluster_info"] <- test_clusters2
             return(predict_info)
           })
 

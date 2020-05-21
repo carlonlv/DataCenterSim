@@ -9,7 +9,6 @@ NULL
 #' @keywords internal
 check_valid_surtree_pred <- function(object) {
   errors <- character()
-
   if (length(errors) == 0) {
     return(TRUE)
   } else {

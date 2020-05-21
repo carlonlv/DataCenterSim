@@ -2,16 +2,16 @@
 % Please edit documentation in R/main_pred.R
 \name{run_pred}
 \alias{run_pred}
-\title{Predictions of Clustering Jobs Based On Predictions.}
+\title{Predictions of Foreground Jobs.}
 \usage{
 run_pred(epoch_setting, x, xreg)
 }
 \arguments{
 \item{epoch_setting}{A dataframe representing a specific parameter setting.}
 
-\item{x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
+\item{x}{A numeric vector of length m representing the target dataset for predictions.}
 
-\item{xreg}{A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.}
+\item{xreg}{A matrix of size n by m representing the dataset that target dataset depends on for predicting.}
 }
 \value{
 A list of S4 pred result object.

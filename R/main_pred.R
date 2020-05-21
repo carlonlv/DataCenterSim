@@ -98,17 +98,17 @@ predicting_pred <- function(object, x, xreg) {
     current <- current + object@update_freq
   }
 
-  return(c(trained_model, predict_info))
+  return(list("trained_model" = trained_model, "predict_info" = predict_info))
 }
 
 
-#' Predictions of Clustering Jobs Based On Predictions.
+#' Predictions of Foreground Jobs.
 #'
 #' Sequantially training and testing by predicting the runtime of a job.
 #'
 #' @param epoch_setting A dataframe representing a specific parameter setting.
-#' @param x A matrix of size n by m representing the target dataset for scheduling and evaluations.
-#' @param xreg A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.
+#' @param x A numeric vector of length m representing the target dataset for predictions.
+#' @param xreg A matrix of size n by m representing the dataset that target dataset depends on for predicting.
 #' @return A list of S4 pred result object.
 #' @export
 run_pred <- function(epoch_setting, x, xreg) {

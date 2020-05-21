@@ -2,7 +2,7 @@
 % Please edit documentation in R/main.R
 \name{run_sim}
 \alias{run_sim}
-\title{Run Simulation}
+\title{Predictions of Background Jobs.}
 \usage{
 run_sim(
   epoch_setting,
@@ -19,7 +19,7 @@ run_sim(
 
 \item{x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
-\item{xreg}{A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.}
+\item{xreg}{A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations, or \code{NULL}.}
 
 \item{cores}{A numeric numeb representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
 
@@ -33,5 +33,5 @@ run_sim(
 A list of S4 sim result object.
 }
 \description{
-Run Simulation
+Sequantially training and testing by predicting the availability of CPU resource at next windows.
 }

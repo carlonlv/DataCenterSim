@@ -564,7 +564,6 @@ show_result <- function(param_predict_info, show_msg = TRUE) {
 #'
 #' @description Write the result of a simulation to csv file.
 #' @param summ_df A dataframe containing the scores in all parameter settings and their performance.
-#' @param result_loc A character that specify the path to which the result of simulations will be saved to.
 #' @param result_type A character that can be one of \code{"charwise"}, \code{"tracewise"}, \code{"paramwise"} or \code{"none"}.
 #' @param name A character that identifies the name of the result.
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
@@ -574,8 +573,10 @@ write_sim_result <- function(summ_df, result_type, name, ...) {
     file_name <- paste("Tracewise Simulation With trace", name)
   } else if (result_type == "paramwise") {
     file_name <- paste("Paramwise Simulation With", name)
-  } else {
+  } else if (result_type == "charwise") {
     file_name <- paste("Charwise Simulation Started At", name)
+  } else {
+    file_name <- name
   }
   fp <- write_location_check(file_name = file_name, ...)
   utils::write.csv(summ_df, file = fs::path(fp, ext = "csv"))

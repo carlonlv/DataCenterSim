@@ -276,11 +276,13 @@ predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
 }
 
 
-#' Run Simulation
+#' Predictions of Background Jobs.
+#'
+#' Sequantially training and testing by predicting the availability of CPU resource at next windows.
 #'
 #' @param epoch_setting A dataframe representing a specific parameter setting.
 #' @param x A matrix of size n by m representing the target dataset for scheduling and evaluations.
-#' @param xreg A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.
+#' @param xreg A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations, or \code{NULL}.
 #' @param cores A numeric numeb representing the number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_type A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param plot_type A character that represents how to plot the result of simulation can be one of "charwise", "tracewise", "paramwise" or "none".

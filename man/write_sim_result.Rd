@@ -14,8 +14,6 @@ write_sim_result(summ_df, result_type, name, ...)
 \item{name}{A character that identifies the name of the result.}
 
 \item{...}{Characters that represent the name of parent directories that will be passed to \code{write_location_check}.}
-
-\item{result_loc}{A character that specify the path to which the result of simulations will be saved to.}
 }
 \description{
 Write the result of a simulation to csv file.

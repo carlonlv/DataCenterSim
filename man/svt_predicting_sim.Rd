@@ -4,7 +4,17 @@
 \alias{svt_predicting_sim}
 \title{Simulation of Scheduling Jobs Based On Predictions On A Single Trace.}
 \usage{
-svt_predicting_sim(ts_num, object, x, xreg = NULL, write_type, plot_type, ...)
+svt_predicting_sim(
+  ts_num,
+  object,
+  x,
+  xreg = NULL,
+  start_point = 1,
+  wait_time = 0,
+  write_type,
+  plot_type,
+  ...
+)
 }
 \arguments{
 \item{ts_num}{The corresponding trace/column in \code{dataset}.}
@@ -12,6 +22,10 @@ svt_predicting_sim(ts_num, object, x, xreg = NULL, write_type, plot_type, ...)
 \item{x}{A numeric vector of length n representing the target dataset for scheduling and evaluations.}
 
 \item{xreg}{A numeric vector of length n representing the external regressor.}
+
+\item{start_point}{A numeric number that represents the starting point of the simulation. Default value is \code{1}.}
+
+\item{wait_time}{A numeric number that represents the time between training and testing. Default value is \code{0}.}
 
 \item{write_type}{A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".}
 

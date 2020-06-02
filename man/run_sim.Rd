@@ -8,6 +8,8 @@ run_sim(
   epoch_setting,
   x,
   xreg,
+  start_point = 1,
+  wait_time = 0,
   cores = parallel::detectCores(),
   write_type,
   plot_type,
@@ -20,6 +22,10 @@ run_sim(
 \item{x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
 \item{xreg}{A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations, or \code{NULL}.}
+
+\item{start_point}{A numeric number that represents the starting point of the simulation. Default value is \code{1}.}
+
+\item{wait_time}{A numeric number that represents the time between training and testing. Default value is \code{0}.}
 
 \item{cores}{A numeric numeb representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
 

@@ -77,12 +77,14 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
 #' @param ts_num The corresponding trace/column in \code{dataset}.
 #' @param x A numeric vector of length n representing the target dataset for scheduling and evaluations.
 #' @param xreg A numeric vector of length n representing the external regressor.
+#' @param start_point A numeric number that represents the starting point of the simulation. Default value is \code{1}.
+#' @param wait_time A numeric number that represents the time between training and testing. Default value is \code{0}.
 #' @param write_type A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param plot_type A character that can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
 #' @return A list containing the resulting prediction informations.
 #' @keywords internal
-svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_type, ...) {
+svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait_time=0, write_type, plot_type, ...) {
   trace_name <- colnames(x)[ts_num]
 
   svt_x <- x[, ts_num]
@@ -108,8 +110,8 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
                              "score_pred_2" = numeric(0),
                              stringsAsFactors = FALSE)
 
-  current <- 1
-  last_time_update <- length(svt_x) - object@train_size - object@update_freq * object@extrap_step * object@window_size + 1
+  current <- start_point
+  last_time_update <- length(svt_x) - wait_time - object@train_size - object@update_freq * object@extrap_step * object@window_size + 1
 
   train_models <- list()
   predict_histories <- list()
@@ -177,8 +179,8 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
     }
 
     ## Get test set
-    test_start <- current + object@train_size
-    test_end <- current + object@train_size + object@update_freq * object@extrap_step * object@window_size - 1
+    test_start <- current + object@train_size + wait_time
+    test_end <- current + object@train_size + wait_time + object@update_freq * object@extrap_step * object@window_size - 1
     test_x <- svt_x[test_start:test_end]
     test_xreg <- svt_xreg[test_start:test_end]
     if (length(test_xreg) == 0) {
@@ -234,19 +236,21 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, write_type, plot_ty
 #' @param object A uni-length sim object that represents a specific parameter setting.
 #' @param x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param xreg A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations.
+#' @param start_point A numeric number that represents the starting point of the simulation. Default value is \code{1}.
+#' @param wait_time A numeric number that represents the time between training and testing. Default value is \code{0}.
 #' @param cores The number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_type A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param plot_type A character that represents how to plot the result of simulation can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
 #' @return An S4 sim result object.
 #' @keywords internal
-predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
+predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, write_type, plot_type, ...) {
   ## Do Simulation
   start_time <- proc.time()
   if (cores == 1) {
-    trace_score <- lapply(1:ncol(x), svt_predicting_sim, object = object, x = x, xreg = xreg, write_type = write_type, plot_type = plot_type, ..., get_representation(object, "param_con"))
+    trace_score <- lapply(1:ncol(x), svt_predicting_sim, object = object, x = x, xreg = xreg, start_point = start_point, wait_time = wait_time, write_type = write_type, plot_type = plot_type, ..., get_representation(object, "param_con"))
   } else {
-    trace_score <- parallel::mclapply(1:ncol(x), svt_predicting_sim, object = object, x = x, xreg = xreg, write_type = write_type, plot_type = plot_type, mc.cores = cores, ..., get_representation(object, "param_con"))
+    trace_score <- parallel::mclapply(1:ncol(x), svt_predicting_sim, object = object, x = x, xreg = xreg, start_point = start_point, wait_time = wait_time, write_type = write_type, plot_type = plot_type, mc.cores = cores, ..., get_representation(object, "param_con"))
   }
   end_time <- proc.time()
   print(end_time - start_time)
@@ -283,13 +287,15 @@ predicting_sim <- function(object, x, xreg, cores, write_type, plot_type, ...) {
 #' @param epoch_setting A dataframe representing a specific parameter setting.
 #' @param x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param xreg A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations, or \code{NULL}.
+#' @param start_point A numeric number that represents the starting point of the simulation. Default value is \code{1}.
+#' @param wait_time A numeric number that represents the time between training and testing. Default value is \code{0}.
 #' @param cores A numeric numeb representing the number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_type A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param plot_type A character that represents how to plot the result of simulation can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @return A list of S4 sim result object.
 #' @export
-run_sim <- function(epoch_setting, x, xreg, cores=parallel::detectCores(), write_type, plot_type, result_loc=getwd()) {
+run_sim <- function(epoch_setting, x, xreg, start_point=1, wait_time=0, cores=parallel::detectCores(), write_type, plot_type, result_loc=getwd()) {
   if (!(any(c(write_type, plot_type) %in% c("charwise", "tracewise", "paramwise", "none")))) {
     stop("plot_type must be one of charwise, tracewise, paramwise and none.")
   }
@@ -303,7 +309,7 @@ run_sim <- function(epoch_setting, x, xreg, cores=parallel::detectCores(), write
                      score_char_lst <- dplyr::group_map(char_epoch_setting,
                                                       function(other, char) {
                                                         param_uni_lst <- methods::as(cbind(char, other), "sim")
-                                                        score_param_lst <- lapply(param_uni_lst, predicting_sim, x, xreg, cores, write_type, plot_type, result_loc, as.character(name), get_representation(param_uni_lst[[1]], "char_con"))
+                                                        score_param_lst <- lapply(param_uni_lst, predicting_sim, x, xreg, start_point, wait_time, cores, write_type, plot_type, result_loc, as.character(name), get_representation(param_uni_lst[[1]], "char_con"))
                                                         param_uni_df <- data.frame()
                                                         score_param_df <- data.frame()
                                                         for (i in 1:length(score_param_lst)) {

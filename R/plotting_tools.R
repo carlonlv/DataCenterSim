@@ -195,6 +195,49 @@ plot_sim_tracewise <- function(predict_info, name, ...) {
 }
 
 
+#' Plot ECDF of Performance of Traces of A Control Variable
+#'
+#' @param result_df A dataframe containing the scores in different settings for the control variable parameter.
+#' @param feature_name A character representing the name of the control variable whose value is stored in \code{result_df$feature} column.
+#' @param adjusted A boolean representing whether the adjusted score will be plotted instead of original scores.
+#' @param name A character that represents the identifier or name of the plot.
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
+#' @rdname plot_ecdf_traces_performance
+#' @export
+plot_ecdf_traces_performance <- function(result_df, feature_name, adjusted, name, ...) {
+  feature <- result_df$feature
+
+  if (adjusted) {
+    score1 <- result_df$score1_adj.n
+  } else {
+    score1 <- result_df$score1.n
+  }
+  ecdf_plt1 <- ggplot2::ggplot(result_df, aes(score1, colour = factor(feature))) +
+    ggplot2::stat_ecdf(na.rm = TRUE) +
+    ggplot2::scale_color_manual(name = feature_name, values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(unique(result_df$feature)))) +
+    ggplot2::ylab("Fraction of Data") +
+    ggplot2::ggtitle(paste("ECDF of score1", ifelse(adjusted, "adjusted", ""), "at Different", feature_name))
+
+  if (adjusted) {
+    score2 <- result_df$score2_adj.n
+  } else {
+    score2 <- result_df$score2.n
+  }
+  ecdf_plt2 <- ggplot2::ggplot(result_df, aes(score2, colour = factor(feature))) +
+    ggplot2::stat_ecdf(na.rm = TRUE) +
+    ggplot2::scale_color_manual(name = feature_name, values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(unique(result_df$feature)))) +
+    ggplot2::ylab("Fraction of Data") +
+    ggplot2::ggtitle(paste("ECDF of score2", ifelse(adjusted, "adjusted", ""),"at Different", feature_name))
+
+  file_name <- paste("ECDF of scores", ifelse(adjusted, "adjusted", ""), "at Different", feature_name, "Of", name)
+  save_path <- write_location_check(file_name = file_name, ...)
+
+  plt <- gridExtra::arrangeGrob(ecdf_plt1, ecdf_plt2, ncol = 2, nrow = 1)
+  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 12, height = 7)
+  invisible()
+}
+
+
 #' Plot the ECDF of Autocorrelation Or Cross-correlation
 #'
 #' Plot autocorrelation of \code{dataset1} with given lags or cross-correlation between \code{dataset1} and \code{dataset2} with given lags.

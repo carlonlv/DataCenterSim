@@ -4,19 +4,17 @@
 \alias{machines_optimal}
 \title{Find Optimal Solution For A Foreground Job}
 \usage{
-machines_optimal(machine_list, actual_time, actual_cpu, scheduler_choice)
+machines_optimal(machine_list, actual_time_bin, actual_cpu)
 }
 \arguments{
 \item{machine_list}{A list representing the prediction upper bounds at different bins of machines.}
 
-\item{actual_time}{A numeric number representing actual runtime for foreground job.}
+\item{actual_time_bin}{A numeric number representing the bin index corresponding to actual runtime for background job.}
 
-\item{actual_cpu}{A numeric number representing requested CPU for ba}
-
-\item{scheduler_choice}{A numeric number representing the machine id chosen by scheduler.}
+\item{actual_cpu}{A numeric number representing requested CPU for background job.}
 }
 \value{
-A list containing optimal background machine and the score corresponding to the choice.
+A list containing optimal foreground machine and the score corresponding to the choice.
 }
 \description{
 Find Optimal Solution For A Foreground Job

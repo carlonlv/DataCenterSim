@@ -7,10 +7,12 @@
 run_sim_pred(
   param_setting_sim,
   param_setting_pred,
-  background_x,
-  background_xreg,
   foreground_x,
   foreground_xreg,
+  sim_length,
+  background_x,
+  background_xreg,
+  pred_length,
   bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205),
   cores = parallel::detectCores(),
   write_type = "none",
@@ -22,17 +24,25 @@ run_sim_pred(
 
 \item{param_setting_pred}{A dataframe representing a specific parameter setting for pred object.}
 
-\item{background_x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
-
-\item{background_xreg}{A matrix of size n by m representing the target dataset for scheduling and evaluations, or \code{NULL}.}
-
 \item{foreground_x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
-\item{foreground_xreg}{A matrix of size n by m representing the dataset that target dataset depends on for predicting.}
+\item{foreground_xreg}{A matrix of size n by m representing the target dataset for scheduling and evaluations, or \code{NULL}.}
+
+\item{sim_length}{A numeric value representing the length of time for simulation, training size excluded.}
+
+\item{background_x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
+
+\item{background_xreg}{A matrix of size n by m representing the dataset that target dataset depends on for predicting.}
+
+\item{pred_length}{A numeric value representing the number of jobs for predictions, training size excluded.}
 
 \item{bins}{A numeric vector representing a specific partioning of time}
 
 \item{cores}{A numeric numeb representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
+
+\item{write_type}{A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".}
+
+\item{...}{Characters that represent the name of parent directories that will be passed to \code{write_location_check}.}
 }
 \value{
 A dataframe containing the decisions made by scheduler and the optimal decision.

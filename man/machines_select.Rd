@@ -4,7 +4,12 @@
 \alias{machines_select}
 \title{Select the Best Machine for A Foreground Job}
 \usage{
-machines_select(machine_list, prob_vec_lst, job_info)
+machines_select(
+  machine_list,
+  prob_vec_lst,
+  job_info,
+  constraint_prob = sqrt(0.99)
+)
 }
 \arguments{
 \item{machine_list}{A list representing the prediction upper bounds at different bins of machines.}

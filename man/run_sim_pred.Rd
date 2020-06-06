@@ -42,7 +42,7 @@ run_sim_pred(
 
 \item{write_type}{A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".}
 
-\item{...}{Characters that represent the name of parent directories that will be passed to \code{write_location_check}.}
+\item{result_loc}{A character that specify the path to which the result of simulations will be saved to. Default is your work directory.}
 }
 \value{
 A dataframe containing the decisions made by scheduler and the optimal decision.

@@ -64,7 +64,7 @@ machines_select <- function(machine_list, prob_vec_lst, job_info, constraint_pro
     predicted_resourse <- 100 - vec_pi_up
     prob_vec <- prob_vec_lst[[job_info$cluster_info]]
     Ui <- sum(predicted_resourse * prob_vec, na.rm = TRUE)
-    score <- ifelse(Ui < job_info$requested_CPU, -Inf, job_info$requested_CPU / Ui)
+    #score <- ifelse(Ui < job_info$requested_CPU, -Inf, job_info$requested_CPU / Ui)
     FinishProb <- sum(prob_vec[predicted_resourse >= job_info$requested_CPU], na.rm = TRUE)
     score <- ifelse(FinishProb < constraint_prob, -Inf, job_info$requested_CPU / Ui)
     return(score)
@@ -103,7 +103,7 @@ machines_select <- function(machine_list, prob_vec_lst, job_info, constraint_pro
 #' @param pred_length A numeric value representing the number of jobs for predictions, training size excluded.
 #' @param cores A numeric numeb representing the number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_type A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".
-#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
+#' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @return A dataframe containing the decisions made by scheduler and the optimal decision.
 #' @export
 run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, sim_length, background_x, background_xreg, pred_length, bins=c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {

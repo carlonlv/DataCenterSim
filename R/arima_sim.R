@@ -9,7 +9,7 @@ NULL
 #' @keywords internal
 check_valid_arima_sim <- function(object) {
   errors <- character()
-  res_dist_choices <- c("normal", "empirical")
+  res_dist_choices <- c("normal", "skew_norm", "empirical")
   outlier_type_choices <- c("AO", "IO", "LS", "None", "All")
   if (length(object@res_dist) != 1 | is.na(object@res_dist) |  all(object@res_dist != res_dist_choices)) {
     msg <- paste0("res_dist must be one of ", paste(res_dist_choices, collapse = " "), ".")
@@ -32,7 +32,7 @@ check_valid_arima_sim <- function(object) {
 
 
 #' @rdname sim-class
-#' @param res_dist A character representing the distribution of residual, \code{"normal"} for normal distribution or \code{"empirical"} for empirical distribution. Default value is \code{"normal"}.
+#' @param res_dist A character representing the distribution of residual, \code{"normal"} for normal distribution, \code{"skew_norm"} for skewed normal distribution, or \code{"empirical"} for empirical distribution. Default value is \code{"normal"}.
 #' @param outlier_type A character representing the type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.
 #' @param outlier_cval A numeric value representing the critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50). Default value is \code{NA_real_}.
 #' @param train_args A list representing additional call passed into the training function, \code{forecast::Arima}. Default value is \code{list("order" = c(1, 0, 0)}.
@@ -75,7 +75,7 @@ setMethod("train_model",
               cval <- object@outlier_cval
             }
 
-            args.tsmethod <- c(object@train_args, list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "norm", "CSS-ML", "CSS"), "optim.method" = "BFGS", "optim.control" = list(maxit = 5000)))
+            args.tsmethod <- c(object@train_args, list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "ML", "CSS"), "optim.method" = "CG", "optim.control" = list(maxit = 5000)))
             if (object@outlier_type == "None") {
               trained_result <- do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
               if (!(length(new_train_xreg) == 0)) {
@@ -89,15 +89,48 @@ setMethod("train_model",
                 tso_model <- tsoutliers::tso(y = new_train_x, xreg = new_train_xreg, types = c("AO", "IO", "TC"), cval = cval, maxit = 2, tsmethod = "arima", args.tsmethod = args.tsmethod, maxit.oloop = 12, maxit.iloop = 6)
                 tso_model$fit
                 }, error = function(e) {
-                  do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
+                  ts_model <- do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
+                  if (!(length(new_train_xreg) == 0)) {
+                    ts_model$call$xreg <- as.matrix(new_train_xreg)
+                  } else {
+                    ts_model$call$xreg <- NULL
+                  }
+                  ts_model$call$x <- new_train_x
+                  ts_model
                   })
             } else {
               trained_result <- tryCatch({
                 tso_model <- tsoutliers::tso(y = new_train_x, xreg = new_train_xreg, types = object@outlier_type, cval = cval, maxit = 2, tsmethod = "arima", args.tsmethod = args.tsmethod, maxit.oloop = 12, maxit.iloop = 6)
                 tso_model$fit
               }, error = function(e) {
-                do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
+                ts_model <- do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
+                if (!(length(new_train_xreg) == 0)) {
+                  ts_model$call$xreg <- as.matrix(new_train_xreg)
+                } else {
+                  ts_model$call$xreg <- NULL
+                }
+                ts_model$call$x <- new_train_x
+                ts_model
               })
+            }
+
+            if (object@res_dist == "skew_norm") {
+              res <- trained_result$residuals
+              skew_res <- sample_moment_lag(res, k = 0, r = 3, s = 0) / (sample_moment_lag(res, k = 0, r = 2, s = 0) ^ (3/2))
+              abs_skew_res <- min(abs(skew_res), 0.99)
+
+              # alpha
+              delta <- sign(skew_res) * sqrt((pi / 2) * (abs_skew_res^(2/3)) / ((abs_skew_res ^ (2/3)) + (2 - 0.5 * pi) ^ (2/3)))
+              alpha <- delta / sqrt(1 - delta ^ 2)
+
+              # omega
+              omega2 <- sample_moment_lag(res, k = 0, r = 2, s = 0) / (1 - 2 / pi * delta ^ (2))
+              omega <- sqrt(omega2)
+
+              # xi
+              xi <- 0 - sqrt(pi / 2) * omega * delta
+
+              trained_result <- c(trained_result, list("xi" = xi, "omega" = omega, "alpha" = alpha))
             }
             return(list(trained_result))
           })
@@ -110,10 +143,10 @@ setMethod("do_prediction",
             trained_result <- trained_result[[1]]
             level <- (1 - object@cut_off_prob * 2) * 100
 
-            if (object@res_dist == "normal") {
-              bootstrap <- FALSE
-            } else {
+            if (object@res_dist == "empirical") {
               bootstrap <- TRUE
+            } else {
+              bootstrap <- FALSE
             }
 
             if (nrow(predict_info) == object@extrap_step) {
@@ -203,8 +236,18 @@ setMethod("do_prediction",
               predict_result <- forecast::forecast(target_model, xreg = dxreg, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
             }
 
-            expected <- as.numeric(predict_result$mean)
-            pi_up <- max(as.numeric(predict_result$upper))
+
+            if (object@res_dist == "skew_norm") {
+              xi <- trained_result$xi + as.numeric(predict_result$mean)
+              omega <- trained_result$omega
+              alpha <- trained_result$alpha
+
+              expected <- xi + sqrt(2 / pi) * omega * (alpha / sqrt(1 + alpha ^ 2))
+              pi_up <- max(sn::qsn(level / 100, xi = xi, omega = omega, alpha = alpha))
+            } else {
+              expected <- as.numeric(predict_result$mean)
+              pi_up <- max(as.numeric(predict_result$upper))
+            }
 
             predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "pi_up"] <- pi_up
             predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "expected"] <- expected

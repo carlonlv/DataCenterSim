@@ -65,7 +65,7 @@ machine_survival <- function(machine_list, job_list, current_time, cores) {
           loss_vec <- c(loss_vec, min(loss_vec[length(loss_vec)], comb_losses))
           job_index <- job_index + 1
         }
-        decision[["killed"]] <- c(decision[["killed"]], current_remove_choices)
+        decision[["killed"]] <- c(decision[["killed"]], other_info$job_id[current_remove_choices])
       }
       return(decision)
     })
@@ -117,7 +117,7 @@ machine_survival <- function(machine_list, job_list, current_time, cores) {
           loss_vec <- c(loss_vec, min(loss_vec[length(loss_vec)], comb_losses))
           job_index <- job_index + 1
         }
-        decision[["killed"]] <- c(decision[["killed"]], current_remove_choices)
+        decision[["killed"]] <- c(decision[["killed"]], other_info$job_id[current_remove_choices])
       }
       return(decision)
     }, mc.cores = cores)

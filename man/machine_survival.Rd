@@ -4,24 +4,19 @@
 \alias{machine_survival}
 \title{Find Outcome of A Scheduled Foreground Job}
 \usage{
-machine_survival(
-  machine_list,
-  scheduler_choice,
-  actual_cpu,
-  actual_time_bin_idx
-)
+machine_survival(machine_list, job_list, current_time, cores)
 }
 \arguments{
-\item{machine_list}{A list representing the prediction upper bounds at different bins of machines.}
+\item{machine_list}{A numeric vector containing actual values at current time.}
 
-\item{scheduler_choice}{A numeric number representing the machine id chosen by scheduler.}
+\item{job_list}{A dataframe containing information of all active jobs.}
 
-\item{actual_cpu}{A numeric number representing requested CPU for background job.}
+\item{current_time}{A numeric value representing the current time.}
 
-\item{actual_time_bin_idx}{A numeric number representing which bin the actual time corresponds to.}
+\item{cores}{A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
 }
 \value{
-A logical value \code{TRUE} if the job survives, \code{FALSE} otherwise.
+A list with keys representing decision and value job id falling into such decision.
 }
 \description{
 Find Outcome of A Scheduled Foreground Job

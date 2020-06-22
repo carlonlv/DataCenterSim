@@ -38,14 +38,14 @@ run_sim_pred(
 
 \item{bins}{A numeric vector representing a specific partioning of time}
 
-\item{cores}{A numeric numeb representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
+\item{cores}{A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
 
 \item{write_type}{A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".}
 
 \item{result_loc}{A character that specify the path to which the result of simulations will be saved to. Default is your work directory.}
 }
 \value{
-A dataframe containing the decisions made by scheduler and the optimal decision.
+A dataframe containing the decisions made by scheduler.
 }
 \description{
 Sequantially training and testing by predicting the availability of CPU resource at next windows.

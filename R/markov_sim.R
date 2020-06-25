@@ -42,13 +42,14 @@ markov_sim <- setClass("markov_sim",
 
 #' @describeIn train_model Train Markov Model specific to markov_sim object.
 setMethod("train_model",
-          signature(object = "markov_sim", train_x = "numeric", train_xreg = "numeric"),
-          function(object, train_x, train_xreg) {
-            new_train_x <- convert_frequency_dataset_overlapping(train_x, object@window_size, object@response, keep.names = TRUE)
-            if (length(train_xreg) > 0) {
-              new_train_xreg <- convert_frequency_dataset_overlapping(train_xreg, object@window_size, object@response, keep.names = TRUE)
-            } else {
+          signature(object = "markov_sim", ts_num = "numeric" , train_x = "matrix", train_xreg = "matrix"),
+          function(object, ts_num, train_x, train_xreg) {
+            new_train_x <- convert_frequency_dataset_overlapping(train_x[, ts_num], object@window_size, object@response, keep.names = TRUE)
+
+            if (length(train_xreg) == 0) {
               new_train_xreg <- NULL
+            } else {
+              new_train_xreg <- convert_frequency_dataset_overlapping(train_xreg[, ts_num], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = TRUE)
             }
 
             from_quantiles_x <- c(stats::quantile(new_train_x[-length(new_train_x)], probs = seq(to = 1, by = 1 / (object@state_num - 1), length.out = object@state_num - 1), names = FALSE), 100)
@@ -94,7 +95,7 @@ setMethod("train_model",
               transition_xreg_x <- NULL
             }
 
-            trained_result <- list("transition_x_x" = transition_x_x, "transition_xreg_x" = transition_xreg_x, "quantiles_x" = from_quantiles_x, "quantiles_xreg" = from_quantiles_xreg, "train_x" = train_x, "train_xreg" = train_xreg)
+            trained_result <- list("transition_x_x" = transition_x_x, "transition_xreg_x" = transition_xreg_x, "quantiles_x" = from_quantiles_x, "quantiles_xreg" = from_quantiles_xreg, "train_x" = new_train_x, "train_xreg" = new_train_xreg)
             return(trained_result)
           })
 

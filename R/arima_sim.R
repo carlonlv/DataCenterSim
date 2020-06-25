@@ -53,20 +53,15 @@ arima_sim <- setClass("arima_sim",
 
 #' @describeIn train_model Train ARMA Model specific to arima_sim object.
 setMethod("train_model",
-          signature(object = "arima_sim", train_x = "numeric", train_xreg = "numeric"),
-          function(object, train_x, train_xreg) {
-            new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
-            if (length(train_xreg) > 0) {
-              if (methods::is(train_xreg, "matrix")) {
-                new_train_xreg <- sapply(1:ncol(train_xreg), function(colnum) {
-                  stats::ts(convert_frequency_dataset(train_xreg[, colnum], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = TRUE))
-                })
-              } else {
-                new_train_xreg <- as.matrix(convert_frequency_dataset(train_xreg, object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = TRUE))
-                colnames(new_train_xreg) <- "xreg"
-              }
-            } else {
+          signature(object = "arima_sim", ts_num = "numeric", train_x = "matrix", train_xreg = "matrix"),
+          function(object, ts_num, train_x, train_xreg) {
+            new_train_x <- stats::ts(convert_frequency_dataset(train_x[, ts_num], object@window_size, object@response, keep.names = TRUE))
+
+            if (length(train_xreg) == 0) {
               new_train_xreg <- NULL
+            } else {
+              new_train_xreg <- as.matrix(convert_frequency_dataset(train_xreg[, ts_num], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = TRUE))
+              colnames(new_train_xreg) <- "xreg"
             }
 
             if (is.na(object@outlier_cval)) {

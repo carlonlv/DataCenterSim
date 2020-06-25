@@ -33,14 +33,14 @@ anovatree_pred <- setClass("anovatree_pred",
 
 #' @describeIn train_model Train ARMA Model specific to anovatree_pred object.
 setMethod("train_model",
-          signature(object = "anovatree_pred", train_x = "numeric", train_xreg = "data.frame"),
-            function(object, train_x, train_xreg) {
+          signature(object = "anovatree_pred", ts_num = "ANY", train_x = "numeric", train_xreg = "data.frame"),
+            function(object, ts_num, train_x, train_xreg) {
               training_data <- cbind(train_xreg, "task_duration" = train_x)
               training_data$task_duration <- discretization(object@bins,training_data$task_duration)
               trained_result <- list()
               ## TODO: put trained model into the list
               anova_tree <- function(training_data,minsize = 500){
-                fit <- rpart::rpart(task_duration ~ scheduling_class + priority + requestCPU + requestRAM + requestLocal_disk_space, data=training_data, method= "anova",control= rpart::rpart.control(minbucket = minsize))
+                fit <- rpart::rpart(task_duration ~ scheduling_class + priority + requestCPU + requestRAM + requestLocal_disk_space, data = training_data, method = "anova",control = rpart::rpart.control(minbucket = minsize))
                 tree_classify <- partykit::as.party(fit)
                 tree_classify
               }

@@ -34,10 +34,10 @@ var_sim <- setClass("var_sim",
 
 #' @describeIn train_model Train VAR Model specific to var_sim object.
 setMethod("train_model",
-          signature(object = "var_sim", train_x = "numeric", train_xreg = "numeric"),
-          function(object, train_x, train_xreg) {
-            new_train_x <- convert_frequency_dataset(train_x, object@window_size, object@response)
-            new_train_xreg <- convert_frequency_dataset(train_xreg, object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)])
+          signature(object = "var_sim", ts_num = "numeric", train_x = "matrix", train_xreg = "matrix"),
+          function(object, ts_num, train_x, train_xreg) {
+            new_train_x <- convert_frequency_dataset(train_x[, ts_num], object@window_size, object@response)
+            new_train_xreg <- convert_frequency_dataset(train_xreg[, ts_num], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)])
 
             uni_data_matrix <- matrix(nrow = length(new_train_x), ncol = 2)
             uni_data_matrix[,1] <- new_train_x

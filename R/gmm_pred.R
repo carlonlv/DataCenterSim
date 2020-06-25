@@ -37,8 +37,8 @@ gmm_pred <- setClass("gmm_pred",
 
 #' @describeIn train_model Train ARMA Model specific to gmm_pred object.
 setMethod("train_model",
-          signature(object = "gmm_pred", train_x = "numeric", train_xreg = "data.frame"),
-          function(object, train_x, train_xreg) {
+          signature(object = "gmm_pred", ts_num = "ANY", train_x = "numeric", train_xreg = "data.frame"),
+          function(object, ts_num, train_x, train_xreg) {
             training_data <- cbind(train_xreg, "task_duration" = train_x)
             training_data$task_duration <- discretization(object@bins,training_data$task_duration)
             trained_result <- list()

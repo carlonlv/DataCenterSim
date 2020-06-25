@@ -4,33 +4,35 @@
 %   R/var_sim.R
 \name{train_model}
 \alias{train_model}
-\alias{train_model,anovatree_pred,numeric,data.frame-method}
-\alias{train_model,arima_sim,numeric,numeric-method}
-\alias{train_model,auto_arima_sim,numeric,numeric-method}
-\alias{train_model,gmm_pred,numeric,data.frame-method}
-\alias{train_model,markov_sim,numeric,numeric-method}
-\alias{train_model,surtree_pred,numeric,data.frame-method}
-\alias{train_model,var_sim,numeric,numeric-method}
+\alias{train_model,anovatree_pred,ANY,numeric,data.frame-method}
+\alias{train_model,arima_sim,numeric,numeric,numeric-method}
+\alias{train_model,auto_arima_sim,numeric,numeric,numeric-method}
+\alias{train_model,gmm_pred,ANY,numeric,data.frame-method}
+\alias{train_model,markov_sim,numeric,numeric,numeric-method}
+\alias{train_model,surtree_pred,ANY,numeric,data.frame-method}
+\alias{train_model,var_sim,numeric,numeric,numeric-method}
 \title{Train Model}
 \usage{
-train_model(object, train_x, train_xreg)
+train_model(object, ts_num, train_x, train_xreg)
 
-\S4method{train_model}{anovatree_pred,numeric,data.frame}(object, train_x, train_xreg)
+\S4method{train_model}{anovatree_pred,ANY,numeric,data.frame}(object, ts_num, train_x, train_xreg)
 
-\S4method{train_model}{arima_sim,numeric,numeric}(object, train_x, train_xreg)
+\S4method{train_model}{arima_sim,numeric,numeric,numeric}(object, ts_num, train_x, train_xreg)
 
-\S4method{train_model}{auto_arima_sim,numeric,numeric}(object, train_x, train_xreg)
+\S4method{train_model}{auto_arima_sim,numeric,numeric,numeric}(object, ts_num, train_x, train_xreg)
 
-\S4method{train_model}{gmm_pred,numeric,data.frame}(object, train_x, train_xreg)
+\S4method{train_model}{gmm_pred,ANY,numeric,data.frame}(object, ts_num, train_x, train_xreg)
 
-\S4method{train_model}{markov_sim,numeric,numeric}(object, train_x, train_xreg)
+\S4method{train_model}{markov_sim,numeric,numeric,numeric}(object, ts_num, train_x, train_xreg)
 
-\S4method{train_model}{surtree_pred,numeric,data.frame}(object, train_x, train_xreg)
+\S4method{train_model}{surtree_pred,ANY,numeric,data.frame}(object, ts_num, train_x, train_xreg)
 
-\S4method{train_model}{var_sim,numeric,numeric}(object, train_x, train_xreg)
+\S4method{train_model}{var_sim,numeric,numeric,numeric}(object, ts_num, train_x, train_xreg)
 }
 \arguments{
 \item{object}{An S4 sim object.}
+
+\item{ts_num}{A numeric value representing the column number of the corresponding trace.}
 
 \item{train_x}{A numeric of length m representing the training set.}
 
@@ -44,18 +46,18 @@ This is a generic function that trains model according to the input object type,
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{object = anovatree_pred,train_x = numeric,train_xreg = data.frame}: Train ARMA Model specific to anovatree_pred object.
+\item \code{object = anovatree_pred,ts_num = ANY,train_x = numeric,train_xreg = data.frame}: Train ARMA Model specific to anovatree_pred object.
 
-\item \code{object = arima_sim,train_x = numeric,train_xreg = numeric}: Train ARMA Model specific to arima_sim object.
+\item \code{object = arima_sim,ts_num = numeric,train_x = numeric,train_xreg = numeric}: Train ARMA Model specific to arima_sim object.
 
-\item \code{object = auto_arima_sim,train_x = numeric,train_xreg = numeric}: Train ARMA Model specific to arima_sim object.
+\item \code{object = auto_arima_sim,ts_num = numeric,train_x = numeric,train_xreg = numeric}: Train ARMA Model specific to arima_sim object.
 
-\item \code{object = gmm_pred,train_x = numeric,train_xreg = data.frame}: Train ARMA Model specific to gmm_pred object.
+\item \code{object = gmm_pred,ts_num = ANY,train_x = numeric,train_xreg = data.frame}: Train ARMA Model specific to gmm_pred object.
 
-\item \code{object = markov_sim,train_x = numeric,train_xreg = numeric}: Train Markov Model specific to markov_sim object.
+\item \code{object = markov_sim,ts_num = numeric,train_x = numeric,train_xreg = numeric}: Train Markov Model specific to markov_sim object.
 
-\item \code{object = surtree_pred,train_x = numeric,train_xreg = data.frame}: Train ARMA Model specific to surtree_pred object.
+\item \code{object = surtree_pred,ts_num = ANY,train_x = numeric,train_xreg = data.frame}: Train ARMA Model specific to surtree_pred object.
 
-\item \code{object = var_sim,train_x = numeric,train_xreg = numeric}: Train VAR Model specific to var_sim object.
+\item \code{object = var_sim,ts_num = numeric,train_x = numeric,train_xreg = numeric}: Train VAR Model specific to var_sim object.
 }}
 

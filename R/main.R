@@ -87,16 +87,6 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
 svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait_time=0, write_type, plot_type, ...) {
   trace_name <- colnames(x)[ts_num]
 
-  svt_x <- x[, ts_num]
-  names(svt_x) <- rownames(x)
-
-  if (!is.null(xreg)) {
-    svt_xreg <- xreg[, ts_num]
-    names(svt_xreg) <- rownames(xreg)
-  } else {
-    svt_xreg <- NULL
-  }
-
   predict_info <- data.frame("train_iter" = numeric(0),
                              "test_iter" = numeric(0),
                              "predict_iter" = numeric(0),
@@ -111,7 +101,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
                              stringsAsFactors = FALSE)
 
   current <- start_point
-  last_time_update <- length(svt_x) - wait_time - object@train_size - object@update_freq * object@extrap_step * object@window_size + 1
+  last_time_update <- nrow(x) - wait_time - object@train_size - object@update_freq * object@extrap_step * object@window_size + 1
 
   train_models <- list()
   predict_histories <- list()
@@ -161,14 +151,14 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
       # Get training set
       train_start <- current
       train_end <- current + object@train_size - 1
-      train_x <- svt_x[train_start:train_end]
-      if (!is.null(svt_xreg)) {
-        train_xreg <- svt_xreg[train_start:train_end]
+      train_x <- x[train_start:train_end,]
+      if (!is.null(xreg)) {
+        train_xreg <- xreg[train_start:train_end,]
       } else {
         train_xreg <- numeric(0)
       }
 
-      train_models[[letters[traincan_model]]] <- train_model(object, train_x, train_xreg)
+      train_models[[letters[traincan_model]]] <- train_model(object, ts_num, train_x, train_xreg)
       predict_histories[[letters[traincan_model]]] <- NULL
 
       train_idx[traincan_model] <- train_iter
@@ -181,8 +171,8 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
     ## Get test set
     test_start <- current + object@train_size + wait_time
     test_end <- current + object@train_size + wait_time + object@update_freq * object@extrap_step * object@window_size - 1
-    test_x <- svt_x[test_start:test_end]
-    test_xreg <- svt_xreg[test_start:test_end]
+    test_x <- x[test_start:test_end, ts_num]
+    test_xreg <- xreg[test_start:test_end, ts_num]
     if (length(test_xreg) == 0) {
       test_xreg <- numeric(0)
     }

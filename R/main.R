@@ -155,7 +155,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
       if (!is.null(xreg)) {
         train_xreg <- xreg[train_start:train_end,]
       } else {
-        train_xreg <- numeric(0)
+        train_xreg <- matrix(nrow = 0, ncol = 0)
       }
 
       train_models[[letters[traincan_model]]] <- train_model(object, ts_num, train_x, train_xreg)
@@ -174,7 +174,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
     test_x <- x[test_start:test_end, ts_num]
     test_xreg <- xreg[test_start:test_end, ts_num]
     if (length(test_xreg) == 0) {
-      test_xreg <- numeric(0)
+      test_xreg <- matrix(nrow = 0, ncol = 0)
     }
 
     ## Test Model

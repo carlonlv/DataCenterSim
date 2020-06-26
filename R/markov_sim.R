@@ -157,7 +157,7 @@ setMethod("do_prediction",
               if (length(trained_result$train_xreg) == 0) {
                 pi_up <- compute_pi_up(1 - object@cut_off_prob, to_states, trained_result$quantiles_x)
               } else {
-                pi_up <- compute_pi_up(1 - object@cut_off_prob, to_states, trained_result$quantiles_xreg)
+                pi_up <- compute_pi_up(1 - object@cut_off_prob, to_states, trained_result$quantiles_x)
               }
             }
             predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "pi_up"] <- pi_up

@@ -112,7 +112,8 @@ setMethod("get_param_slots",
           signature(object = "autopilot_sim"),
           function(object) {
             numeric_lst <- methods::callNextMethod(object)
-            numeric_lst[["statistics"]] <- methods::slot(object, "outlier_cval")
+            numeric_lst[["n"]] <- methods::slot(object, "n")
+            numeric_lst[["half_life"]] <- methods::slot(object, "half_life")
             return(numeric_lst)
           })
 
@@ -124,8 +125,7 @@ setMethod("get_characteristic_slots",
           signature(object = "autopilot_sim"),
           function(object) {
             character_lst <- methods::callNextMethod(object)
-            character_lst[["res_dist"]] <- methods::slot(object, "res_dist")
-            character_lst[["outlier_type"]] <- methods::slot(object, "outlier_type")
+            character_lst[["statistics"]] <- methods::slot(object, "statistics")
             return(character_lst)
           })
 
@@ -137,7 +137,7 @@ setMethod("get_hidden_slots",
           signature(object = "autopilot_sim"),
           function(object) {
             hidden_lst <- methods::callNextMethod(object)
-            hidden_lst[["train_args"]] <- methods::slot(object, "train_args")
+            hidden_lst[["breaks"]] <- methods::slot(object, "breaks")
             return(hidden_lst)
           })
 

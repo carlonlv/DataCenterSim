@@ -47,11 +47,13 @@ setGeneric("train_model", function(object, ts_num, train_x, train_xreg) standard
 #' @param object An S4 sim object.
 #' @param trained_result A list or other class returend by \code{train_model}, containing trained model information.
 #' @param predict_info A dataframe representing all the past predicted or scheduled information.
-#' @param xreg A dataframe representing the external predictors.
+#' @param ts_num A numeric value representing the column number of the corresponding trace/column.
+#' @param test_x A numeric vector representing the test dataset up to current time.
+#' @param test_xreg A dataframe representing the external predictors.
 #' @return The updated \code{predict_info} on the last row.
 #' @name do_prediction
 #' @rdname do_prediction
-setGeneric("do_prediction", function(object, trained_result, predict_info, xreg) standardGeneric("do_prediction"))
+setGeneric("do_prediction", function(object, trained_result, predict_info, ts_num, test_x, test_xreg) standardGeneric("do_prediction"))
 
 
 #' Get Representation

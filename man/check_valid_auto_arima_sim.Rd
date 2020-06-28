@@ -2,7 +2,7 @@
 % Please edit documentation in R/auto_arima_sim.R
 \name{check_valid_auto_arima_sim}
 \alias{check_valid_auto_arima_sim}
-\title{Validity Checker for arima_sim Object}
+\title{Validity Checker for auto_arima_sim Object}
 \usage{
 check_valid_auto_arima_sim(object)
 }
@@ -13,6 +13,6 @@ check_valid_auto_arima_sim(object)
 \code{TRUE} if the input sim object is valid, vector of error messages otherwise.
 }
 \description{
-Validity Checker for arima_sim Object
+Validity Checker for auto_arima_sim Object
 }
 \keyword{internal}

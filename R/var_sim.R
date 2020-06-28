@@ -52,8 +52,8 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained VAR Model.
 setMethod("do_prediction",
-          signature(object = "var_sim", trained_result = "list", predict_info = "data.frame", xreg = "data.frame"),
-          function(object, trained_result, predict_info, xreg) {
+          signature(object = "var_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "data.frame"),
+          function(object, trained_result, predict_info, ts_num, test_x, test_xreg) {
             level <- 1 - object@cut_off_prob * 2
             if (nrow(predict_info) == object@extrap_step) {
               trained_result <- trained_result
@@ -61,8 +61,8 @@ setMethod("do_prediction",
               prev_data <- trained_result$data
               new_data <- matrix(nrow = nrow(predict_info) - object@extrap_step, ncol = 2)
               new_data[,1] <- predict_info$actual[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
-              new_data[,2] <- unlist(lapply(1:(nrow(xreg) - 1), function(rownum) {
-                unname(unlist(xreg[rownum,]))
+              new_data[,2] <- unlist(lapply(1:(nrow(test_xreg) - 1), function(rownum) {
+                unname(unlist(test_xreg[rownum,]))
               }))
               trained_result$data <- rbind(prev_data, new_data)
             }

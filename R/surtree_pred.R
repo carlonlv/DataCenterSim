@@ -65,13 +65,13 @@ setMethod("train_model",
           })
 
 
-#' @describeIn do_prediction Do prediction based on trained GMM clustering Model.
+#' @describeIn do_prediction Do prediction based on trained survival tree clustering Model.
 setMethod("do_prediction",
-          signature(object = "surtree_pred", trained_result = "list", predict_info = "data.frame", xreg = "data.frame"),
-          function(object, trained_result, predict_info, xreg) {
+          signature(object = "surtree_pred", trained_result = "list", predict_info = "data.frame", ts_num = "ANY", test_x = "numeric", test_xreg = "data.frame"),
+          function(object, trained_result, predict_info, ts_num, test_x, test_xreg) {
             model <- trained_result$model
             nodes <- trained_result$nodes
-            test_clusters <- predict(model, xreg[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")], type = "node")
+            test_clusters <- predict(model, test_xreg[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")], type = "node")
             test_clusters2 <- which(nodes %in% test_clusters)
             predict_info[nrow(predict_info), "cluster_info"] <- test_clusters2
             return(predict_info)

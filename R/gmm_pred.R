@@ -67,10 +67,10 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained GMM clustering Model.
 setMethod("do_prediction",
-          signature(object = "gmm_pred", trained_result = "list", predict_info = "data.frame", xreg = "data.frame"),
-          function(object, trained_result, predict_info, xreg) {
+          signature(object = "gmm_pred", trained_result = "list", predict_info = "data.frame", ts_num = "ANY", test_x = "numeric", test_xreg = "data.frame"),
+          function(object, trained_result, predict_info, ts_num, test_x, test_xreg) {
             model <- trained_result$model
-            GMM_test <- predict(model,xreg[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")])
+            GMM_test <- predict(model, test_xreg[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")])
             GMM_test_clusters <- GMM_test$classification
             predict_info[nrow(predict_info), "cluster_info"] <- GMM_test_clusters
             return(predict_info)

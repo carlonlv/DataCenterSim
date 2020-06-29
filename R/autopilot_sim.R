@@ -57,7 +57,7 @@ autopilot_sim <- setClass("autopilot_sim",
 
 #' @describeIn train_model Train model for autopilot recommender.
 setMethod("train_model",
-          signature(object = "autopilot_sim", ts_num = "numeric", train_x = "matrix", train_xreg = "data.frame"),
+          signature(object = "autopilot_sim", ts_num = "numeric", train_x = "matrix", train_xreg = "matrix"),
           function(object, ts_num, train_x, train_xreg) {
             trained_result <- list("train_x" = train_x)
             return(trained_result)
@@ -78,7 +78,7 @@ setMethod("do_prediction",
 
             ## Histogram Aggregation
             hist_x <- rev(lapply(seq(to = nrow(x), by = object@window_size, length.out = nrow(x) %/% object@window_size), function(s) {
-              graphics::hist(x[(s - object@window_size + 1):s,], breaks = breaks, freq = TRUE, plot = FALSE)
+              graphics::hist(x[(s - object@window_size + 1):s,], breaks = breaks, plot = FALSE)
             }))
 
             weight <- (1 / 2) ** (seq(from = 0, by = 1, length.out = length(hist_x)) / object@half_life)
@@ -91,7 +91,7 @@ setMethod("do_prediction",
                 stats::weighted.mean(h$breaks[-1], h$counts)
               }), weight)
             } else {
-              agg_hist <- rep(object@breaks[-1], sapply(1:(length(breaks) - 1), function(b_index) {
+              agg_hist <- rep(breaks[-1], sapply(1:(length(breaks) - 1), function(b_index) {
                 sum(weight * sapply(hist_x, function(h) {
                   h$counts[b_index]
                 }))

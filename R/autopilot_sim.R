@@ -149,6 +149,7 @@ setMethod("get_hidden_slots",
           function(object) {
             hidden_lst <- methods::callNextMethod(object)
             hidden_lst[["breaks"]] <- methods::slot(object, "breaks")
+            hidden_lst[["cut_off_weight"]] <- methods::slot(object, "cut_off_weight")
             return(hidden_lst)
           })
 

@@ -33,6 +33,8 @@
 
 \item{breaks}{A numeric integer or vector representing the number of breaks for each histogram in each window or the break points for \code{x}. Used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}, passed into \code{hist}. Default value is \code{10}.}
 
+\item{cut_off_weight}{A numeric value that is close to zero, representing the smallest weight possible, lower which the weight will be considered as zero. Used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{0.001}.}
+
 \item{state_num}{A numeric number that represents the number of states in Markov chain. Default value is \code{8}.}
 
 \item{cluster_type}{A character that represents how each state is partitioned. It can only be either \code{"fixed"} for fixed partitioning from \code{0} to \code{100}, or \code{"quantile"} for dynamic partitioning from minimum value to maximum value using quantiles. Default value is \code{"fixed"}.}

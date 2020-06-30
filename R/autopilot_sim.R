@@ -23,10 +23,13 @@ check_valid_autopilot_sim <- function(object) {
     errors <- c(errors, msg)
   }
   if ((length(object@breaks) == 1 & object@breaks <= 0) | length(object@breaks) == 0) {
-    msg <- paste0("breaks  must be a numeric vector spanning the range of x or a postive value.")
+    msg <- paste0("breaks must be a numeric vector spanning the range of x or a postive value.")
     errors <- c(errors, msg)
   }
-
+  if (length(object@cut_off_weight) != 1 | object@cut_off_weight > 1 | object@cut_off_weight < 0) {
+    msg <- paste0("cut_off_weight must be a positive numeric value that is smaller than 1.")
+    errors <- c(errors, msg)
+  }
   if (length(errors) == 0) {
     return(TRUE)
   } else {
@@ -40,18 +43,21 @@ check_valid_autopilot_sim <- function(object) {
 #' @param n A numeric integer representing the number of windows to find maximum over, used only when \code{"statistics"} is assigned to be \code{"peak"}. Default value is \code{288}.
 #' @param half_life A numerc integer representing the number of windows for the weight to drop to half, used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{144}.
 #' @param breaks A numeric integer or vector representing the number of breaks for each histogram in each window or the break points for \code{x}. Used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}, passed into \code{hist}. Default value is \code{10}.
+#' @param cut_off_weight A numeric value that is close to zero, representing the smallest weight possible, lower which the weight will be considered as zero. Used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{0.001}.
 #' @export autopilot_sim
 autopilot_sim <- setClass("autopilot_sim",
                            slots = list(statistics = "character",
                                         n = "numeric",
                                         half_life = "numeric",
-                                        breaks = "numeric"),
+                                        breaks = "numeric",
+                                        cut_off_weight = "numeric"),
                            contains = "sim",
                            prototype = list(name = "AUTOPILOT",
                                             statistics = "peak",
                                             n = 288,
-                                            half_life = 12,
-                                            breaks = 10),
+                                            half_life = 144,
+                                            breaks = 10,
+                                            cut_off_weight = 0.001),
                            validity = check_valid_autopilot_sim)
 
 
@@ -82,6 +88,11 @@ setMethod("do_prediction",
             }))
 
             weight <- (1 / 2) ** (seq(from = 0, by = 1, length.out = length(hist_x)) / object@half_life)
+            max_len <- sum(weight >= object@cut_off_weight)
+
+            hist_x <- hist_x[1:max_len]
+            weight <- weight[1:max_len]
+
             if (object@statistics == "peak") {
               pi_up <- max(sapply(hist_x[1:object@n], function(h) {
                 max(h$breaks[-1][h$counts > 0])

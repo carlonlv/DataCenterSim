@@ -7,7 +7,7 @@
 \alias{train_model,anovatree_pred,ANY,numeric,data.frame-method}
 \alias{train_model,arima_sim,numeric,matrix,matrix-method}
 \alias{train_model,auto_arima_sim,numeric,matrix,matrix-method}
-\alias{train_model,autopilot_sim,numeric,matrix,data.frame-method}
+\alias{train_model,autopilot_sim,numeric,matrix,matrix-method}
 \alias{train_model,gmm_pred,ANY,numeric,data.frame-method}
 \alias{train_model,markov_sim,numeric,matrix,matrix-method}
 \alias{train_model,surtree_pred,ANY,numeric,data.frame-method}
@@ -22,7 +22,7 @@ train_model(object, ts_num, train_x, train_xreg)
 
 \S4method{train_model}{auto_arima_sim,numeric,matrix,matrix}(object, ts_num, train_x, train_xreg)
 
-\S4method{train_model}{autopilot_sim,numeric,matrix,data.frame}(object, ts_num, train_x, train_xreg)
+\S4method{train_model}{autopilot_sim,numeric,matrix,matrix}(object, ts_num, train_x, train_xreg)
 
 \S4method{train_model}{gmm_pred,ANY,numeric,data.frame}(object, ts_num, train_x, train_xreg)
 
@@ -55,7 +55,7 @@ This is a generic function that trains model according to the input object type,
 
 \item \code{object = auto_arima_sim,ts_num = numeric,train_x = matrix,train_xreg = matrix}: Train ARMA Model specific to arima_sim object.
 
-\item \code{object = autopilot_sim,ts_num = numeric,train_x = matrix,train_xreg = data.frame}: Train model for autopilot recommender.
+\item \code{object = autopilot_sim,ts_num = numeric,train_x = matrix,train_xreg = matrix}: Train model for autopilot recommender.
 
 \item \code{object = gmm_pred,ts_num = ANY,train_x = numeric,train_xreg = data.frame}: Train ARMA Model specific to gmm_pred object.
 

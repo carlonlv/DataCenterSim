@@ -83,15 +83,13 @@ setMethod("do_prediction",
             }
 
             ## Histogram Aggregation
-            hist_x <- rev(lapply(seq(to = nrow(x), by = object@window_size, length.out = nrow(x) %/% object@window_size), function(s) {
-              graphics::hist(x[(s - object@window_size + 1):s,], breaks = breaks, plot = FALSE)
-            }))
-
-            weight <- (1 / 2) ** (seq(from = 0, by = 1, length.out = length(hist_x)) / object@half_life)
+            weight <- (1 / 2) ** (seq(from = 0, by = 1, length.out = nrow(x) %/% object@window_size) / object@half_life)
             max_len <- sum(weight >= object@cut_off_weight)
-
-            hist_x <- hist_x[1:max_len]
             weight <- weight[1:max_len]
+
+            hist_x <- lapply(seq(from = nrow(x), by = -object@window_size, length.out = max_len), function(s) {
+              graphics::hist(x[(s - object@window_size + 1):s,], breaks = breaks, plot = FALSE)
+            })
 
             if (object@statistics == "peak") {
               pi_up <- max(sapply(hist_x[1:object@n], function(h) {

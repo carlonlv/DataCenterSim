@@ -111,8 +111,7 @@ setMethod("do_prediction",
                 current_prob <- current_prob + to_states[current_state]
                 if (current_prob < prob) {
                   current_state <- current_state + 1
-                }
-                else {
+                } else {
                   break
                 }
               }

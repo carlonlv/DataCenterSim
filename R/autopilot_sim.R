@@ -100,12 +100,28 @@ setMethod("do_prediction",
                 stats::weighted.mean(h$breaks[-1], h$counts)
               }), weight)
             } else {
-              agg_hist <- rep(breaks[-1], sapply(1:(length(breaks) - 1), function(b_index) {
+              agg_count <- sapply(1:(length(breaks) - 1), function(b_index) {
                 sum(weight * sapply(hist_x, function(h) {
                   h$counts[b_index]
                 }))
-              }))
-              pi_up <- stats::quantile(agg_hist, probs = 1 - object@cut_off_prob)
+              })
+              agg_freq <- agg_count / sum(agg_count)
+
+              compute_pi_up <- function(prob, agg_freq, breaks) {
+                current_state <- 1
+                current_prob <- 0
+                while (current_state <= length(agg_freq)) {
+                  current_prob <- current_prob + agg_freq[current_state]
+                  if (current_prob < prob) {
+                    current_state <- current_state + 1
+                  } else {
+                    break
+                  }
+                }
+                pi_up <- breaks[current_state]
+                return(pi_up)
+              }
+              pi_up <- compute_pi_up(1 - object@cut_off_prob, agg_freq, breaks[-1])
             }
 
             predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "pi_up"] <- pi_up

@@ -71,7 +71,7 @@ predicting_pred <- function(object, x, xreg) {
       train_x <- x[train_start:train_end]
       train_xreg <- xreg[train_start:train_end,]
 
-      trained_model <- c(trained_model, train_model(object, NULL, train_x, train_xreg))
+      trained_model <- c(trained_model, train_model(object, NULL, train_x, train_xreg, trained_model))
       switch_status <- list("train_iter" = train_iter, "test_iter" = 0)
       train_iter <- train_iter + 1
     }

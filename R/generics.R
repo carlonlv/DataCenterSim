@@ -34,10 +34,11 @@ setGeneric("get_hidden_slots", function(object) standardGeneric("get_hidden_slot
 #' @param ts_num A numeric value representing the column number of the corresponding trace.
 #' @param train_x A numeric of length m representing the training set.
 #' @param train_xreg A numeric or matrix of length or row number m representing the additional regressors for training.
+#' @param trained_model A list representing the past trained model to update, can be an empty list.
 #' @return A list containing trained result.
 #' @name train_model
 #' @rdname train_model
-setGeneric("train_model", function(object, ts_num, train_x, train_xreg) standardGeneric("train_model"))
+setGeneric("train_model", function(object, ts_num, train_x, train_xreg, trained_model) standardGeneric("train_model"))
 
 
 #' Do Prediction

@@ -63,9 +63,30 @@ autopilot_sim <- setClass("autopilot_sim",
 
 #' @describeIn train_model Train model for autopilot recommender.
 setMethod("train_model",
-          signature(object = "autopilot_sim", ts_num = "numeric", train_x = "matrix", train_xreg = "matrix"),
-          function(object, ts_num, train_x, train_xreg) {
-            trained_result <- list("train_x" = train_x)
+          signature(object = "autopilot_sim", ts_num = "numeric", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
+          function(object, ts_num, train_x, train_xreg, trained_model) {
+            if (length(object@breaks) == 1) {
+              breaks <- seq(from = 0, to = 100, length.out = object@breaks + 1)
+            } else {
+              breaks <- object@breaks
+            }
+
+            max_len <- floor(log2(object@cut_off_weight) * (-object@half_life))
+            if (length(trained_model) == 0) {
+              trained_result <- lapply(seq(from = nrow(train_x), by = -object@window_size, length.out = min(nrow(train_x) %/% object@window_size, max_len)), function(s) {
+                graphics::hist(train_x[(s - object@window_size + 1):s,], breaks = breaks, plot = FALSE)
+              })
+            } else {
+              hist_x <- lapply(seq(from = nrow(train_x), by = -object@window_size, length.out = object@update_freq), function(s) {
+                graphics::hist(train_x[(s - object@window_size + 1):s,], breaks = breaks, plot = FALSE)
+              })
+
+              forget_num <- length(trained_model) + length(hist_x) - max_len
+              if (forget_num > 0) {
+                trained_model <- trained_model[-c((length(trained_model) - forget_num + 1):length(trained_model))]
+              }
+              trained_result <- append(trained_model, hist_x, 0)
+            }
             return(trained_result)
           })
 
@@ -74,8 +95,6 @@ setMethod("train_model",
 setMethod("do_prediction",
           signature(object = "autopilot_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "data.frame"),
           function(object, trained_result, predict_info, ts_num, test_x, test_xreg) {
-            x <- rbind(trained_result$train_x, test_x)
-
             if (length(object@breaks) == 1) {
               breaks <- seq(from = 0, to = 100, length.out = object@breaks + 1)
             } else {
@@ -83,25 +102,19 @@ setMethod("do_prediction",
             }
 
             ## Histogram Aggregation
-            weight <- (1 / 2) ** (seq(from = 0, by = 1, length.out = nrow(x) %/% object@window_size) / object@half_life)
-            max_len <- sum(weight >= object@cut_off_weight)
-            weight <- weight[1:max_len]
-
-            hist_x <- lapply(seq(from = nrow(x), by = -object@window_size, length.out = max_len), function(s) {
-              graphics::hist(x[(s - object@window_size + 1):s,], breaks = breaks, plot = FALSE)
-            })
+            weight <- (1 / 2) ** (seq(from = 0, by = 1, length.out = length(trained_result)) / object@half_life)
 
             if (object@statistics == "peak") {
-              pi_up <- max(sapply(hist_x[1:object@n], function(h) {
+              pi_up <- max(sapply(trained_result[1:object@n], function(h) {
                 max(h$breaks[-1][h$counts > 0])
               }))
             } else if (object@statistics == "weighted_avg") {
-              pi_up <- stats::weighted.mean(sapply(hist_x, function(h) {
+              pi_up <- stats::weighted.mean(sapply(trained_result, function(h) {
                 stats::weighted.mean(h$breaks[-1], h$counts)
               }), weight)
             } else {
               agg_count <- sapply(1:(length(breaks) - 1), function(b_index) {
-                sum(weight * sapply(hist_x, function(h) {
+                sum(weight * sapply(trained_result, function(h) {
                   h$counts[b_index]
                 }))
               })

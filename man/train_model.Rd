@@ -4,33 +4,33 @@
 %   R/surtree_pred.R, R/var_sim.R
 \name{train_model}
 \alias{train_model}
-\alias{train_model,anovatree_pred,ANY,numeric,data.frame-method}
-\alias{train_model,arima_sim,numeric,matrix,matrix-method}
-\alias{train_model,auto_arima_sim,numeric,matrix,matrix-method}
-\alias{train_model,autopilot_sim,numeric,matrix,matrix-method}
-\alias{train_model,gmm_pred,ANY,numeric,data.frame-method}
-\alias{train_model,markov_sim,numeric,matrix,matrix-method}
-\alias{train_model,surtree_pred,ANY,numeric,data.frame-method}
-\alias{train_model,var_sim,numeric,matrix,matrix-method}
+\alias{train_model,anovatree_pred,ANY,numeric,data.frame,list-method}
+\alias{train_model,arima_sim,numeric,matrix,matrix,list-method}
+\alias{train_model,auto_arima_sim,numeric,matrix,matrix,list-method}
+\alias{train_model,autopilot_sim,numeric,matrix,matrix,list-method}
+\alias{train_model,gmm_pred,ANY,numeric,data.frame,list-method}
+\alias{train_model,markov_sim,numeric,matrix,matrix,list-method}
+\alias{train_model,surtree_pred,ANY,numeric,data.frame,list-method}
+\alias{train_model,var_sim,numeric,matrix,matrix,list-method}
 \title{Train Model}
 \usage{
-train_model(object, ts_num, train_x, train_xreg)
+train_model(object, ts_num, train_x, train_xreg, trained_model)
 
-\S4method{train_model}{anovatree_pred,ANY,numeric,data.frame}(object, ts_num, train_x, train_xreg)
+\S4method{train_model}{anovatree_pred,ANY,numeric,data.frame,list}(object, ts_num, train_x, train_xreg, trained_model)
 
-\S4method{train_model}{arima_sim,numeric,matrix,matrix}(object, ts_num, train_x, train_xreg)
+\S4method{train_model}{arima_sim,numeric,matrix,matrix,list}(object, ts_num, train_x, train_xreg, trained_model)
 
-\S4method{train_model}{auto_arima_sim,numeric,matrix,matrix}(object, ts_num, train_x, train_xreg)
+\S4method{train_model}{auto_arima_sim,numeric,matrix,matrix,list}(object, ts_num, train_x, train_xreg, trained_model)
 
-\S4method{train_model}{autopilot_sim,numeric,matrix,matrix}(object, ts_num, train_x, train_xreg)
+\S4method{train_model}{autopilot_sim,numeric,matrix,matrix,list}(object, ts_num, train_x, train_xreg, trained_model)
 
-\S4method{train_model}{gmm_pred,ANY,numeric,data.frame}(object, ts_num, train_x, train_xreg)
+\S4method{train_model}{gmm_pred,ANY,numeric,data.frame,list}(object, ts_num, train_x, train_xreg, trained_model)
 
-\S4method{train_model}{markov_sim,numeric,matrix,matrix}(object, ts_num, train_x, train_xreg)
+\S4method{train_model}{markov_sim,numeric,matrix,matrix,list}(object, ts_num, train_x, train_xreg, trained_model)
 
-\S4method{train_model}{surtree_pred,ANY,numeric,data.frame}(object, ts_num, train_x, train_xreg)
+\S4method{train_model}{surtree_pred,ANY,numeric,data.frame,list}(object, ts_num, train_x, train_xreg, trained_model)
 
-\S4method{train_model}{var_sim,numeric,matrix,matrix}(object, ts_num, train_x, train_xreg)
+\S4method{train_model}{var_sim,numeric,matrix,matrix,list}(object, ts_num, train_x, train_xreg, trained_model)
 }
 \arguments{
 \item{object}{An S4 sim object.}
@@ -40,6 +40,8 @@ train_model(object, ts_num, train_x, train_xreg)
 \item{train_x}{A numeric of length m representing the training set.}
 
 \item{train_xreg}{A numeric or matrix of length or row number m representing the additional regressors for training.}
+
+\item{trained_model}{A list representing the past trained model to update, can be an empty list.}
 }
 \value{
 A list containing trained result.
@@ -49,20 +51,20 @@ This is a generic function that trains model according to the input object type,
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{object = anovatree_pred,ts_num = ANY,train_x = numeric,train_xreg = data.frame}: Train ARMA Model specific to anovatree_pred object.
+\item \code{object = anovatree_pred,ts_num = ANY,train_x = numeric,train_xreg = data.frame,trained_model = list}: Train ARMA Model specific to anovatree_pred object.
 
-\item \code{object = arima_sim,ts_num = numeric,train_x = matrix,train_xreg = matrix}: Train ARMA Model specific to arima_sim object.
+\item \code{object = arima_sim,ts_num = numeric,train_x = matrix,train_xreg = matrix,trained_model = list}: Train ARMA Model specific to arima_sim object.
 
-\item \code{object = auto_arima_sim,ts_num = numeric,train_x = matrix,train_xreg = matrix}: Train ARMA Model specific to arima_sim object.
+\item \code{object = auto_arima_sim,ts_num = numeric,train_x = matrix,train_xreg = matrix,trained_model = list}: Train ARMA Model specific to arima_sim object.
 
-\item \code{object = autopilot_sim,ts_num = numeric,train_x = matrix,train_xreg = matrix}: Train model for autopilot recommender.
+\item \code{object = autopilot_sim,ts_num = numeric,train_x = matrix,train_xreg = matrix,trained_model = list}: Train model for autopilot recommender.
 
-\item \code{object = gmm_pred,ts_num = ANY,train_x = numeric,train_xreg = data.frame}: Train ARMA Model specific to gmm_pred object.
+\item \code{object = gmm_pred,ts_num = ANY,train_x = numeric,train_xreg = data.frame,trained_model = list}: Train ARMA Model specific to gmm_pred object.
 
-\item \code{object = markov_sim,ts_num = numeric,train_x = matrix,train_xreg = matrix}: Train Markov Model specific to markov_sim object.
+\item \code{object = markov_sim,ts_num = numeric,train_x = matrix,train_xreg = matrix,trained_model = list}: Train Markov Model specific to markov_sim object.
 
-\item \code{object = surtree_pred,ts_num = ANY,train_x = numeric,train_xreg = data.frame}: Train ARMA Model specific to surtree_pred object.
+\item \code{object = surtree_pred,ts_num = ANY,train_x = numeric,train_xreg = data.frame,trained_model = list}: Train ARMA Model specific to surtree_pred object.
 
-\item \code{object = var_sim,ts_num = numeric,train_x = matrix,train_xreg = matrix}: Train VAR Model specific to var_sim object.
+\item \code{object = var_sim,ts_num = numeric,train_x = matrix,train_xreg = matrix,trained_model = list}: Train VAR Model specific to var_sim object.
 }}
 

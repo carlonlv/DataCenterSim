@@ -159,7 +159,12 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
         train_xreg <- matrix(nrow = 0, ncol = 0)
       }
 
-      train_models[[letters[traincan_model]]] <- train_model(object, ts_num, train_x, train_xreg)
+      if (is.null(train_models[[letters[traincan_model]]])) {
+        prev_trained_model <- list()
+      } else {
+        prev_trained_model <- train_models[[letters[traincan_model]]]
+      }
+      train_models[[letters[traincan_model]]] <- train_model(object, ts_num, train_x, train_xreg, prev_trained_model)
       predict_histories[[letters[traincan_model]]] <- NULL
 
       train_idx[traincan_model] <- train_iter

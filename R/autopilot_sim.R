@@ -93,7 +93,7 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on selected past statistics.
 setMethod("do_prediction",
-          signature(object = "autopilot_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "data.frame"),
+          signature(object = "autopilot_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "matrix"),
           function(object, trained_result, predict_info, ts_num, test_x, test_xreg) {
             if (length(object@breaks) == 1) {
               breaks <- seq(from = 0, to = 100, length.out = object@breaks + 1)

@@ -613,3 +613,47 @@ discretization <- function(breakpoints, vec){
   }
   return(newvec)
 }
+
+
+#' Reconstruct More Granular Trace Based on Average Trace.
+#'
+#' @description Reconstruct a more granular trace of frequency \code{new_sample_freq} based on Nyquist–Shannon sampling theorem with assumption that the frequency of the original trace must not contain frequencies higher than 1/2 of the \code{new_sample_freq}.
+#' @param avg_trace A numeric vector that represents the average trace taken in a fixed sampled rate.
+#' @param max_trace A numeric vector that represents the maximum trace with sample length as \code{max_trace} and same sampled rate. Used for fine tuning of the generated trace, or \code{NULL}. Default value is \code{NULL}.
+#' @param orig_rate A numeric positive integer that is typicall smaller that the frequency of \code{avg_trace} and \code{max_trace}.
+#' @param new_rate A numeric positive integer that is typicall smaller that the frequency of \code{avg_trace} and \code{max_trace}.
+#' @param h A numeric value representing the granularity for numerical differentiation, \eqn{(f(x+h) - f(x)) / h}, must be smaller or equal to the value of \code{new_freq}. Default value is \code{new_rate}.
+#' @param d A numeric integer representing the distance of nearest neighbourhood to take into account in sinc function. Passed into function \code{signal::resample}.
+#' @param tune_factor A numeric vector representing the percentage change in fine tuning that should be taken into account.
+trace_reconstruct <- function(avg_trace, max_trace=NULL, orig_rate, new_rate, h=new_rate, d, tune_factor=seq(from = 0.08, to = 2.00, by = 0.01)) {
+  ## Taking integral of average trace
+  int_avg_trace <- cumsum(avg_trace * orig_rate)
+
+  ## Reconstructing s(t) as integral of x(t) from the sample sequence int_x
+  int_sample <- signal::resample(int_avg_trace, p = orig_rate, q = h, d = d)
+
+  constructed_sample <- diff(int_sample) / h
+  constructed_sample <- ifelse(constructed_sample > 100, 100, ifelse(constructed_sample < 0, 0, constructed_sample))
+
+  constructed_sample <- constructed_sample[seq(from = 1, to = length(constructed_sample), by = new_rate / h)]
+
+  constructed_sample <- constructed_sample[-c((length(constructed_sample) - d * orig_rate / new_rate + 1):length(constructed_sample))]
+  max_trace <- max_trace[-c((length(max_trace) - d):length(max_trace))]
+
+  ## Fine tuning
+  if (is.null(max_trace)) {
+    return(constructed_sample)
+  } else {
+    constructed_max <- convert_frequency_dataset(constructed_sample, orig_rate / new_rate, "max")
+    constructed_max_mean_zero <- constructed_max - mean(constructed_max)
+
+    max_trace_mean_zero <- max_trace - mean(max_trace)
+
+    mse <- sapply(tune_factor, function(p) {
+      error <- mean((max_trace_mean_zero - constructed_max_mean_zero * p) ** 2)
+    })
+
+    constructed_trace <- (constructed_sample - mean(constructed_sample)) * tune_factor[which(mse == min(mse))[1]] + mean(constructed_sample)
+    return(constructed_trace)
+  }
+}

@@ -55,18 +55,18 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained VAR Model.
 setMethod("do_prediction",
-          signature(object = "var_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "data.frame"),
+          signature(object = "var_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "matrix"),
           function(object, trained_result, predict_info, ts_num, test_x, test_xreg) {
             level <- 1 - object@cut_off_prob * 2
             if (nrow(predict_info) == object@extrap_step) {
               trained_result <- trained_result
             } else {
               prev_data <- trained_result$data
+
               new_data <- matrix(nrow = nrow(predict_info) - object@extrap_step, ncol = 2)
-              new_data[,1] <- predict_info$actual[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
-              new_data[,2] <- unlist(lapply(1:(nrow(test_xreg) - 1), function(rownum) {
-                unname(unlist(test_xreg[rownum,]))
-              }))
+
+              new_data[,1] <- convert_frequency_dataset(test_x[, ts_num], object@window_size, object@response)
+              new_data[,2] <- convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)), ts_num], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)])
               trained_result$data <- rbind(prev_data, new_data)
             }
             predict_result <- MTS::VARpred(trained_result, h = object@extrap_step, Out.level = FALSE)

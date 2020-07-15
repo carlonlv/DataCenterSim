@@ -31,7 +31,6 @@ predict_model <- function(object, ts_num, trained_result, test_x, test_xreg, pre
                                   "score_pred_1" = numeric(0),
                                   "score_pred_2" = numeric(0),
                                   stringsAsFactors = FALSE)
-  xreg <- data.frame()
 
   last_time_schedule <- nrow(test_x) - object@window_size + 1
 
@@ -45,12 +44,12 @@ predict_model <- function(object, ts_num, trained_result, test_x, test_xreg, pre
     start_time <- current_end
     end_time <- start_time + object@window_size * object@extrap_step - 1
 
-    if ((length(test_xreg) != 0)) {
-      xreg <- rbind(xreg, convert_frequency_dataset(test_xreg[start_time:end_time], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = FALSE))
-    }
-
     predict_iter <- predict_iter + 1
-    test_predict_info <- do_prediction(object, trained_result, test_predict_info, ts_num, test_x[0:(current_end - 1),], xreg)
+    if (length(test_xreg) == 0) {
+      test_predict_info <- do_prediction(object, trained_result, test_predict_info, ts_num, test_x[0:(start_time - 1),], matrix(nrow = 0, ncol = 0))
+    } else {
+      test_predict_info <- do_prediction(object, trained_result, test_predict_info, ts_num, test_x[0:(start_time - 1),], test_xreg[1:end_time,])
+    }
 
     actual_obs <- stats::setNames(test_x[start_time:end_time, ts_num], rownames(test_x)[start_time:end_time])
     test_predict_info <- check_score_pred(switch_status$train_iter, switch_status$test_iter, predict_iter, object, test_predict_info, actual_obs, adjust_switch)
@@ -178,10 +177,10 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
     test_start <- current + object@train_size + wait_time
     test_end <- current + object@train_size + wait_time + object@update_freq * object@extrap_step * object@window_size - 1
     test_x <- matrix(x[test_start:test_end,], ncol = ncol(x), dimnames = list(rownames(x)[test_start:test_end], colnames(x)))
-    if (!is.null(xreg)) {
-      test_xreg <- matrix(xreg[test_start:test_end,], ncol = ncol(xreg), dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)))
-    } else {
+    if (is.null(xreg)) {
       test_xreg <- matrix(nrow = 0, ncol = 0)
+    } else {
+      test_xreg <- matrix(xreg[test_start:test_end,], ncol = ncol(xreg), dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)))
     }
 
     ## Test Model

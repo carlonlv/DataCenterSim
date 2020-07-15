@@ -101,7 +101,7 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained AR1 Model.
 setMethod("do_prediction",
-          signature(object = "auto_arima_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "data.frame"),
+          signature(object = "auto_arima_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "matrix"),
           function(object, trained_result, predict_info, ts_num, test_x, test_xreg) {
             trained_result <- trained_result[[1]]
             level <- (1 - object@cut_off_prob * 2) * 100
@@ -162,12 +162,12 @@ setMethod("do_prediction",
                 target_model <- forecast::Arima(new_x, model = trained_result)
               } else {
                 # Outliers are considered and found, or external regressor is considered.
-                if (nrow(test_xreg) == 0) {
+                if (length(test_xreg) == 0) {
                   # No external regressor is considered.
-                  new_xreg <- matrix(nrow = nrow(predict_info) - object@extrap_step, ncol = 0)
+                  new_xreg <- matrix(nrow = nrow(prev_xreg), ncol = 0)
                 } else {
                   # External regressor is considered.
-                  new_xreg <- matrix(as.numeric(t(test_xreg[-nrow(test_xreg),])), ncol = 1, byrow = TRUE)
+                  new_xreg <- matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)), ts_num], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), ncol = 1, byrow = TRUE)
                 }
                 if (ncol(new_xreg) < ncol(prev_xreg)) {
                   # Outliers are considered and found.
@@ -185,12 +185,12 @@ setMethod("do_prediction",
               # Outliers are not considered or outliers are not found, and no external regressor is considered.
               predict_result <- forecast::forecast(target_model, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
             } else {
-              if (nrow(test_xreg) == 0) {
+              if (length(test_xreg) == 0) {
                 # No external regressor is considered.
                 dxreg <- matrix(0, nrow = object@extrap_step, ncol = ncol(trained_result$call$xreg))
               } else {
                 # External regressor is considered.
-                dxreg <- matrix(as.numeric(test_xreg[nrow(test_xreg), ]), nrow = object@extrap_step, byrow = TRUE)
+                dxreg <- matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg), ts_num], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), ncol = 1, byrow = TRUE)
                 if (ncol(dxreg) < ncol(trained_result$call$xreg)) {
                   dxreg <- cbind(dxreg, matrix(0, nrow = object@extrap_step, ncol = (ncol(trained_result$call$xreg) - ncol(test_xreg))))
                 }

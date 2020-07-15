@@ -104,7 +104,7 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained Markov Model.
 setMethod("do_prediction",
-          signature(object = "markov_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "data.frame"),
+          signature(object = "markov_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "matrix"),
           function(object, trained_result, predict_info, ts_num, test_x, test_xreg) {
             compute_pi_up <- function(prob, to_states, quantiles=NULL) {
               current_state <- 1
@@ -129,13 +129,13 @@ setMethod("do_prediction",
               if (length(trained_result$train_xreg) == 0) {
                 from <- find_state_num(trained_result$train_x[length(trained_result$train_x)], object@cluster_type, object@state_num, trained_result$quantiles_x)
               } else {
-                from <- find_state_num(test_xreg[nrow(test_xreg), 1], object@cluster_type, object@state_num, trained_result$quantiles_xreg)
+                from <- find_state_num(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size + 1):nrow(test_xreg), ts_num], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), object@cluster_type, object@state_num, trained_result$quantiles_xreg)
               }
             } else {
               if (length(trained_result$train_xreg) == 0) {
                 from <- find_state_num(predict_info$actual[nrow(predict_info) - object@extrap_step], object@cluster_type, object@state_num, trained_result$quantiles_x)
               } else {
-                from <- find_state_num(test_xreg[nrow(test_xreg), 1], object@cluster_type, object@state_num, trained_result$quantiles_xreg)
+                from <- find_state_num(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size + 1):nrow(test_xreg), ts_num], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), object@cluster_type, object@state_num, trained_result$quantiles_xreg)
               }
             }
 

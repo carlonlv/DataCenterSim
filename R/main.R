@@ -46,9 +46,9 @@ predict_model <- function(object, ts_num, trained_result, test_x, test_xreg, pre
 
     predict_iter <- predict_iter + 1
     if (length(test_xreg) == 0) {
-      test_predict_info <- do_prediction(object, trained_result, test_predict_info, ts_num, test_x[0:(start_time - 1),], matrix(nrow = 0, ncol = 0))
+      test_predict_info <- do_prediction(object, trained_result, test_predict_info, ts_num, matrix(test_x[0:(start_time - 1),], ncol = ncol(test_x), dimnames = list(rownames(test_x)[0:(start_time - 1)], colnames(test_x))), matrix(nrow = 0, ncol = 0))
     } else {
-      test_predict_info <- do_prediction(object, trained_result, test_predict_info, ts_num, test_x[0:(start_time - 1),], test_xreg[1:end_time,])
+      test_predict_info <- do_prediction(object, trained_result, test_predict_info, ts_num, matrix(test_x[0:(start_time - 1),], ncol = ncol(test_x), dimnames = list(rownames(test_x)[0:(start_time - 1)], colnames(test_x))), matrix(test_xreg[1:end_time,], ncol = ncol(test_xreg), dimnames = list(rownames(test_xreg)[1:end_time], colnames(test_xreg))))
     }
 
     actual_obs <- stats::setNames(test_x[start_time:end_time, ts_num], rownames(test_x)[start_time:end_time])

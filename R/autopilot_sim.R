@@ -74,11 +74,11 @@ setMethod("train_model",
             max_len <- floor(log2(object@cut_off_weight) * (-object@half_life))
             if (length(trained_model) == 0) {
               trained_result <- lapply(seq(from = nrow(train_x), by = -object@window_size, length.out = min(nrow(train_x) %/% object@window_size, max_len)), function(s) {
-                graphics::hist(train_x[(s - object@window_size + 1):s,], breaks = breaks, plot = FALSE)
+                graphics::hist(train_x[(s - object@window_size + 1):s, ts_num], breaks = breaks, plot = FALSE)
               })
             } else {
               hist_x <- lapply(seq(from = nrow(train_x), by = -object@window_size, length.out = object@update_freq), function(s) {
-                graphics::hist(train_x[(s - object@window_size + 1):s,], breaks = breaks, plot = FALSE)
+                graphics::hist(train_x[(s - object@window_size + 1):s, ts_num], breaks = breaks, plot = FALSE)
               })
 
               forget_num <- length(trained_model) + length(hist_x) - max_len

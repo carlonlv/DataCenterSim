@@ -626,6 +626,8 @@ discretization <- function(breakpoints, vec){
 #' @param d A numeric integer representing the distance of nearest neighbourhood to take into account in sinc function. Passed into function \code{signal::resample}.
 #' @param tune_factor A numeric vector representing the percentage change in fine tuning that should be taken into account.
 trace_reconstruct <- function(avg_trace, max_trace=NULL, orig_rate, new_rate, h=new_rate, d, tune_factor=seq(from = 0.08, to = 2.00, by = 0.01)) {
+  avg_trace <- rev(avg_trace)
+
   ## Taking integral of average trace
   int_avg_trace <- cumsum(avg_trace * orig_rate)
 
@@ -633,27 +635,27 @@ trace_reconstruct <- function(avg_trace, max_trace=NULL, orig_rate, new_rate, h=
   int_sample <- signal::resample(int_avg_trace, p = orig_rate, q = h, d = d)
 
   constructed_sample <- diff(int_sample) / h
-  constructed_sample <- ifelse(constructed_sample > 100, 100, ifelse(constructed_sample < 0, 0, constructed_sample))
 
   constructed_sample <- constructed_sample[seq(from = 1, to = length(constructed_sample), by = new_rate / h)]
-
-  constructed_sample <- constructed_sample[-c((length(constructed_sample) - d * orig_rate / new_rate + 1):length(constructed_sample))]
-  max_trace <- max_trace[-c((length(max_trace) - d):length(max_trace))]
+  constructed_sample <- constructed_sample[-c((length(constructed_sample) - d * orig_rate / new_rate + 2):length(constructed_sample))]
+  constructed_sample <- rev(constructed_sample)
+  constructed_sample <- ifelse(constructed_sample > 100, 100, ifelse(constructed_sample < 0, 0, constructed_sample))
+  max_trace <- max_trace[-c(1:d)]
 
   ## Fine tuning
   if (is.null(max_trace)) {
     return(constructed_sample)
   } else {
-    constructed_max <- convert_frequency_dataset(constructed_sample, orig_rate / new_rate, "max")
-    constructed_max_mean_zero <- constructed_max - mean(constructed_max)
-
     max_trace_mean_zero <- max_trace - mean(max_trace)
 
-    mse <- sapply(tune_factor, function(p) {
-      error <- mean((max_trace_mean_zero - constructed_max_mean_zero * p) ** 2)
-    })
+    window_num <- length(max_trace)
 
-    constructed_trace <- (constructed_sample - mean(constructed_sample)) * tune_factor[which(mse == min(mse))[1]] + mean(constructed_sample)
-    return(constructed_trace)
+    for (i in 1:window_num) {
+      from <- 1 + (i - 1) * (orig_rate / new_rate)
+      to <- i * (orig_rate / new_rate)
+      coeff <- max_trace[i] / max(constructed_sample[from:to])
+      constructed_sample[from:to] <- coeff * constructed_sample[from:to]
+    }
+    return(constructed_sample)
   }
 }

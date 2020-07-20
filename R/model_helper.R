@@ -624,8 +624,7 @@ discretization <- function(breakpoints, vec){
 #' @param new_rate A numeric positive integer that is typicall smaller that the frequency of \code{avg_trace} and \code{max_trace}.
 #' @param h A numeric value representing the granularity for numerical differentiation, \eqn{(f(x+h) - f(x)) / h}, must be smaller or equal to the value of \code{new_freq}. Default value is \code{new_rate}.
 #' @param d A numeric integer representing the distance of nearest neighbourhood to take into account in sinc function. Passed into function \code{signal::resample}.
-#' @param tune_factor A numeric vector representing the percentage change in fine tuning that should be taken into account.
-trace_reconstruct <- function(avg_trace, max_trace=NULL, orig_rate, new_rate, h=new_rate, d, tune_factor=seq(from = 0.08, to = 2.00, by = 0.01)) {
+trace_reconstruct <- function(avg_trace, max_trace=NULL, orig_rate, new_rate, h=new_rate, d) {
   avg_trace <- rev(avg_trace)
 
   ## Taking integral of average trace

@@ -10,8 +10,7 @@ trace_reconstruct(
   orig_rate,
   new_rate,
   h = new_rate,
-  d,
-  tune_factor = seq(from = 0.08, to = 2, by = 0.01)
+  d
 )
 }
 \arguments{
@@ -26,8 +25,6 @@ trace_reconstruct(
 \item{h}{A numeric value representing the granularity for numerical differentiation, \eqn{(f(x+h) - f(x)) / h}, must be smaller or equal to the value of \code{new_freq}. Default value is \code{new_rate}.}
 
 \item{d}{A numeric integer representing the distance of nearest neighbourhood to take into account in sinc function. Passed into function \code{signal::resample}.}
-
-\item{tune_factor}{A numeric vector representing the percentage change in fine tuning that should be taken into account.}
 }
 \description{
 Reconstruct a more granular trace of frequency \code{new_sample_freq} based on Nyquist–Shannon sampling theorem with assumption that the frequency of the original trace must not contain frequencies higher than 1/2 of the \code{new_sample_freq}.

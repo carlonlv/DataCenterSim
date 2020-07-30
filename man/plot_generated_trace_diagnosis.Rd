@@ -4,12 +4,14 @@
 \alias{plot_generated_trace_diagnosis}
 \title{Plot the Diagnosis of Generated Traces}
 \usage{
+plot_generated_trace_diagnosis(
   generated_trace,
   max_trace,
   avg_trace,
   orig_rate,
   new_rate,
   trace_name = NULL,
+  ...
 )
 }
 \arguments{

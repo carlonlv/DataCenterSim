@@ -193,19 +193,20 @@ machines_select <- function(machine_list, prob_vec_lst, job_info, constraint_pro
 #' @param predict_info A dataframe containing all the job scheduling information.
 #' @param machine_available_resources A numeric number representing all the available resources across all machines of all time.
 #' @param sim_end_time A numeric number representing the finish time of simulation.
+#' @param window_multiplier A numeric number representing the multiplier for delayed time and scheduled time.
 #' @return A list containing utilization for finished jobs and utilization for total jobs.
-compute_summary_performance <- function(predict_info, machine_available_resources, sim_end_time) {
+compute_summary_performance <- function(predict_info, machine_available_resources, sim_end_time, window_multiplier) {
   finished_jobs <- predict_info[predict_info$status == 1,]
   killed_jobs <- predict_info[predict_info$status == 2,]
   ongoing_jobs <- predict_info[predict_info$status == 0,]
 
   finished_numerator <- sum(finished_jobs$requestedCPU * finished_jobs$scheduled_time)
-  total_numerator <- finished_numerator + sum(killed_jobs$requestedCPU * (killed_jobs$terminate_time - (killed_jobs$arrival_time + killed_jobs$delayed_time) + 1)) + sum(ongoing_jobs$requestedCPU * (sim_end_time - (ongoing_jobs$arrival_time + ongoing_jobs$delayed_time) + 1))
+  total_numerator <- finished_numerator + sum(killed_jobs$requestedCPU * ((killed_jobs$terminate_time - killed_jobs$arrival_time - killed_jobs$delayed_time * window_multiplier) / window_multiplier + 1)) + sum(ongoing_jobs$requestedCPU * ((sim_end_time - ongoing_jobs$arrival_time - ongoing_jobs$delayed_time * window_multiplier) / window_multiplier + 1))
   optimistic_numerator <- sum(predict_info$requestedCPU * predict_info$scheduled_time)
 
   denominator <- machine_available_resources
 
-  result <- list("fnished_utilization" = finished_numerator / denominator,
+  result <- list("finished_utilization" = finished_numerator / denominator,
                  "total_utilization" = total_numerator / denominator,
                  "optimistic_utlization" = optimistic_numerator / denominator,
                  "survival_rate" = sum(predict_info$status == 1) / sum(predict_info$status == 1 | predict_info$status == 2),
@@ -237,17 +238,18 @@ compute_summary_performance <- function(predict_info, machine_available_resource
 #' @export
 run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, sim_length, background_x, background_xreg, pred_length, bins=c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
   sim_object <- methods::as(param_setting_sim, "sim")[[1]]
+  window_multiplier <- sim_object@window_size
 
   if (cores == 1) {
     fg_predict_info_lst <- lapply(1:ncol(foreground_x), function(ts_num) {
       lapply(bins[-1], function(bin) {
         lapply(0:(bin - 1), function(offs) {
-          trace_length <- sim_object@train_size + sim_length
-          sim_object@window_size <- bin
+          trace_length <- sim_object@train_size + sim_length * window_multiplier
+          sim_object@window_size <- bin * window_multiplier
           if (is.null(foreground_xreg)) {
-            svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = NULL, start_point = 1 + offs, write_type = "None", plot_type = "None")[["predict_info"]]
+            svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
           } else {
-            svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = foreground_xreg[1:trace_length,], start_point = 1 + offs, write_type = "None", plot_type = "None")[["predict_info"]]
+            svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = foreground_xreg[1:trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
           }
         })
       })
@@ -256,12 +258,12 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     fg_predict_info_lst <- parallel::mclapply(1:ncol(foreground_x), function(ts_num) {
       lapply(bins[-1], function(bin) {
         lapply(0:(bin - 1), function(offs) {
-          trace_length <- sim_object@train_size + sim_length
-          sim_object@window_size <- bin
+          trace_length <- sim_object@train_size + sim_length * window_multiplier
+          sim_object@window_size <- bin * window_multiplier
           if (is.null(foreground_xreg)) {
-            svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = NULL, start_point = 1 + offs, write_type = "None", plot_type = "None")[["predict_info"]]
+            svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
           } else {
-            svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = foreground_xreg[1:trace_length,], start_point = 1 + offs, write_type = "None", plot_type = "None")[["predict_info"]]
+            svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = foreground_xreg[1:trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
           }
         })
       })
@@ -275,15 +277,15 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
   bg_predict_info_lst <- predicting_pred(pred_object, background_x[1:job_length], background_xreg[1:job_length,])
   prob_vec_lst <- bg_predict_info_lst$trained_model$prob
   bg_predict_info <- bg_predict_info_lst$predict_info
-  bg_predict_info[, "timestamp"] <- sim_object@train_size + sample.int(sim_length, pred_length, TRUE)
+  bg_predict_info[, "timestamp"] <- sim_object@train_size + sample((1:sim_length) * window_multiplier, pred_length, TRUE)
   bg_predict_info <- dplyr::inner_join(bg_predict_info, background_xreg, by = c("job_id" = "job_ID"))
 
   predict_info <- data.frame()
 
   machine_total_resource <- 0
 
-  current_time <- sim_object@train_size + 1
-  while (current_time <= sim_object@train_size + sim_length) {
+  current_time <- sim_object@train_size + window_multiplier
+  while (current_time <= sim_object@train_size + sim_length * window_multiplier) {
 
     ## Job Arrival
     arrival_jobs <- bg_predict_info[bg_predict_info$timestamp == current_time,]
@@ -301,8 +303,8 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         machine_info_pi_up[[i]] <- sapply(1:length(bins[-1]), function(bin_idx) {
           bin <- bins[-1][bin_idx]
 
-          quot <- (current_time - sim_object@train_size - 1) %/% bin + 1
-          remain <- (current_time - sim_object@train_size - 1) %% bin + 1
+          quot <- ((current_time - sim_object@train_size - window_multiplier) / window_multiplier) %/% bin + 1
+          remain <- ((current_time - sim_object@train_size - window_multiplier) / window_multiplier) %% bin + 1
 
           predict_info <- fg_predict_info_lst[[i]][[bin_idx]][[remain]]
           if (quot > nrow(predict_info)) {
@@ -352,7 +354,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     }
 
     machine_info_actual <- sapply(1:ncol(foreground_x), function(ts_num) {
-      quot <- current_time - sim_object@train_size
+      quot <- (current_time - sim_object@train_size) / window_multiplier
       predict_info <- fg_predict_info_lst[[ts_num]][[1]][[1]]
       return(predict_info[quot, "actual"])
     })
@@ -386,10 +388,10 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         }
       }
     }
-    current_time <- current_time + 1
+    current_time <- current_time + window_multiplier
   }
 
-  summ <- compute_summary_performance(predict_info, machine_total_resource, current_time - 1)
+  summ <- compute_summary_performance(predict_info, machine_total_resource, current_time - window_multiplier, window_multiplier)
 
   if (!("none" %in% write_type)) {
     write_sim_result(predict_info, "other", paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc)

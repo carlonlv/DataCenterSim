@@ -7,7 +7,8 @@
 compute_summary_performance(
   predict_info,
   machine_available_resources,
-  sim_end_time
+  sim_end_time,
+  window_multiplier
 )
 }
 \arguments{
@@ -16,6 +17,8 @@ compute_summary_performance(
 \item{machine_available_resources}{A numeric number representing all the available resources across all machines of all time.}
 
 \item{sim_end_time}{A numeric number representing the finish time of simulation.}
+
+\item{window_multiplier}{A numeric number representing the multiplier for delayed time and scheduled time.}
 }
 \value{
 A list containing utilization for finished jobs and utilization for total jobs.

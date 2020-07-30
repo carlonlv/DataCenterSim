@@ -336,3 +336,56 @@ plot_ecdf_acf <- function(dataset1, dataset2=NULL, lags, freqs, corr_method = "p
 }
 
 
+#' Plot the Diagnosis of Generated Traces
+#'
+#' Plot the generated trace and the actual maximum and average to compare.
+#' @param generated_trace A numeric value representing generated trace.
+#' @param max_trace A numeric vector that represents the maximum trace with sample length as \code{max_trace} and same sampled rate. Used for fine tuning of the generated trace, or \code{NULL}. Default value is \code{NULL}.
+#' @param avg_trace A numeric vector that represents the average trace taken in a fixed sampled rate.
+#' @param orig_rate A numeric positive integer that is typicall smaller that the frequency of \code{avg_trace} and \code{max_trace}.
+#' @param new_rate A numeric positive integer that is typicall smaller that the frequency of \code{avg_trace} and \code{max_trace}.
+#' @param trace_name A character or NULL acting as an identifier for the trace.
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
+#' @rdname plot_generated_trace_diagnosis
+#' @export
+plot_generated_trace_diagnosis <- function(generated_trace, max_trace, avg_trace, orig_rate, new_rate, trace_name=NULL, ...) {
+  orig_time <- 1:length(max_trace) * orig_rate
+  new_time <- seq(to = length(max_trace) * orig_rate, by = new_rate, length.out = length(generated_trace))
+
+  gen_df <- data.frame("CPU" = generated_trace,
+                       "t" = new_time,
+                       "type" = "original",
+                       "generated" = TRUE,
+                       stringsAsFactors = FALSE)
+
+  agg_max <- convert_frequency_dataset(generated_trace, orig_rate / new_rate, "max")
+  agg_max <- c(rep(NA, length(max_trace) - length(agg_max)), agg_max)
+  max_df <- data.frame("CPU" = c(max_trace, agg_max),
+                              "t" = c(orig_time, orig_time),
+                              "type" = "windowed_max",
+                              "generated" = c(rep(FALSE, length(max_trace)), rep(TRUE, length(agg_max))),
+                              stringsAsFactors = FALSE)
+
+  agg_avg <- convert_frequency_dataset(generated_trace, orig_rate / new_rate, "avg")
+  agg_avg <- c(rep(NA, length(avg_trace) - length(agg_avg)), agg_avg)
+  avg_df <- data.frame("CPU" = c(avg_trace, agg_avg),
+                              "t" = c(orig_time, orig_time),
+                              "type" = "windowed_avg",
+                              "generated" = c(rep(FALSE, length(max_trace)), rep(TRUE, length(agg_max))),
+                              stringsAsFactors = FALSE)
+
+  pooled_df <- rbind(gen_df, max_df, avg_df)
+  comp_plt <- ggplot2::ggplot(pooled_df, aes(y = CPU, x = t)) +
+    ggplot2::facet_wrap(vars(type), ncol = 1) +
+    ggplot2::geom_line(data = subset(pooled_df, type == "original"), aes(y = CPU, x = t), col = "black") +
+    ggplot2::geom_line(data = subset(pooled_df, type == "windowed_max"), aes(y = CPU, x = t, colour = generated, alpha = generated), na.rm = TRUE) +
+    ggplot2::geom_line(data = subset(pooled_df, type == "windowed_avg"), aes(y = CPU, x = t, colour = generated, alpha = generated), na.rm = TRUE) +
+    ggplot2::scale_alpha_discrete("generated", range = c(0.5, 0.8)) +
+    ggplot2::ylab("CPU Utilization") +
+    ggplot2::ggtitle(paste("CPU Utilization of Generated Trace at", new_rate, "and Actual Maximum and Average at", orig_rate))
+
+  file_name <- paste("Diagnosis of Generated", trace_name, "at", new_rate)
+  save_path <- write_location_check(file_name = file_name, ...)
+  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = comp_plt, width = 12, height = 7)
+  invisible()
+}

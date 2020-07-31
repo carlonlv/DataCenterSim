@@ -200,9 +200,9 @@ compute_summary_performance <- function(predict_info, machine_available_resource
   killed_jobs <- predict_info[predict_info$status == 2,]
   ongoing_jobs <- predict_info[predict_info$status == 0,]
 
-  finished_numerator <- sum(finished_jobs$requestedCPU * finished_jobs$scheduled_time)
-  total_numerator <- finished_numerator + sum(killed_jobs$requestedCPU * ((killed_jobs$terminate_time - killed_jobs$arrival_time - killed_jobs$delayed_time * window_multiplier) / window_multiplier + 1)) + sum(ongoing_jobs$requestedCPU * ((sim_end_time - ongoing_jobs$arrival_time - ongoing_jobs$delayed_time * window_multiplier) / window_multiplier + 1))
-  optimistic_numerator <- sum(predict_info$requestedCPU * predict_info$scheduled_time)
+  finished_numerator <- sum(finished_jobs$requestedCPU * finished_jobs$scheduled_time / window_multiplier)
+  total_numerator <- finished_numerator + sum(killed_jobs$requestedCPU * ((killed_jobs$terminate_time - killed_jobs$arrival_time - killed_jobs$delayed_time + window_multiplier) / window_multiplier)) + sum(ongoing_jobs$requestedCPU * ((sim_end_time - ongoing_jobs$arrival_time - ongoing_jobs$delayed_time + window_multiplier) / window_multiplier))
+  optimistic_numerator <- sum(predict_info$requestedCPU * predict_info$scheduled_time / window_multiplier)
 
   denominator <- machine_available_resources
 
@@ -319,7 +319,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
       if (nrow(active_jobs) > 0) {
         for (i in 1:nrow(active_jobs)) {
           active_job <- active_jobs[i,]
-          actual_runtime <- active_job$scheduled_time
+          actual_runtime <- active_job$scheduled_time / window_multiplier
           actual_runtime_bin <- which(actual_runtime == bins[-1])
           machine_info_pi_up[[active_job$scheduled_machine]] <- machine_update(machine_info_pi_up[[active_job$scheduled_machine]], actual_runtime_bin, active_job$requestedCPU)
         }
@@ -336,9 +336,9 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
         if (is.na(scheduler_score$machine_id)) {
           if (job_id %in% predict_info$job_id) {
-            predict_info[predict_info$job_id == job_id, "delayed_time"] <- predict_info[predict_info$job_id == job_id, "delayed_time"] + 1
+            predict_info[predict_info$job_id == job_id, "delayed_time"] <- predict_info[predict_info$job_id == job_id, "delayed_time"] + window_multiplier
           } else {
-            predict_info <- rbind(predict_info, data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = 1, "scheduled_machine" = NA, "scheduled_score" = NA, "scheduled_time" = actual_runtime, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 3))
+            predict_info <- rbind(predict_info, data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = window_multiplier, "scheduled_machine" = NA, "scheduled_score" = NA, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 3))
           }
         } else {
           if (job_id %in% predict_info$job_id) {
@@ -346,7 +346,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
             predict_info[predict_info$job_id == job_id, "scheduled_score"] <- scheduler_score$score
             predict_info[predict_info$job_id == job_id, "status"] <- 0
           } else {
-            predict_info <- rbind(predict_info, data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = 0, "scheduled_machine" = scheduler_score$machine_id, "scheduled_score" = scheduler_score$score, "scheduled_time" = actual_runtime, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 0))
+            predict_info <- rbind(predict_info, data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = 0, "scheduled_machine" = scheduler_score$machine_id, "scheduled_score" = scheduler_score$score, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 0))
           }
           machine_info_pi_up[[scheduler_score$machine_id]] <- machine_update(machine_info_pi_up[[scheduler_score$machine_id]], actual_runtime_bin, requested_CPU)
         }
@@ -371,7 +371,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         requested_CPU <- active_jobs[job_idx, "requestedCPU"]
         scheduled_time <- active_jobs[job_idx, "arrival_time"] + active_jobs[job_idx, "delayed_time"]
         actual_time <- active_jobs[job_idx, "scheduled_time"]
-        terminate_time <- scheduled_time + actual_time - 1
+        terminate_time <- scheduled_time + actual_time - window_multiplier
 
         if (job_id %in% job_decisions$killed) {
           ## Kill Job

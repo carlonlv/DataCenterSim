@@ -33,8 +33,8 @@ machine_survival <- function(machine_list, job_list, current_time, cores) {
       } else if (resource_diff > 0) {
         min_kill_num <- 0
         while (total_requested_resource > machine_available_resource) {
-          total_requested_resource <- total_requested_resource - other_info$requestedCPU[min_kill_num + 1]
           min_kill_num <- min_kill_num + 1
+          total_requested_resource <- total_requested_resource - other_info$requestedCPU[min_kill_num]
         }
 
         job_process_time <- current_time - (other_info[1:min_kill_num, "arrival_time"] + other_info[1:min_kill_num, "delayed_time"]) + 1
@@ -85,8 +85,8 @@ machine_survival <- function(machine_list, job_list, current_time, cores) {
       } else if (resource_diff > 0) {
         min_kill_num <- 0
         while (total_requested_resource > machine_available_resource) {
-          total_requested_resource <- total_requested_resource - other_info$requestedCPU[min_kill_num + 1]
           min_kill_num <- min_kill_num + 1
+          total_requested_resource <- total_requested_resource - other_info$requestedCPU[min_kill_num]
         }
 
         job_process_time <- current_time - (other_info[1:min_kill_num, "arrival_time"] + other_info[1:min_kill_num, "delayed_time"]) + 1

@@ -32,7 +32,7 @@ machine_survival <- function(machine_list, job_list, current_time, cores) {
         decision[["unknown"]] <- c(decision[["unknown"]], other_info$job_id)
       } else if (resource_diff > 0) {
         min_kill_num <- 0
-        while (total_requested_resource > machine_available_resource) {
+        while ((total_requested_resource > machine_available_resource) & (min_kill_num < nrow(other_info))) {
           min_kill_num <- min_kill_num + 1
           total_requested_resource <- total_requested_resource - other_info$requestedCPU[min_kill_num]
         }
@@ -84,7 +84,7 @@ machine_survival <- function(machine_list, job_list, current_time, cores) {
         decision[["unknown"]] <- c(decision[["unknown"]], other_info$job_id)
       } else if (resource_diff > 0) {
         min_kill_num <- 0
-        while (total_requested_resource > machine_available_resource) {
+        while ((total_requested_resource > machine_available_resource) & (min_kill_num < nrow(other_info))) {
           min_kill_num <- min_kill_num + 1
           total_requested_resource <- total_requested_resource - other_info$requestedCPU[min_kill_num]
         }

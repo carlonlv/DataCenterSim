@@ -3,6 +3,7 @@
 export()
 export(anovatree_pred)
 export(arima_sim)
+export(auto_detect_parameters)
 export(autopilot_sim)
 export(get_characteristic_slots)
 export(get_hidden_slots)

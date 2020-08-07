@@ -86,20 +86,18 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
     msg4 <- paste("No underperformed traces detected for Score 1 adjusted.")
   }
 
-  result1 <- data.frame("score1" = score1, "score_adj1" = score_adj1)
-  plt1 <- ggplot2::ggplot(result1) +
-    ggplot2::geom_histogram(aes_string(x = "score1"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
-    ggplot2::geom_histogram(aes_string(x = "score_adj1"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
+  plt1 <- ggplot2::ggplot(param_score) +
+    ggplot2::geom_histogram(aes_string(x = "score1.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
+    ggplot2::geom_histogram(aes_string(x = "score1_adj.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
     ggplot2::theme(legend.position = "none") +
     ggplot2::ggtitle("Performance of Score 1") +
     ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = 6), hjust = 0, label = c(msg[1], msg[2], msg1, msg2, msg3, msg4)) +
     ggplot2::geom_vline(xintercept = target, linetype = "dashed", color = "purple") +
     ggplot2::xlab("Score 1")
 
-  result2 <- data.frame("score2" = score2, "score_adj2" = score_adj2)
-  plt2 <- ggplot2::ggplot(result2) +
-    ggplot2::geom_histogram(aes_string(x = "score2"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
-    ggplot2::geom_histogram(aes_string(x = "score_adj2"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
+  plt2 <- ggplot2::ggplot(param_score) +
+    ggplot2::geom_histogram(aes_string(x = "score2.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
+    ggplot2::geom_histogram(aes_string(x = "score2_adj.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
     ggplot2::theme(legend.position = "none") +
     ggplot2::ggtitle("Performance of Score 2") +
     ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = 2), hjust = 0, label = c(msg[3], msg[4])) +
@@ -110,7 +108,7 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
   save_path <- write_location_check(file_name = file_name, ...)
   ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 12, height = 7)
 
-  result3 <- data.frame("score1.n" = c(score1.n, score1_adj.n), "score1.w" = c(score1.w, score1_adj.w), "adjusted" = c(rep(FALSE, length(score1.n)), rep(TRUE, length(score1_adj.n))))
+  result3 <- data.frame("score1.n" = c(param_score$score1.n, param_score$score1_adj.n), "score1.w" = c(param_score$score1.w, param_score$score1_adj.w), "adjusted" = c(rep(FALSE, length(param_score$score1.n)), rep(TRUE, length(param_score$score1_adj.n))))
   plt3 <- ggplot2::ggplot(result3) +
     ggplot2::stat_density2d(aes_string(x = "score1.n", y = "score1.w", color = "..level..", linetype = "adjusted"), na.rm = TRUE, bins = c(30, 2000)) +
     ggplot2::scale_color_distiller(type = "div", palette = 9, direction = 1) +
@@ -121,7 +119,7 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
     ggplot2::ylab("Score 1 Weight") +
     ggplot2::ggtitle("2D Histogram of Score1")
 
-  result3 <- data.frame("score2.n" = c(score2.n, score2_adj.n), "score2.w" = c(score2.w, score2_adj.w), "adjusted" = c(rep(FALSE, length(score2.n)), rep(TRUE, length(score2_adj.n))))
+  result3 <- data.frame("score2.n" = c(param_score$score2.n, param_score$score2_adj.n), "score2.w" = c(param_score$score2.w, param_score$score2_adj.w), "adjusted" = c(rep(FALSE, length(param_score$score2.n)), rep(TRUE, length(param_score$score2_adj.n))))
   plt4 <- ggplot2::ggplot(result3) +
     ggplot2::stat_density2d(aes_string(x = "score2.n", y = "score2.w", color = "..level..", linetype = "adjusted"), na.rm = TRUE) +
     ggplot2::scale_color_distiller(type = "div", palette = 7, direction = 1) +

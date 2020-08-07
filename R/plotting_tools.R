@@ -1,37 +1,47 @@
+#' Automatically Detect Parameters in Charwise Summary
+#'
+#' Only used for charwise summary dataframe, used for creating mapping for aesthetics for platting using \code{plot_sim_charwise}.
+#' @param charwise_summ A dataframe containing the scores in all parameter settings and their performance.
+#' @rdname plot_sim_charwise
+#' @export
+auto_detect_parameters <- function(charwise_summ) {
+  charwise_summ <- charwise_summ[, which(!(colnames(charwise_summ) %in% c("score1.n", "score1.w", "score1_adj.n", "score1_adj.w", "score2.n", "score2.w", "score2_adj.n", "score2_adj.w")))]
+  return(colnames(charwise_summ)[sapply(1:ncol(charwise_summ), function(i) {
+    param <- as.factor(charwise_summ[,i])
+    return(ifelse(length(levels(param)) > 1, TRUE, FALSE))
+  })])
+}
+
+
 #' Plot Simulation Result Type Charwise
 #'
 #' Plot charwise result for simulation with each datapoint corresponds to average scores of all traces with one configuration.
 #' @param charwise_summ A dataframe containing the scores in all parameter settings and their performance.
 #' @param name A character that represents the identifier or name of the plot.
+#' @param mapping A named list with keys representing graphical aesthetics parameters and values represetning columnames of \code{charwise_summ} to be mapped to.
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
 #' @rdname plot_sim_charwise
 #' @export
-plot_sim_charwise <- function(charwise_summ, name, ...) {
-  window_size_update_freq <- paste(charwise_summ$window_size, charwise_summ$update_freq)
-  charwise_summ$window_size_update_freq <- window_size_update_freq
-  model_num_train_size <- paste(charwise_summ$model_num, charwise_summ$train_size)
-  charwise_summ$model_num_train_size <- model_num_train_size
-  react_speed <- charwise_summ$react_speed
-  score1 <- charwise_summ$score1.n
-  score2 <- charwise_summ$score2.n
-  score1_adj <- charwise_summ$score1_adj.n
-  score2_adj <- charwise_summ$score2_adj.n
-  granularity <- charwise_summ$granularity
-  cut_off_prob <- charwise_summ$cut_off_prob
+plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size", alpha = "granularity", fill = "react_speed", color = "model_num"), name, ...) {
+  for (i in mapping) {
+    charwise_summ[,i] <- as.factor(charwise_summ[,i])
+  }
+  if (!is.null(charwise_summ[, "cut_off_prob"])) {
+    charwise_summ[, "cut_off_prob"] <- as.factor(charwise_summ[, "cut_off_prob"])
+  }
 
-  plt <- ggplot2::ggplot(charwise_summ, aes(shape = window_size_update_freq, alpha = factor(granularity), fill = factor(react_speed), color = factor(model_num_train_size))) +
-    ggplot2::geom_point(aes(x = score1, y = score2, group = 1, size = "FALSE"), na.rm = TRUE) +
-    ggplot2::geom_point(aes(x = score1_adj, y = score2_adj, group = 2, size = "TRUE"), na.rm = TRUE) +
-    ggplot2::stat_ellipse(aes(x = score1, y = score2, linetype = factor(cut_off_prob), group = 3), color = "red", type = "norm") +
-    ggplot2::stat_ellipse(aes(x = score1_adj, y = score2_adj, linetype = factor(cut_off_prob), group = 4), color = "blue", type = "norm") +
+  plt <- ggplot2::ggplot(charwise_summ, do.call(aes_string, mapping)) +
+    ggplot2::geom_point(aes_string(x = "score1.n", y = "score2.n", group = 1, size = "FALSE"), na.rm = TRUE) +
+    ggplot2::geom_point(aes_string(x = "score1_adj.n", y = "score2_adj.n", group = 2, size = "TRUE"), na.rm = TRUE) +
+    ggplot2::stat_ellipse(aes_string(x = "score1.n", y = "score2.n", linetype = "cut_off_prob", group = 3), color = "red", type = "norm") +
+    ggplot2::stat_ellipse(aes_string(x = "score1_adj.n", y = "score2_adj.n", linetype = "cut_off_prob", group = 4), color = "blue", type = "norm") +
     ggplot2::geom_vline(xintercept = 0.99, linetype = "dashed", color = "red") +
     ggplot2::ylab("Score 2") +
     ggplot2::xlab("Score 1") +
-    ggplot2::scale_color_brewer(name = "model_num by train_size", palette = "Set1", guide = ggplot2::guide_legend(ncol = 2)) +
-    ggplot2::scale_fill_brewer(name = "react_speed", palette = "Set3") +
-    ggplot2::scale_linetype(name = "cut_off_prob", guide = ggplot2::guide_legend(ncol = 2)) +
-    ggplot2::scale_shape_manual(name = "window_size by update_freq", values = 21:25, guide = ggplot2::guide_legend(ncol = 2)) +
-    ggplot2::scale_alpha_discrete(name = "granularity", guide = ggplot2::guide_legend(ncol = 2)) +
+    ggplot2::scale_color_brewer(name = ifelse(is.null(mapping[["color"]]), "empty", mapping[["color"]]), palette = "Set1", guide = ggplot2::guide_legend(ncol = 2)) +
+    ggplot2::scale_fill_brewer(name = ifelse(is.null(mapping[["fill"]]), "empty", mapping[["fill"]]), palette = "Set3", guide = ggplot2::guide_legend(ncol =  2)) +
+    ggplot2::scale_shape_manual(name = ifelse(is.null(mapping[["shape"]]), "empty", mapping[["shape"]]), values = 21:25, guide = ggplot2::guide_legend(ncol = 2)) +
+    ggplot2::scale_alpha_discrete(name = ifelse(is.null(mapping[["alpha"]]), "empty", mapping[["alpha"]]), guide = ggplot2::guide_legend(ncol = 2)) +
     ggplot2::scale_size_manual(name = "adjusted", values = c("FALSE" = 4, "TRUE" = 6), guide = ggplot2::guide_legend(ncol = 2)) +
     ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2)) +
     ggplot2::ggtitle(paste("Model Performance at", name))
@@ -41,7 +51,6 @@ plot_sim_charwise <- function(charwise_summ, name, ...) {
   ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 12, height = 7)
   invisible()
 }
-
 
 #' Plot Simulation Result Type Tracewise
 #'
@@ -77,24 +86,20 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
     msg4 <- paste("No underperformed traces detected for Score 1 adjusted.")
   }
 
-  score1 <- param_score$score1.n
-  score_adj1 <- param_score$score1_adj.n
   result1 <- data.frame("score1" = score1, "score_adj1" = score_adj1)
   plt1 <- ggplot2::ggplot(result1) +
-    ggplot2::geom_histogram(aes(x = score1), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
-    ggplot2::geom_histogram(aes(x = score_adj1), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
+    ggplot2::geom_histogram(aes_string(x = "score1"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
+    ggplot2::geom_histogram(aes_string(x = "score_adj1"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
     ggplot2::theme(legend.position = "none") +
     ggplot2::ggtitle("Performance of Score 1") +
     ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = 6), hjust = 0, label = c(msg[1], msg[2], msg1, msg2, msg3, msg4)) +
     ggplot2::geom_vline(xintercept = target, linetype = "dashed", color = "purple") +
     ggplot2::xlab("Score 1")
 
-  score2 <- param_score$score2.n
-  score_adj2 <- param_score$score2_adj.n
   result2 <- data.frame("score2" = score2, "score_adj2" = score_adj2)
   plt2 <- ggplot2::ggplot(result2) +
-    ggplot2::geom_histogram(aes(x = score2), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
-    ggplot2::geom_histogram(aes(x = score_adj2), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
+    ggplot2::geom_histogram(aes_string(x = "score2"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
+    ggplot2::geom_histogram(aes_string(x = "score_adj2"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
     ggplot2::theme(legend.position = "none") +
     ggplot2::ggtitle("Performance of Score 2") +
     ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = 2), hjust = 0, label = c(msg[3], msg[4])) +
@@ -105,33 +110,22 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
   save_path <- write_location_check(file_name = file_name, ...)
   ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 12, height = 7)
 
-
-  score1.n <- param_score$score1.n
-  score1.w <- param_score$score1.w
-  score1_adj.n <- param_score$score1_adj.n
-  score1_adj.w <- param_score$score1_adj.w
   result3 <- data.frame("score1.n" = c(score1.n, score1_adj.n), "score1.w" = c(score1.w, score1_adj.w), "adjusted" = c(rep(FALSE, length(score1.n)), rep(TRUE, length(score1_adj.n))))
-  adjusted <- result3$adjusted
   plt3 <- ggplot2::ggplot(result3) +
-    ggplot2::stat_density2d(aes(x = score1.n, y = score1.w, color = ..level.., linetype = factor(adjusted)), na.rm = TRUE, bins = c(30, 2000)) +
+    ggplot2::stat_density2d(aes_string(x = "score1.n", y = "score1.w", color = "..level..", linetype = "adjusted"), na.rm = TRUE, bins = c(30, 2000)) +
     ggplot2::scale_color_distiller(type = "div", palette = 9, direction = 1) +
-    ggplot2::geom_point(aes(x = score1.n, y = score1.w, fill = factor(adjusted)), alpha = 0.8, na.rm = TRUE, shape = 21) +
+    ggplot2::geom_point(aes_string(x = "score1.n", y = "score1.w", fill = "adjusted"), alpha = 0.8, na.rm = TRUE, shape = 21) +
     ggplot2::scale_fill_brewer(name = "adjusted", type = "div", palette = 2) +
     ggplot2::scale_linetype(name = "adjusted") +
     ggplot2::xlab("Score 1 Value") +
     ggplot2::ylab("Score 1 Weight") +
     ggplot2::ggtitle("2D Histogram of Score1")
 
-  score2.n <- param_score$score2.n
-  score2.w <- param_score$score2.w
-  score2_adj.n <- param_score$score2_adj.n
-  score2_adj.w <- param_score$score2_adj.w
   result3 <- data.frame("score2.n" = c(score2.n, score2_adj.n), "score2.w" = c(score2.w, score2_adj.w), "adjusted" = c(rep(FALSE, length(score2.n)), rep(TRUE, length(score2_adj.n))))
-  adjusted <- result3$adjusted
   plt4 <- ggplot2::ggplot(result3) +
-    ggplot2::stat_density2d(aes(x = score2.n, y = score2.w, color = ..level.., linetype = factor(adjusted)), na.rm = TRUE) +
+    ggplot2::stat_density2d(aes_string(x = "score2.n", y = "score2.w", color = "..level..", linetype = "adjusted"), na.rm = TRUE) +
     ggplot2::scale_color_distiller(type = "div", palette = 7, direction = 1) +
-    ggplot2::geom_point(aes(x = score2.n, y = score2.w, fill = factor(adjusted)), alpha = 0.8, na.rm = TRUE, shape = 21) +
+    ggplot2::geom_point(aes_string(x = "score2.n", y = "score2.w", fill = "adjusted"), alpha = 0.8, na.rm = TRUE, shape = 21) +
     ggplot2::scale_fill_brewer(name = "adjusted", type = "div", palette = 3) +
     ggplot2::scale_linetype(name = "adjusted") +
     ggplot2::xlab("Score 2 Value") +
@@ -375,11 +369,11 @@ plot_generated_trace_diagnosis <- function(generated_trace, max_trace, avg_trace
                               stringsAsFactors = FALSE)
 
   pooled_df <- rbind(gen_df, max_df, avg_df)
-  comp_plt <- ggplot2::ggplot(pooled_df, aes(y = CPU, x = t)) +
-    ggplot2::facet_wrap(vars(type), ncol = 1) +
-    ggplot2::geom_line(data = subset(pooled_df, type == "original"), aes(y = CPU, x = t), col = "black") +
-    ggplot2::geom_line(data = subset(pooled_df, type == "windowed_max"), aes(y = CPU, x = t, colour = generated, alpha = generated), na.rm = TRUE) +
-    ggplot2::geom_line(data = subset(pooled_df, type == "windowed_avg"), aes(y = CPU, x = t, colour = generated, alpha = generated), na.rm = TRUE) +
+  comp_plt <- ggplot2::ggplot(pooled_df, aes_string(y = "CPU", x = "t")) +
+    ggplot2::facet_wrap("type", ncol = 1) +
+    ggplot2::geom_line(data = subset(pooled_df, type == "original"), aes_string(y = "CPU", x = "t"), col = "black") +
+    ggplot2::geom_line(data = subset(pooled_df, type == "windowed_max"), aes_string(y = "CPU", x = "t", color = "generated", alpha = "generated"), na.rm = TRUE) +
+    ggplot2::geom_line(data = subset(pooled_df, type == "windowed_avg"), aes_string(y = "CPU", x = "t", color = "generated", alpha = "generated"), na.rm = TRUE) +
     ggplot2::scale_alpha_discrete("generated", range = c(0.5, 0.8)) +
     ggplot2::ylab("CPU Utilization") +
     ggplot2::ggtitle(paste("CPU Utilization of Generated Trace at", new_rate, "and Actual Maximum and Average at", orig_rate))

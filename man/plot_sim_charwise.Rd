@@ -4,10 +4,18 @@
 \alias{plot_sim_charwise}
 \title{Plot Simulation Result Type Charwise}
 \usage{
-plot_sim_charwise(charwise_summ, name, ...)
+plot_sim_charwise(
+  charwise_summ,
+  mapping = list(shape = "window_size", alpha = "granularity", fill = "react_speed",
+    color = "model_num"),
+  name,
+  ...
+)
 }
 \arguments{
 \item{charwise_summ}{A dataframe containing the scores in all parameter settings and their performance.}
+
+\item{mapping}{A named list with keys representing graphical aesthetics parameters and values represetning columnames of \code{charwise_summ} to be mapped to.}
 
 \item{name}{A character that represents the identifier or name of the plot.}
 

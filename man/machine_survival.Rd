@@ -4,7 +4,7 @@
 \alias{machine_survival}
 \title{Find Outcome of A Scheduled Foreground Job}
 \usage{
-machine_survival(machine_list, job_list, current_time, cores)
+machine_survival(machine_list, job_list, current_time, cores, max_combn = 5000)
 }
 \arguments{
 \item{machine_list}{A numeric vector containing actual values at current time.}
@@ -14,6 +14,8 @@ machine_survival(machine_list, job_list, current_time, cores)
 \item{current_time}{A numeric value representing the current time.}
 
 \item{cores}{A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
+
+\item{max_comb}{A numeric value representing the maximum number of combination in finding optimal combinations of jobs to kill, used for limit memory use. Default value is \code{5000}.}
 }
 \value{
 A list with keys representing decision and value job id falling into such decision.

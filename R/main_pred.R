@@ -25,7 +25,7 @@ predict_pred <- function(object, trained_result, test_x, test_xreg, predict_info
     test_predict_info[nrow(test_predict_info) + 1,] <- c(switch_status$train_iter, switch_status$test_iter, predict_iter + 1, test_xreg[current_end, "job_ID"], rep(NA, ncol(test_predict_info) - 4))
 
     predict_iter <- predict_iter + 1
-    test_predict_info <- do_prediction(object, trained_result, test_predict_info, NULL, test_x[0:(current_end - 1)], test_xreg[current_end,])
+    test_predict_info <- do_prediction(object, trained_result, test_predict_info, test_x[0:(current_end - 1)], test_xreg[current_end,])
 
     actual_obs <- test_x[current_end]
     test_predict_info[nrow(test_predict_info), "actual"] <- discretization(object@bins, actual_obs)
@@ -71,7 +71,7 @@ predicting_pred <- function(object, x, xreg) {
       train_x <- x[train_start:train_end]
       train_xreg <- xreg[train_start:train_end,]
 
-      trained_model <- c(trained_model, train_model(object, NULL, train_x, train_xreg, trained_model))
+      trained_model <- c(trained_model, train_model(object, train_x, train_xreg, trained_model))
       switch_status <- list("train_iter" = train_iter, "test_iter" = 0)
       train_iter <- train_iter + 1
     }

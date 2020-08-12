@@ -53,15 +53,13 @@ arima_sim <- setClass("arima_sim",
 
 #' @describeIn train_model Train ARMA Model specific to arima_sim object.
 setMethod("train_model",
-          signature(object = "arima_sim", ts_num = "numeric", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
-          function(object, ts_num, train_x, train_xreg, trained_model) {
-            train_x <- train_x[, ts_num]
+          signature(object = "arima_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
+          function(object, train_x, train_xreg, trained_model) {
             new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
 
             if (length(train_xreg) == 0) {
               new_train_xreg <- NULL
             } else {
-              train_xreg <- train_xreg[, ts_num]
               new_train_xreg <- as.matrix(convert_frequency_dataset(train_xreg, object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = TRUE))
               colnames(new_train_xreg) <- "xreg"
             }
@@ -135,8 +133,8 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained AR1 Model.
 setMethod("do_prediction",
-          signature(object = "arima_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "matrix"),
-          function(object, trained_result, predict_info, ts_num, test_x, test_xreg) {
+          signature(object = "arima_sim", trained_result = "list", predict_info = "data.frame", test_x = "matrix", test_xreg = "matrix"),
+          function(object, trained_result, predict_info, test_x, test_xreg) {
             trained_result <- trained_result[[1]]
             level <- (1 - object@cut_off_prob * 2) * 100
 
@@ -201,7 +199,7 @@ setMethod("do_prediction",
                   new_xreg <- matrix(nrow = nrow(prev_xreg), ncol = 0)
                 } else {
                   # External regressor is considered.
-                  new_xreg <- matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)), ts_num], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), ncol = 1, byrow = TRUE)
+                  new_xreg <- matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg))], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), ncol = 1, byrow = TRUE)
                 }
                 if (ncol(new_xreg) < ncol(prev_xreg)) {
                   # Outliers are considered and found.
@@ -224,7 +222,7 @@ setMethod("do_prediction",
                 dxreg <- matrix(0, nrow = object@extrap_step, ncol = ncol(trained_result$call$xreg))
               } else {
                 # External regressor is considered.
-                dxreg <- matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg), ts_num], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), ncol = 1, byrow = TRUE)
+                dxreg <- matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), ncol = 1, byrow = TRUE)
                 if (ncol(dxreg) < ncol(trained_result$call$xreg)) {
                   dxreg <- cbind(dxreg, matrix(0, nrow = object@extrap_step, ncol = (ncol(trained_result$call$xreg) - ncol(test_xreg))))
                 }

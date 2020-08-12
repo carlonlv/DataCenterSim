@@ -4,33 +4,33 @@
 %   R/surtree_pred.R, R/var_sim.R
 \name{do_prediction}
 \alias{do_prediction}
-\alias{do_prediction,anovatree_pred,list,data.frame,ANY,numeric,data.frame-method}
-\alias{do_prediction,arima_sim,list,data.frame,numeric,matrix,matrix-method}
-\alias{do_prediction,auto_arima_sim,list,data.frame,numeric,matrix,matrix-method}
-\alias{do_prediction,autopilot_sim,list,data.frame,numeric,matrix,matrix-method}
-\alias{do_prediction,gmm_pred,list,data.frame,ANY,numeric,data.frame-method}
-\alias{do_prediction,markov_sim,list,data.frame,numeric,matrix,matrix-method}
-\alias{do_prediction,surtree_pred,list,data.frame,ANY,numeric,data.frame-method}
-\alias{do_prediction,var_sim,list,data.frame,numeric,matrix,matrix-method}
+\alias{do_prediction,anovatree_pred,list,data.frame,numeric,data.frame-method}
+\alias{do_prediction,arima_sim,list,data.frame,matrix,matrix-method}
+\alias{do_prediction,auto_arima_sim,list,data.frame,matrix,matrix-method}
+\alias{do_prediction,autopilot_sim,list,data.frame,matrix,matrix-method}
+\alias{do_prediction,gmm_pred,list,data.frame,numeric,data.frame-method}
+\alias{do_prediction,markov_sim,list,data.frame,matrix,matrix-method}
+\alias{do_prediction,surtree_pred,list,data.frame,numeric,data.frame-method}
+\alias{do_prediction,var_sim,list,data.frame,matrix,matrix-method}
 \title{Do Prediction}
 \usage{
-do_prediction(object, trained_result, predict_info, ts_num, test_x, test_xreg)
+do_prediction(object, trained_result, predict_info, test_x, test_xreg)
 
-\S4method{do_prediction}{anovatree_pred,list,data.frame,ANY,numeric,data.frame}(object, trained_result, predict_info, ts_num, test_x, test_xreg)
+\S4method{do_prediction}{anovatree_pred,list,data.frame,numeric,data.frame}(object, trained_result, predict_info, test_x, test_xreg)
 
-\S4method{do_prediction}{arima_sim,list,data.frame,numeric,matrix,matrix}(object, trained_result, predict_info, ts_num, test_x, test_xreg)
+\S4method{do_prediction}{arima_sim,list,data.frame,matrix,matrix}(object, trained_result, predict_info, test_x, test_xreg)
 
-\S4method{do_prediction}{auto_arima_sim,list,data.frame,numeric,matrix,matrix}(object, trained_result, predict_info, ts_num, test_x, test_xreg)
+\S4method{do_prediction}{auto_arima_sim,list,data.frame,matrix,matrix}(object, trained_result, predict_info, test_x, test_xreg)
 
-\S4method{do_prediction}{autopilot_sim,list,data.frame,numeric,matrix,matrix}(object, trained_result, predict_info, ts_num, test_x, test_xreg)
+\S4method{do_prediction}{autopilot_sim,list,data.frame,matrix,matrix}(object, trained_result, predict_info, test_x, test_xreg)
 
-\S4method{do_prediction}{gmm_pred,list,data.frame,ANY,numeric,data.frame}(object, trained_result, predict_info, ts_num, test_x, test_xreg)
+\S4method{do_prediction}{gmm_pred,list,data.frame,numeric,data.frame}(object, trained_result, predict_info, test_x, test_xreg)
 
-\S4method{do_prediction}{markov_sim,list,data.frame,numeric,matrix,matrix}(object, trained_result, predict_info, ts_num, test_x, test_xreg)
+\S4method{do_prediction}{markov_sim,list,data.frame,matrix,matrix}(object, trained_result, predict_info, test_x, test_xreg)
 
-\S4method{do_prediction}{surtree_pred,list,data.frame,ANY,numeric,data.frame}(object, trained_result, predict_info, ts_num, test_x, test_xreg)
+\S4method{do_prediction}{surtree_pred,list,data.frame,numeric,data.frame}(object, trained_result, predict_info, test_x, test_xreg)
 
-\S4method{do_prediction}{var_sim,list,data.frame,numeric,matrix,matrix}(object, trained_result, predict_info, ts_num, test_x, test_xreg)
+\S4method{do_prediction}{var_sim,list,data.frame,matrix,matrix}(object, trained_result, predict_info, test_x, test_xreg)
 }
 \arguments{
 \item{object}{An S4 sim object.}
@@ -38,8 +38,6 @@ do_prediction(object, trained_result, predict_info, ts_num, test_x, test_xreg)
 \item{trained_result}{A list or other class returend by \code{train_model}, containing trained model information.}
 
 \item{predict_info}{A dataframe representing all the past predicted or scheduled information.}
-
-\item{ts_num}{A numeric value representing the column number of the corresponding trace/column.}
 
 \item{test_x}{A numeric vector representing the test dataset up to current time.}
 
@@ -53,20 +51,20 @@ This is a generic function that do prediction according to the input object type
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{object = anovatree_pred,trained_result = list,predict_info = data.frame,ts_num = ANY,test_x = numeric,test_xreg = data.frame}: Do prediction based on trained ANOVA tree clustering Model.
+\item \code{object = anovatree_pred,trained_result = list,predict_info = data.frame,test_x = numeric,test_xreg = data.frame}: Do prediction based on trained ANOVA tree clustering Model.
 
-\item \code{object = arima_sim,trained_result = list,predict_info = data.frame,ts_num = numeric,test_x = matrix,test_xreg = matrix}: Do prediction based on trained AR1 Model.
+\item \code{object = arima_sim,trained_result = list,predict_info = data.frame,test_x = matrix,test_xreg = matrix}: Do prediction based on trained AR1 Model.
 
-\item \code{object = auto_arima_sim,trained_result = list,predict_info = data.frame,ts_num = numeric,test_x = matrix,test_xreg = matrix}: Do prediction based on trained AR1 Model.
+\item \code{object = auto_arima_sim,trained_result = list,predict_info = data.frame,test_x = matrix,test_xreg = matrix}: Do prediction based on trained AR1 Model.
 
-\item \code{object = autopilot_sim,trained_result = list,predict_info = data.frame,ts_num = numeric,test_x = matrix,test_xreg = matrix}: Do prediction based on selected past statistics.
+\item \code{object = autopilot_sim,trained_result = list,predict_info = data.frame,test_x = matrix,test_xreg = matrix}: Do prediction based on selected past statistics.
 
-\item \code{object = gmm_pred,trained_result = list,predict_info = data.frame,ts_num = ANY,test_x = numeric,test_xreg = data.frame}: Do prediction based on trained GMM clustering Model.
+\item \code{object = gmm_pred,trained_result = list,predict_info = data.frame,test_x = numeric,test_xreg = data.frame}: Do prediction based on trained GMM clustering Model.
 
-\item \code{object = markov_sim,trained_result = list,predict_info = data.frame,ts_num = numeric,test_x = matrix,test_xreg = matrix}: Do prediction based on trained Markov Model.
+\item \code{object = markov_sim,trained_result = list,predict_info = data.frame,test_x = matrix,test_xreg = matrix}: Do prediction based on trained Markov Model.
 
-\item \code{object = surtree_pred,trained_result = list,predict_info = data.frame,ts_num = ANY,test_x = numeric,test_xreg = data.frame}: Do prediction based on trained survival tree clustering Model.
+\item \code{object = surtree_pred,trained_result = list,predict_info = data.frame,test_x = numeric,test_xreg = data.frame}: Do prediction based on trained survival tree clustering Model.
 
-\item \code{object = var_sim,trained_result = list,predict_info = data.frame,ts_num = numeric,test_x = matrix,test_xreg = matrix}: Do prediction based on trained VAR Model.
+\item \code{object = var_sim,trained_result = list,predict_info = data.frame,test_x = matrix,test_xreg = matrix}: Do prediction based on trained VAR Model.
 }}
 

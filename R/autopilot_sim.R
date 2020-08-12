@@ -63,8 +63,8 @@ autopilot_sim <- setClass("autopilot_sim",
 
 #' @describeIn train_model Train model for autopilot recommender.
 setMethod("train_model",
-          signature(object = "autopilot_sim", ts_num = "numeric", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
-          function(object, ts_num, train_x, train_xreg, trained_model) {
+          signature(object = "autopilot_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
+          function(object, train_x, train_xreg, trained_model) {
             if (length(object@breaks) == 1) {
               breaks <- seq(from = 0, to = 100, length.out = object@breaks + 1)
             } else {
@@ -74,11 +74,11 @@ setMethod("train_model",
             max_len <- floor(log2(object@cut_off_weight) * (-object@half_life))
             if (length(trained_model) == 0) {
               trained_result <- lapply(seq(from = nrow(train_x), by = -object@window_size, length.out = min(nrow(train_x) %/% object@window_size, max_len)), function(s) {
-                graphics::hist(train_x[(s - object@window_size + 1):s, ts_num], breaks = breaks, plot = FALSE)
+                graphics::hist(train_x[(s - object@window_size + 1):s], breaks = breaks, plot = FALSE)
               })
             } else {
               hist_x <- lapply(seq(from = nrow(train_x), by = -object@window_size, length.out = object@update_freq), function(s) {
-                graphics::hist(train_x[(s - object@window_size + 1):s, ts_num], breaks = breaks, plot = FALSE)
+                graphics::hist(train_x[(s - object@window_size + 1):s], breaks = breaks, plot = FALSE)
               })
 
               forget_num <- length(trained_model) + length(hist_x) - max_len
@@ -93,8 +93,8 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on selected past statistics.
 setMethod("do_prediction",
-          signature(object = "autopilot_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "matrix"),
-          function(object, trained_result, predict_info, ts_num, test_x, test_xreg) {
+          signature(object = "autopilot_sim", trained_result = "list", predict_info = "data.frame", test_x = "matrix", test_xreg = "matrix"),
+          function(object, trained_result, predict_info, test_x, test_xreg) {
             if (length(object@breaks) == 1) {
               breaks <- seq(from = 0, to = 100, length.out = object@breaks + 1)
             } else {

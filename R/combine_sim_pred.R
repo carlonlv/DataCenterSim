@@ -7,7 +7,7 @@
 #' @param max_comb A numeric value representing the maximum number of combination in finding optimal combinations of jobs to kill, used for limit memory use. Default value is \code{5000}.
 #' @return A list with keys representing decision and value job id falling into such decision.
 #' @keywords internal
-machine_survival <- function(machine_list, job_list, current_time, cores, max_combn=5000) {
+machine_survival <- function(machine_list, job_list, current_time, cores, max_combn=1000) {
   compute_loss <- function(job_process_time, job_process_resource, min_utilization_current) {
     if (sum(job_process_resource) < min_utilization_current) {
       return(Inf)
@@ -45,8 +45,11 @@ machine_survival <- function(machine_list, job_list, current_time, cores, max_co
         current_remove_choices <- 1:min_kill_num
         job_index <- min_kill_num + 1
         while (job_index <= nrow(other_info)) {
-          comb_choices <- utils::combn(1:(job_index - 1), min_kill_num - 1, list)
-          comb_choices <- comb_choices[1:min(length(comb_choices), max_combn)]
+          if (min_kill_num > 1) {
+            comb_choices <- RcppAlgos::comboGeneral(1:(job_index - 1), min_kill_num - 1, upper = max_combn, FUN = I)
+          } else {
+            comb_choices <- list(integer(0))
+          }
           comb_losses <- sapply(comb_choices, function(comb_choice) {
             job_process_time <- current_time - (unlist(other_info[c(comb_choice, job_index), "arrival_time"], use.names = FALSE) + unlist(other_info[c(comb_choice, job_index), "delayed_time"], use.names = FALSE)) + 1
             job_process_resource <- unlist(other_info[c(comb_choice, job_index), "requestedCPU"], use.names = FALSE)
@@ -98,8 +101,11 @@ machine_survival <- function(machine_list, job_list, current_time, cores, max_co
         current_remove_choices <- 1:min_kill_num
         job_index <- min_kill_num + 1
         while (job_index <= nrow(other_info)) {
-          comb_choices <- utils::combn(1:(job_index - 1), min_kill_num - 1, list)
-          comb_choices <- comb_choices[1:min(length(comb_choices), max_combn)]
+          if (min_kill_num > 1) {
+            comb_choices <- RcppAlgos::comboGeneral(1:(job_index - 1), min_kill_num - 1, upper = max_combn, FUN = I)
+          } else {
+            comb_choices <- list(integer(0))
+          }
           comb_losses <- sapply(comb_choices, function(comb_choice) {
             job_process_time <- current_time - (unlist(other_info[c(comb_choice, job_index), "arrival_time"], use.names = FALSE) + unlist(other_info[c(comb_choice, job_index), "delayed_time"], use.names = FALSE)) + 1
             job_process_resource <- unlist(other_info[c(comb_choice, job_index), "requestedCPU"], use.names = FALSE)

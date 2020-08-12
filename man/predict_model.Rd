@@ -6,7 +6,6 @@
 \usage{
 predict_model(
   object,
-  ts_num,
   trained_result,
   test_x,
   test_xreg,
@@ -16,8 +15,6 @@ predict_model(
 }
 \arguments{
 \item{object}{A S4 sim object.}
-
-\item{ts_num}{The corresponding trace/column in \code{test_x} and \code{test_xreg}.}
 
 \item{trained_result}{A trained object depending on the model used for training.}
 

@@ -7,7 +7,6 @@ NULL
 #' Sequantially schedule jobs using predictions on provided test set.
 #'
 #' @param object A S4 sim object.
-#' @param ts_num The corresponding trace/column in \code{test_x} and \code{test_xreg}.
 #' @param trained_result A trained object depending on the model used for training.
 #' @param test_x A numeric vector representing the test set.
 #' @param test_xreg A numeric vector representing the dataset that target dataset depends on for scheduling and evaluations.
@@ -15,7 +14,7 @@ NULL
 #' @param switch_status A list containing all the information about current switches and identifiers.
 #' @return A dataframe containing the past predicted information and the current predicted information.
 #' @keywords internal
-predict_model <- function(object, ts_num, trained_result, test_x, test_xreg, predict_info, switch_status) {
+predict_model <- function(object, trained_result, test_x, test_xreg, predict_info, switch_status) {
   adjust_switch <- switch_status$adjust_switch
   react_counter <- switch_status$react_counter
 
@@ -32,7 +31,7 @@ predict_model <- function(object, ts_num, trained_result, test_x, test_xreg, pre
                                   "score_pred_2" = numeric(0),
                                   stringsAsFactors = FALSE)
 
-  last_time_schedule <- nrow(test_x) - object@window_size + 1
+  last_time_schedule <- length(test_x) - object@window_size + 1
 
   predict_iter <- 0
   current_end <- 1
@@ -46,12 +45,12 @@ predict_model <- function(object, ts_num, trained_result, test_x, test_xreg, pre
 
     predict_iter <- predict_iter + 1
     if (length(test_xreg) == 0) {
-      test_predict_info <- do_prediction(object, trained_result, test_predict_info, ts_num, matrix(test_x[0:(start_time - 1),], ncol = ncol(test_x), dimnames = list(rownames(test_x)[0:(start_time - 1)], colnames(test_x))), matrix(nrow = 0, ncol = 0))
+      test_predict_info <- do_prediction(object, trained_result, test_predict_info, matrix(test_x[0:(start_time - 1),], ncol = 1, dimnames = list(rownames(test_x)[0:(start_time - 1)])), matrix(nrow = 0, ncol = 0))
     } else {
-      test_predict_info <- do_prediction(object, trained_result, test_predict_info, ts_num, matrix(test_x[0:(start_time - 1),], ncol = ncol(test_x), dimnames = list(rownames(test_x)[0:(start_time - 1)], colnames(test_x))), matrix(test_xreg[1:end_time,], ncol = ncol(test_xreg), dimnames = list(rownames(test_xreg)[1:end_time], colnames(test_xreg))))
+      test_predict_info <- do_prediction(object, trained_result, test_predict_info, matrix(test_x[0:(start_time - 1),], ncol = 1, dimnames = list(rownames(test_x)[0:(start_time - 1)])), matrix(test_xreg[1:end_time,], ncol = 1, dimnames = list(rownames(test_xreg)[1:end_time])))
     }
 
-    actual_obs <- stats::setNames(test_x[start_time:end_time, ts_num], rownames(test_x)[start_time:end_time])
+    actual_obs <- stats::setNames(test_x[start_time:end_time], rownames(test_x)[start_time:end_time])
     test_predict_info <- check_score_pred(switch_status$train_iter, switch_status$test_iter, predict_iter, object, test_predict_info, actual_obs, adjust_switch)
 
     ## Update step based on adjustment policy
@@ -151,9 +150,9 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
       # Get training set
       train_start <- current
       train_end <- current + object@train_size - 1
-      train_x <- matrix(x[train_start:train_end,], ncol = ncol(x), dimnames = list(rownames(x)[train_start:train_end], colnames(x)))
+      train_x <- matrix(x[train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(x)[train_start:train_end], colnames(x)[ts_num]))
       if (!is.null(xreg)) {
-        train_xreg <- matrix(xreg[train_start:train_end,], ncol = ncol(xreg), dimnames = list(rownames(xreg)[train_start:train_end], colnames(xreg)))
+        train_xreg <- matrix(xreg[train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[train_start:train_end], colnames(xreg)[ts_num]))
       } else {
         train_xreg <- matrix(nrow = 0, ncol = 0)
       }
@@ -163,7 +162,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
       } else {
         prev_trained_model <- train_models[[letters[traincan_model]]]
       }
-      train_models[[letters[traincan_model]]] <- train_model(object, ts_num, train_x, train_xreg, prev_trained_model)
+      train_models[[letters[traincan_model]]] <- train_model(object, train_x, train_xreg, prev_trained_model)
       predict_histories[[letters[traincan_model]]] <- NULL
 
       train_idx[traincan_model] <- train_iter
@@ -176,11 +175,11 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
     ## Get test set
     test_start <- current + object@train_size + wait_time
     test_end <- current + object@train_size + wait_time + object@update_freq * object@extrap_step * object@window_size - 1
-    test_x <- matrix(x[test_start:test_end,], ncol = ncol(x), dimnames = list(rownames(x)[test_start:test_end], colnames(x)))
+    test_x <- matrix(x[test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(x)[test_start:test_end], colnames(x)[ts_num]))
     if (is.null(xreg)) {
       test_xreg <- matrix(nrow = 0, ncol = 0)
     } else {
-      test_xreg <- matrix(xreg[test_start:test_end,], ncol = ncol(xreg), dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)))
+      test_xreg <- matrix(xreg[test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)[ts_num]))
     }
 
     ## Test Model
@@ -188,7 +187,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
     switch_status$test_iter <- test_idx[active_model]
     for (i in 1:object@model_num) {
       if (!is.null(train_models[[letters[i]]])) {
-        score_switch_info <- predict_model(object, ts_num, train_models[[letters[i]]], test_x, test_xreg, predict_info, switch_status)
+        score_switch_info <- predict_model(object, train_models[[letters[i]]], test_x, test_xreg, predict_info, switch_status)
         if (!is.null(predict_histories[[letters[i]]])) {
           predict_histories[[letters[i]]] <- combine_result(predict_histories[[letters[i]]], score_switch_info[["test_sim_result"]])
         } else {

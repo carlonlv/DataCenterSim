@@ -42,15 +42,13 @@ markov_sim <- setClass("markov_sim",
 
 #' @describeIn train_model Train Markov Model specific to markov_sim object.
 setMethod("train_model",
-          signature(object = "markov_sim", ts_num = "numeric" , train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
-          function(object, ts_num, train_x, train_xreg, trained_model) {
-            train_x <- train_x[, ts_num]
+          signature(object = "markov_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
+          function(object, train_x, train_xreg, trained_model) {
             new_train_x <- convert_frequency_dataset_overlapping(train_x, object@window_size, object@response, keep.names = TRUE)
 
             if (length(train_xreg) == 0) {
               new_train_xreg <- NULL
             } else {
-              train_xreg <- train_xreg[, ts_num]
               new_train_xreg <- convert_frequency_dataset_overlapping(train_xreg, object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = TRUE)
             }
 
@@ -104,8 +102,8 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained Markov Model.
 setMethod("do_prediction",
-          signature(object = "markov_sim", trained_result = "list", predict_info = "data.frame", ts_num = "numeric", test_x = "matrix", test_xreg = "matrix"),
-          function(object, trained_result, predict_info, ts_num, test_x, test_xreg) {
+          signature(object = "markov_sim", trained_result = "list", predict_info = "data.frame", test_x = "matrix", test_xreg = "matrix"),
+          function(object, trained_result, predict_info, test_x, test_xreg) {
             compute_pi_up <- function(prob, to_states, quantiles=NULL) {
               current_state <- 1
               current_prob <- 0
@@ -129,13 +127,13 @@ setMethod("do_prediction",
               if (length(trained_result$train_xreg) == 0) {
                 from <- find_state_num(trained_result$train_x[length(trained_result$train_x)], object@cluster_type, object@state_num, trained_result$quantiles_x)
               } else {
-                from <- find_state_num(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size + 1):nrow(test_xreg), ts_num], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), object@cluster_type, object@state_num, trained_result$quantiles_xreg)
+                from <- find_state_num(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size + 1):nrow(test_xreg)], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), object@cluster_type, object@state_num, trained_result$quantiles_xreg)
               }
             } else {
               if (length(trained_result$train_xreg) == 0) {
                 from <- find_state_num(predict_info$actual[nrow(predict_info) - object@extrap_step], object@cluster_type, object@state_num, trained_result$quantiles_x)
               } else {
-                from <- find_state_num(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size + 1):nrow(test_xreg), ts_num], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), object@cluster_type, object@state_num, trained_result$quantiles_xreg)
+                from <- find_state_num(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size + 1):nrow(test_xreg)], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), object@cluster_type, object@state_num, trained_result$quantiles_xreg)
               }
             }
 

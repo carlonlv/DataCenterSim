@@ -33,8 +33,8 @@ anovatree_pred <- setClass("anovatree_pred",
 
 #' @describeIn train_model Train ARMA Model specific to anovatree_pred object.
 setMethod("train_model",
-          signature(object = "anovatree_pred", ts_num = "ANY", train_x = "numeric", train_xreg = "data.frame", trained_model = "list"),
-            function(object, ts_num, train_x, train_xreg, trained_model) {
+          signature(object = "anovatree_pred", train_x = "numeric", train_xreg = "data.frame", trained_model = "list"),
+            function(object, train_x, train_xreg, trained_model) {
               training_data <- cbind(train_xreg, "task_duration" = train_x)
               training_data$task_duration <- discretization(object@bins,training_data$task_duration)
               trained_result <- list()
@@ -67,8 +67,8 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on trained ANOVA tree clustering Model.
 setMethod("do_prediction",
-          signature(object = "anovatree_pred", trained_result = "list", predict_info = "data.frame", ts_num = "ANY", test_x = "numeric", test_xreg = "data.frame"),
-          function(object, trained_result, predict_info, ts_num, test_x, test_xreg) {
+          signature(object = "anovatree_pred", trained_result = "list", predict_info = "data.frame", test_x = "numeric", test_xreg = "data.frame"),
+          function(object, trained_result, predict_info, test_x, test_xreg) {
             model <- trained_result$model
             nodes <- trained_result$nodes
             test_clusters <- predict(model, test_xreg[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")], type = "node")

@@ -46,7 +46,8 @@ machine_survival <- function(machine_list, job_list, current_time, cores, max_co
         job_index <- min_kill_num + 1
         while (job_index <= nrow(other_info)) {
           if (min_kill_num > 1) {
-            comb_choices <- RcppAlgos::comboGeneral(1:(job_index - 1), min_kill_num - 1, upper = max_combn, FUN = I)
+            size <- min(RcppAlgos::comboCount(1:(job_index - 1), min_kill_num - 1), max_combn)
+            comb_choices <- RcppAlgos::comboGeneral(1:(job_index - 1), min_kill_num - 1, upper = size, FUN = I)
           } else {
             comb_choices <- list(integer(0))
           }
@@ -102,7 +103,8 @@ machine_survival <- function(machine_list, job_list, current_time, cores, max_co
         job_index <- min_kill_num + 1
         while (job_index <= nrow(other_info)) {
           if (min_kill_num > 1) {
-            comb_choices <- RcppAlgos::comboGeneral(1:(job_index - 1), min_kill_num - 1, upper = max_combn, FUN = I)
+            size <- min(RcppAlgos::comboCount(1:(job_index - 1), min_kill_num - 1), max_combn)
+            comb_choices <- RcppAlgos::comboGeneral(1:(job_index - 1), min_kill_num - 1, upper = size, FUN = I)
           } else {
             comb_choices <- list(integer(0))
           }

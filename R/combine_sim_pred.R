@@ -7,7 +7,7 @@
 #' @param max_comb A numeric value representing the maximum number of combination in finding optimal combinations of jobs to kill, used for limit memory use. Default value is \code{5000}.
 #' @return A list with keys representing decision and value job id falling into such decision.
 #' @keywords internal
-machine_survival <- function(machine_list, job_list, current_time, cores, max_combn=1000) {
+machine_survival <- function(machine_list, job_list, current_time, cores, max_combn=5000) {
   compute_loss <- function(job_process_time, job_process_resource, min_utilization_current) {
     if (sum(job_process_resource) < min_utilization_current) {
       return(Inf)

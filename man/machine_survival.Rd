@@ -4,7 +4,7 @@
 \alias{machine_survival}
 \title{Find Outcome of A Scheduled Foreground Job}
 \usage{
-machine_survival(machine_list, job_list, current_time, cores, max_combn = 1000)
+machine_survival(machine_list, job_list, current_time, cores, max_combn = 5000)
 }
 \arguments{
 \item{machine_list}{A numeric vector containing actual values at current time.}

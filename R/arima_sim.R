@@ -19,7 +19,7 @@ check_valid_arima_sim <- function(object) {
     msg <- paste0("outlier_type must be one of ", paste(outlier_type_choices, collapse = " "), ".")
     errors <- c(errors, msg)
   }
-  if (any(object@outlier_cval < 3, na.rm = TRUE) | any(object@outlier_cval > 4, na.rm = TRUE)) {
+  if (length(object@outlier_cval) != 1 | any(object@outlier_cval < 3, na.rm = TRUE) | any(object@outlier_cval > 4, na.rm = TRUE)) {
     msg <- paste0("outlier_cval must be a numeric value within 3 and 4, inclusively, or NA.")
     errors <- c(errors, msg)
   }
@@ -73,8 +73,8 @@ setMethod("train_model",
             args.tsmethod <- c(object@train_args, list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "ML", "CSS"), "optim.method" = "CG", "optim.control" = list(maxit = 5000)))
             if (object@outlier_type == "None") {
               trained_result <- do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
-              if (!(length(new_train_xreg) == 0)) {
-                trained_result$call$xreg <- as.matrix(new_train_xreg)
+              if (length(new_train_xreg) != 0) {
+                trained_result$call$xreg <- new_train_xreg
               } else {
                 trained_result$call$xreg <- NULL
               }
@@ -85,8 +85,8 @@ setMethod("train_model",
                 tso_model$fit
                 }, error = function(e) {
                   ts_model <- do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
-                  if (!(length(new_train_xreg) == 0)) {
-                    ts_model$call$xreg <- as.matrix(new_train_xreg)
+                  if (length(new_train_xreg) != 0) {
+                    ts_model$call$xreg <- new_train_xreg
                   } else {
                     ts_model$call$xreg <- NULL
                   }
@@ -99,8 +99,8 @@ setMethod("train_model",
                 tso_model$fit
               }, error = function(e) {
                 ts_model <- do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
-                if (!(length(new_train_xreg) == 0)) {
-                  ts_model$call$xreg <- as.matrix(new_train_xreg)
+                if (length(new_train_xreg) != 0) {
+                  ts_model$call$xreg <- new_train_xreg
                 } else {
                   ts_model$call$xreg <- NULL
                 }
@@ -199,7 +199,7 @@ setMethod("do_prediction",
                   new_xreg <- matrix(nrow = nrow(prev_xreg), ncol = 0)
                 } else {
                   # External regressor is considered.
-                  new_xreg <- matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg))], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), ncol = 1, byrow = TRUE)
+                  new_xreg <- as.matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
                 }
                 if (ncol(new_xreg) < ncol(prev_xreg)) {
                   # Outliers are considered and found.
@@ -222,7 +222,7 @@ setMethod("do_prediction",
                 dxreg <- matrix(0, nrow = object@extrap_step, ncol = ncol(trained_result$call$xreg))
               } else {
                 # External regressor is considered.
-                dxreg <- matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), ncol = 1, byrow = TRUE)
+                dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
                 if (ncol(dxreg) < ncol(trained_result$call$xreg)) {
                   dxreg <- cbind(dxreg, matrix(0, nrow = object@extrap_step, ncol = (ncol(trained_result$call$xreg) - ncol(test_xreg))))
                 }

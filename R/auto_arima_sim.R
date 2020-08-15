@@ -19,7 +19,7 @@ check_valid_auto_arima_sim <- function(object) {
     msg <- paste0("outlier_type must be one of ", paste(outlier_type_choices, collapse = " "), ".")
     errors <- c(errors, msg)
   }
-  if (any(object@outlier_cval < 3, na.rm = TRUE) | any(object@outlier_cval > 4, na.rm = TRUE)) {
+  if (length(object@outlier_cval) != 1 | any(object@outlier_cval < 3, na.rm = TRUE) | any(object@outlier_cval > 4, na.rm = TRUE)) {
     msg <- paste0("outlier_cval must only consist numeric values within 3 and 4, inclusively, or NA.")
     errors <- c(errors, msg)
   }
@@ -32,9 +32,10 @@ check_valid_auto_arima_sim <- function(object) {
 
 
 #' @rdname sim-class
-#' @param res_dist The distribution of residual, \code{"normal"} for normal distribution or \code{"empirical"} for empirical distribution. Default value is \code{"normal"}.
-#' @param outlier_type The type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.
-#' @param outlier_cval The critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50).
+#' @param res_dist A character value representing the distribution of residual, \code{"normal"} for normal distribution or \code{"empirical"} for empirical distribution. Default value is \code{"normal"}.
+#' @param outlier_type A character value representing the type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.
+#' @param outlier_cval A numeric value representing the critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50).
+#' @param train_args A list representing additional call passed into the training function, \code{forecast::auto.arima}. Default value is \code{list("max.p" = 3, "max.q" = 2, "max.d" = 1, "max.P" = 1, "max.Q" = 1, "max.D" = 1)}.
 #' @export auto_arima_sim
 auto_arima_sim <- setClass("auto_arima_sim",
                       slots = list(res_dist = "character",
@@ -72,8 +73,8 @@ setMethod("train_model",
             args.tsmethod <- c(object@train_args, list("method" = ifelse(object@res_dist == "norm", "CSS-ML", "CSS"), "optim.method" = "BFGS", "optim.control" = list(maxit = 5000)))
             if (object@outlier_type == "None") {
               trained_result <- do.call(forecast::auto.arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
-              if (!(length(new_train_xreg) == 0)) {
-                trained_result$call$xreg <- as.matrix(new_train_xreg)
+              if (length(new_train_xreg) != 0) {
+                trained_result$call$xreg <- new_train_xreg
               } else {
                 trained_result$call$xreg <- NULL
               }
@@ -83,14 +84,28 @@ setMethod("train_model",
                 tso_model <- tsoutliers::tso(y = new_train_x, xreg = new_train_xreg, types = c("AO", "IO", "TC"), cval = cval, maxit = 2, tsmethod = "auto.arima", args.tsmethod = args.tsmethod, maxit.oloop = 12, maxit.iloop = 6)
                 tso_model$fit
               }, error = function(e) {
-                do.call(forecast::auto.arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
+                ts_model <- do.call(forecast::auto.arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
+                if (length(new_train_xreg) != 0) {
+                  ts_model$call$xreg <- new_train_xreg
+                } else {
+                  ts_model$call$xreg <- NULL
+                }
+                ts_model$call$x <- new_train_x
+                ts_model
               })
             } else {
               trained_result <- tryCatch({
                 tso_model <- tsoutliers::tso(y = new_train_x, xreg = new_train_xreg, types = object@outlier_type, cval = cval, maxit = 2, tsmethod = "auto.arima", args.tsmethod = args.tsmethod, maxit.oloop = 12, maxit.iloop = 6)
                 tso_model$fit
               }, error = function(e) {
-                do.call(forecast::auto.arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
+                ts_model <- do.call(forecast::auto.arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
+                if (length(new_train_xreg) != 0) {
+                  ts_model$call$xreg <- new_train_xreg
+                } else {
+                  ts_model$call$xreg <- NULL
+                }
+                ts_model$call$x <- new_train_x
+                ts_model
               })
             }
             return(list(trained_result))
@@ -165,7 +180,7 @@ setMethod("do_prediction",
                   new_xreg <- matrix(nrow = nrow(prev_xreg), ncol = 0)
                 } else {
                   # External regressor is considered.
-                  new_xreg <- matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg))], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), ncol = 1, byrow = TRUE)
+                  new_xreg <- as.matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
                 }
                 if (ncol(new_xreg) < ncol(prev_xreg)) {
                   # Outliers are considered and found.
@@ -188,7 +203,7 @@ setMethod("do_prediction",
                 dxreg <- matrix(0, nrow = object@extrap_step, ncol = ncol(trained_result$call$xreg))
               } else {
                 # External regressor is considered.
-                dxreg <- matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), ncol = 1, byrow = TRUE)
+                dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
                 if (ncol(dxreg) < ncol(trained_result$call$xreg)) {
                   dxreg <- cbind(dxreg, matrix(0, nrow = object@extrap_step, ncol = (ncol(trained_result$call$xreg) - ncol(test_xreg))))
                 }

@@ -77,7 +77,7 @@ check_valid_sim <- function(object) {
 #' @slot window_size A numeric number that can only be integers to specify how many observations to be aggregated as one. Default value is \code{12}.
 #' @slot target A numeric number that is the target score for \code{score1}. Default value is \code{0.01}.
 #' @slot cut_off_prob A numeric number that is the level of the prediction interval. Default value is \code{0.99}.
-#' @slot granularity A numeric number that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values is \code{100/32}.
+#' @slot granularity A numeric number that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values is \code{0}.
 #' @slot train_policy A character that represents the type of training policy that can either be \code{"offline"}, \code{"fixed"} or \code{"dynamic"}. Default value is \code{"dynamic"}.
 #' @slot train_size A numeric number that specify the training size used for simulations. Default values is \code{3000}.
 #' @slot model_num A numeric number that specify the maximum number of models for switching. Default value is \code{1}.
@@ -105,7 +105,7 @@ sim <- setClass("sim",
                                  window_size = 12,
                                  target = 0.99,
                                  cut_off_prob = 0.01,
-                                 granularity = 3.125,
+                                 granularity = 0,
                                  train_policy = "dynamic",
                                  train_size = 3000,
                                  model_num = 1,

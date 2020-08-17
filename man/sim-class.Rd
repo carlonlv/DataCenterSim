@@ -41,6 +41,8 @@
 
 \item{P}{A numeric integer value representing the number of seasonal lags for the input series of neural network. It will be passed into \code{forecast::nnetar} as \code{P}. Default value is \code{0}.}
 
+\item{size}{A numeric integer value representing the number of parameters in the hidden layer of the neural network. If \code{NA_real_} is supplied, half of the number of input nodes plus 1 will be used. Default value is \code{NA_real_}.}
+
 \item{train_args}{A list representing additional call passed into the training function, \code{forecast::nnetar}. Default value is \code{list("repeats" = 50)}.}
 
 \item{p}{A numeric value representing the autoregressive order for VAR model. Default value is \code{1}.}
@@ -59,13 +61,13 @@ An S4 Class to Represent A Simulation.
 
 \item{\code{cut_off_prob}}{A numeric number that is the level of the prediction interval. Default value is \code{0.99}.}
 
-\item{\code{granularity}}{A numeric number that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values is \code{100/32}.}
+\item{\code{granularity}}{A numeric number that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values is \code{0}.}
 
 \item{\code{train_policy}}{A character that represents the type of training policy that can either be \code{"offline"}, \code{"fixed"} or \code{"dynamic"}. Default value is \code{"dynamic"}.}
 
 \item{\code{train_size}}{A numeric number that specify the training size used for simulations. Default values is \code{3000}.}
 
-\item{\code{model_num}}{A numeric number that specify the maximum number of models for switching. Default value is \code{2}.}
+\item{\code{model_num}}{A numeric number that specify the maximum number of models for switching. Default value is \code{1}.}
 
 \item{\code{extrap_step}}{A numeric number that specify the number of steps after aggregated by \code{window_size} to predict into the future. Default value is \code{1}.}
 

@@ -196,18 +196,22 @@ setMethod("do_prediction",
                 # Outliers are not considered or outliers are not found, and no external regressor is considered.
                 target_model <- forecast::Arima(new_x, model = trained_result)
               } else {
+                # Outliers are considered and found, or external regressor is considered.
                 if (length(test_xreg) == 0) {
                   # No external regressor is considered.
-                  dxreg <- matrix(0, nrow = object@extrap_step, ncol = ncol(trained_result$call$xreg))
+                  new_xreg <- matrix(nrow = length(new_x) - length(prev_x), ncol = 0)
                 } else {
                   # External regressor is considered.
-                  dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
-                  if (ncol(dxreg) < ncol(trained_result$call$xreg)) {
-                    dxreg <- cbind(dxreg, matrix(0, nrow = object@extrap_step, ncol = (ncol(trained_result$call$xreg) - ncol(test_xreg))))
-                  }
+                  new_xreg <- as.matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
                 }
-                colnames(dxreg) <- colnames(trained_result$call$xreg)
-                predict_result <- forecast::forecast(target_model, xreg = dxreg, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
+                if (ncol(new_xreg) < ncol(prev_xreg)) {
+                  # Outliers are considered and found.
+                  new_ol <- matrix(0, nrow = nrow(new_xreg), ncol = ncol(prev_xreg) - ncol(new_xreg))
+                  new_xreg <- cbind(new_xreg, new_ol)
+                }
+                colnames(new_xreg) <- colnames(prev_xreg)
+                new_xreg <- rbind(prev_xreg, new_xreg)
+                target_model <- forecast::Arima(new_x, xreg = new_xreg, model = trained_result)
               }
             }
 

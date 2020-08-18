@@ -180,7 +180,7 @@ setMethod("do_prediction",
                 # Outliers are considered and found, or external regressor is considered.
                 if (length(test_xreg) == 0) {
                   # No external regressor is considered.
-                  new_xreg <- matrix(nrow = nrow(prev_xreg), ncol = 0)
+                  new_xreg <- matrix(nrow = length(new_x) - length(prev_x), ncol = 0)
                 } else {
                   # External regressor is considered.
                   new_xreg <- as.matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))

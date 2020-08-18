@@ -70,7 +70,7 @@ setMethod("train_model",
               cval <- object@outlier_cval
             }
 
-            args.tsmethod <- list("include.mean" = TRUE)
+            args.tsmethod <- list()
             for (i in names(object@train_args)) {
               args.tsmethod[[i]] <- object@train_args[[i]]
             }

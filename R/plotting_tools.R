@@ -17,32 +17,53 @@ auto_detect_parameters <- function(charwise_summ) {
 #'
 #' Plot charwise result for simulation with each datapoint corresponds to average scores of all traces with one configuration.
 #' @param charwise_summ A dataframe containing the scores in all parameter settings and their performance.
-#' @param name A character that represents the identifier or name of the plot.
 #' @param mapping A named list with keys representing graphical aesthetics parameters and values represetning columnames of \code{charwise_summ} to be mapped to.
+#' @param adjusted A logical value representing whether to use adjusted score for plotting. Default value is \code{FALSE}.
+#' @param point_or_line A logical value represening whether to plot dots or lines. If \code{NA} is supplied, then both lines and dots will be plotted. Default value is \code{NA}.
+#' @param name A character that represents the identifier or name of the plot.
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
 #' @rdname plot_sim_charwise
 #' @export
-plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size", alpha = "granularity", fill = "react_speed", color = "model_num"), name, ...) {
+plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size", alpha = "train_size", fill = "train_policy", color = "name"), adjusted = FALSE, point_or_line = NA, name, ...) {
   for (i in mapping) {
     charwise_summ[,i] <- as.factor(charwise_summ[,i])
   }
-  if (!is.null(charwise_summ[, "cut_off_prob"])) {
-    charwise_summ[, "cut_off_prob"] <- as.factor(charwise_summ[, "cut_off_prob"])
+
+  plt <- ggplot2::ggplot(charwise_summ, do.call(aes_string, mapping))
+  if (adjusted) {
+    if (is.na(point_or_line)) {
+      plt <- plt +
+        ggplot2::geom_line(aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE) +
+        ggplot2::geom_point(aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
+    } else if (point_or_line) {
+      plt <- plt +
+        ggplot2::geom_point(aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
+    } else {
+      plt <- plt +
+        ggplot2::geom_line(aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
+    }
+  } else {
+    if (is.na(point_or_line)) {
+      plt <- plt +
+        ggplot2::geom_line(aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE) +
+        ggplot2::geom_point(aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
+    } else if (point_or_line) {
+      plt <- plt +
+        ggplot2::geom_point(aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
+    } else {
+      plt <- plt +
+        ggplot2::geom_line(aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
+    }
   }
 
-  plt <- ggplot2::ggplot(charwise_summ, do.call(aes_string, mapping)) +
-    ggplot2::geom_point(aes_string(x = "score1.n", y = "score2.n", group = 1, size = "FALSE"), na.rm = TRUE) +
-    ggplot2::geom_point(aes_string(x = "score1_adj.n", y = "score2_adj.n", group = 2, size = "TRUE"), na.rm = TRUE) +
-    ggplot2::stat_ellipse(aes_string(x = "score1.n", y = "score2.n", linetype = "cut_off_prob", group = 3), color = "red", type = "norm") +
-    ggplot2::stat_ellipse(aes_string(x = "score1_adj.n", y = "score2_adj.n", linetype = "cut_off_prob", group = 4), color = "blue", type = "norm") +
-    ggplot2::geom_vline(xintercept = 0.99, linetype = "dashed", color = "red") +
+  plt <- plt +
     ggplot2::ylab("Score 2") +
     ggplot2::xlab("Score 1") +
     ggplot2::scale_color_brewer(name = ifelse(is.null(mapping[["color"]]), "empty", mapping[["color"]]), palette = "Set1", guide = ggplot2::guide_legend(ncol = 2)) +
     ggplot2::scale_fill_brewer(name = ifelse(is.null(mapping[["fill"]]), "empty", mapping[["fill"]]), palette = "Set3", guide = ggplot2::guide_legend(ncol =  2)) +
     ggplot2::scale_shape_manual(name = ifelse(is.null(mapping[["shape"]]), "empty", mapping[["shape"]]), values = 21:25, guide = ggplot2::guide_legend(ncol = 2)) +
     ggplot2::scale_alpha_discrete(name = ifelse(is.null(mapping[["alpha"]]), "empty", mapping[["alpha"]]), guide = ggplot2::guide_legend(ncol = 2)) +
-    ggplot2::scale_size_manual(name = "adjusted", values = c("FALSE" = 4, "TRUE" = 6), guide = ggplot2::guide_legend(ncol = 2)) +
+    ggplot2::scale_size_manual(name = ifelse(is.null(mapping[["size"]]), "empty", mapping[["size"]]), guide = ggplot2::guide_legend(ncol = 2)) +
     ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2)) +
     ggplot2::ggtitle(paste("Model Performance at", name))
 

@@ -70,7 +70,11 @@ setMethod("train_model",
               cval <- object@outlier_cval
             }
 
-            args.tsmethod <- c(object@train_args, list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "ML", "CSS"), "optim.method" = "CG", "optim.control" = list(maxit = 5000)))
+            args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "ML", "CSS"), "optim.method" = "CG", "optim.control" = list(maxit = 5000))
+            for (i in names(object@train_args)) {
+              args.tsmethod[[i]] <- object@train_args[[i]]
+            }
+
             if (object@outlier_type == "None") {
               trained_result <- do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
               if (length(new_train_xreg) != 0) {

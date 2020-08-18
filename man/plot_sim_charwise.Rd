@@ -9,8 +9,10 @@ auto_detect_parameters(charwise_summ)
 
 plot_sim_charwise(
   charwise_summ,
-  mapping = list(shape = "window_size", alpha = "granularity", fill = "react_speed",
-    color = "model_num"),
+  mapping = list(shape = "window_size", alpha = "train_size", fill = "train_policy",
+    color = "name"),
+  adjusted = FALSE,
+  point_or_line = NA,
   name,
   ...
 )
@@ -19,6 +21,10 @@ plot_sim_charwise(
 \item{charwise_summ}{A dataframe containing the scores in all parameter settings and their performance.}
 
 \item{mapping}{A named list with keys representing graphical aesthetics parameters and values represetning columnames of \code{charwise_summ} to be mapped to.}
+
+\item{adjusted}{A logical value representing whether to use adjusted score for plotting. Default value is \code{FALSE}.}
+
+\item{point_or_line}{A logical value represening whether to plot dots or lines. If \code{NA} is supplied, then both lines and dots will be plotted. Default value is \code{NA}.}
 
 \item{name}{A character that represents the identifier or name of the plot.}
 

@@ -70,7 +70,7 @@ setMethod("train_model",
               cval <- object@outlier_cval
             }
 
-            args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "ML", "CSS"), "optim.method" = "CG", "optim.control" = list(maxit = 5000))
+            args.tsmethod <- list("include.mean" = TRUE)
             for (i in names(object@train_args)) {
               args.tsmethod[[i]] <- object@train_args[[i]]
             }

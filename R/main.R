@@ -241,6 +241,8 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
 #' @keywords internal
 predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, write_type, plot_type, ...) {
   ## Do Simulation
+  print(get_representation(object, "char_con"))
+  print(get_representation(object, "param_con"))
   start_time <- proc.time()
   if (cores == 1) {
     trace_score <- lapply(1:ncol(x), svt_predicting_sim, object = object, x = x, xreg = xreg, start_point = start_point, wait_time = wait_time, write_type = write_type, plot_type = plot_type, ..., get_representation(object, "param_con"))
@@ -265,8 +267,6 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
   }
 
   param_score <- check_score_param(trace_predict_info)
-  print(get_representation(object, "char_con"))
-  print(get_representation(object, "param_con"))
   show_result(param_score)
   return(param_score)
 }

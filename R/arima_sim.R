@@ -157,7 +157,6 @@ setMethod("do_prediction",
             } else {
               prev_x <- trained_result$call$x
               new_x <- predict_info$actual[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
-              names(new_x) <- predict_info$time[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
               new_x <- c(prev_x, new_x)
 
               res <- stats::ts(c(trained_result$residuals, predict_info$residuals[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]))
@@ -197,23 +196,18 @@ setMethod("do_prediction",
                 # Outliers are not considered or outliers are not found, and no external regressor is considered.
                 target_model <- forecast::Arima(new_x, model = trained_result)
               } else {
-                # Outliers are considered and found, or external regressor is considered.
                 if (length(test_xreg) == 0) {
                   # No external regressor is considered.
-                  new_xreg <- matrix(nrow = nrow(prev_xreg), ncol = 0)
+                  dxreg <- matrix(0, nrow = object@extrap_step, ncol = ncol(trained_result$call$xreg))
                 } else {
                   # External regressor is considered.
-                  new_xreg <- as.matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
+                  dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
+                  if (ncol(dxreg) < ncol(trained_result$call$xreg)) {
+                    dxreg <- cbind(dxreg, matrix(0, nrow = object@extrap_step, ncol = (ncol(trained_result$call$xreg) - ncol(test_xreg))))
+                  }
                 }
-                if (ncol(new_xreg) < ncol(prev_xreg)) {
-                  # Outliers are considered and found.
-                  new_ol <- matrix(0, nrow = nrow(new_xreg), ncol = ncol(prev_xreg) - ncol(new_xreg))
-                  new_xreg <- cbind(new_xreg, new_ol)
-                }
-                rownames(new_xreg) <- predict_info$time[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
-                colnames(new_xreg) <- colnames(prev_xreg)
-                new_xreg <- rbind(prev_xreg, new_xreg)
-                target_model <- forecast::Arima(new_x, xreg = new_xreg, model = trained_result)
+                colnames(dxreg) <- colnames(trained_result$call$xreg)
+                predict_result <- forecast::forecast(target_model, xreg = dxreg, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
               }
             }
 
@@ -234,7 +228,6 @@ setMethod("do_prediction",
               colnames(dxreg) <- colnames(trained_result$call$xreg)
               predict_result <- forecast::forecast(target_model, xreg = dxreg, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
             }
-
 
             if (object@res_dist == "skew_norm") {
               xi <- trained_result$xi + as.numeric(predict_result$mean)

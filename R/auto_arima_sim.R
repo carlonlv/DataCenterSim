@@ -138,7 +138,6 @@ setMethod("do_prediction",
             } else {
               prev_x <- trained_result$call$x
               new_x <- predict_info$actual[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
-              names(new_x) <- predict_info$time[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
               new_x <- c(prev_x, new_x)
 
               res <- stats::ts(c(trained_result$residuals, predict_info$residuals[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]))
@@ -191,7 +190,6 @@ setMethod("do_prediction",
                   new_ol <- matrix(0, nrow = nrow(new_xreg), ncol = ncol(prev_xreg) - ncol(new_xreg))
                   new_xreg <- cbind(new_xreg, new_ol)
                 }
-                rownames(new_xreg) <- predict_info$time[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
                 colnames(new_xreg) <- colnames(prev_xreg)
                 new_xreg <- rbind(prev_xreg, new_xreg)
                 target_model <- forecast::Arima(new_x, xreg = new_xreg, model = trained_result)

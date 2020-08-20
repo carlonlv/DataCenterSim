@@ -30,7 +30,7 @@ plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size",
   }
 
   plt <- ggplot2::ggplot(charwise_summ, do.call(aes_string, mapping))
-  if (adjusted) {
+  if (!adjusted) {
     if (is.na(point_or_line)) {
       plt <- plt +
         ggplot2::geom_line(aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE) +

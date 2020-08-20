@@ -66,7 +66,7 @@ setMethod("do_prediction",
               new_data[,2] <- convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg))], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)])
               trained_result$data <- rbind(prev_data, new_data)
             }
-            predict_result <- MTS::VARpred(trained_result, h = object@extrap_step, Out.level = FALSE)
+            predict_result <- MTS::VARpred(trained_result, h = object@extrap_step, Out.level = FALSE, output = FALSE)
 
             if (object@extrap_step > 1) {
               expected <- as.numeric(predict_result$pred[,1])

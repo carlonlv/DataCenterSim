@@ -52,9 +52,9 @@ setMethod("train_model",
               new_train_xreg <- convert_frequency_dataset_overlapping(train_xreg, object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = TRUE)
             }
 
-            from_quantiles_x <- c(stats::quantile(new_train_x[-length(new_train_x)], probs = seq(to = 1, by = 1 / (object@state_num - 1), length.out = object@state_num - 1), names = FALSE), 100)
-            from_states_x <- sapply(new_train_x[-length(new_train_x)], find_state_num, object@cluster_type, object@state_num, from_quantiles_x)
-            to_states_x <- sapply(new_train_x[-1], find_state_num, object@cluster_type, object@state_num, from_quantiles_x)
+            from_quantiles_x <- c(stats::quantile(new_train_x[-c((length(new_train_x) - object@window_size + 1):length(new_train_x))], probs = seq(to = 1, by = 1 / (object@state_num - 1), length.out = object@state_num - 1), names = FALSE), 100)
+            from_states_x <- sapply(new_train_x[-c((length(new_train_x) - object@window_size + 1):length(new_train_x))], find_state_num, object@cluster_type, object@state_num, from_quantiles_x)
+            to_states_x <- sapply(new_train_x[-c(1:object@window_size)], find_state_num, object@cluster_type, object@state_num, from_quantiles_x)
 
             uncond_dist_x <- rep(0, object@state_num)
             transition_x_x <- matrix(0, nrow = object@state_num, ncol = object@state_num)
@@ -73,8 +73,9 @@ setMethod("train_model",
             }
 
             if (!is.null(new_train_xreg)) {
-              from_quantiles_xreg <- c(stats::quantile(new_train_xreg[-length(new_train_xreg)], probs = seq(to = 1, by = 1 / (object@state_num - 1), length.out = object@state_num - 1), names = FALSE), 100)
-              from_states_xreg <- sapply(new_train_xreg[-length(new_train_xreg)], find_state_num, object@cluster_type, object@state_num, from_quantiles_xreg)
+              from_quantiles_xreg <- c(stats::quantile(new_train_xreg, probs = seq(to = 1, by = 1 / (object@state_num - 1), length.out = object@state_num - 1), names = FALSE), 100)
+              from_states_xreg <- sapply(new_train_xreg, find_state_num, object@cluster_type, object@state_num, from_quantiles_xreg)
+              to_states_x <- sapply(new_train_x, find_state_num, object@cluster_type, object@state_num, from_quantiles_x)
 
               transition_xreg_x <- matrix(0, nrow = object@state_num, ncol = object@state_num)
               for (i in 1:length(from_states_xreg)) {

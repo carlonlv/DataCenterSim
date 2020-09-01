@@ -239,15 +239,17 @@ compute_summary_performance <- function(predict_info, machine_available_resource
 #' @param foreground_x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param foreground_xreg A matrix of size n by m representing the target dataset for scheduling and evaluations, or \code{NULL}.
 #' @param sim_length A numeric value representing the length of time for simulation, training size excluded.
+#' @param use_adjustment A logical value controlling whether adjustment plicy will be used based on the previous foreground predictions, parameter setting \code{react_speed} will be used.
 #' @param background_x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param background_xreg A matrix of size n by m representing the dataset that target dataset depends on for predicting.
 #' @param pred_length A numeric value representing the number of jobs for predictions, training size excluded.
+#' @param bins A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.
 #' @param cores A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_type A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @return A dataframe containing the decisions made by scheduler.
 #' @export
-run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, sim_length, background_x, background_xreg, pred_length, bins=c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
+run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, sim_length, use_adjustment=FALSE, background_x, background_xreg, pred_length, bins=c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
   sim_object <- methods::as(param_setting_sim, "sim")[[1]]
   window_multiplier <- sim_object@window_size
 
@@ -258,10 +260,14 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           trace_length <- sim_object@train_size + sim_length * window_multiplier
           sim_object@window_size <- bin * window_multiplier
           if (is.null(foreground_xreg)) {
-            svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
           } else {
-            svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = foreground_xreg[1:trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = foreground_xreg[1:trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
           }
+          if (use_adjustment) {
+            predict_info[predict_info$adjustment, "pi_up"] <- 100
+          }
+          return(predict_info)
         })
       })
     })
@@ -272,10 +278,14 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           trace_length <- sim_object@train_size + sim_length * window_multiplier
           sim_object@window_size <- bin * window_multiplier
           if (is.null(foreground_xreg)) {
-            svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
           } else {
-            svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = foreground_xreg[1:trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = foreground_xreg[1:trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
           }
+          if (use_adjustment) {
+            predict_info[predict_info$adjustment, "pi_up"] <- 100
+          }
+          return(predict_info)
         })
       })
     }, mc.cores = cores)

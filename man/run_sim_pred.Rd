@@ -10,6 +10,7 @@ run_sim_pred(
   foreground_x,
   foreground_xreg,
   sim_length,
+  use_adjustment = FALSE,
   background_x,
   background_xreg,
   pred_length,
@@ -30,13 +31,15 @@ run_sim_pred(
 
 \item{sim_length}{A numeric value representing the length of time for simulation, training size excluded.}
 
+\item{use_adjustment}{A logical value controlling whether adjustment plicy will be used based on the previous foreground predictions, parameter setting \code{react_speed} will be used.}
+
 \item{background_x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
 \item{background_xreg}{A matrix of size n by m representing the dataset that target dataset depends on for predicting.}
 
 \item{pred_length}{A numeric value representing the number of jobs for predictions, training size excluded.}
 
-\item{bins}{A numeric vector representing a specific partioning of time}
+\item{bins}{A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.}
 
 \item{cores}{A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
 

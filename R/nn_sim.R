@@ -34,18 +34,21 @@ check_valid_nn_sim <- function(object) {
 #' @param P A numeric integer value representing the number of seasonal lags for the input series of neural network. It will be passed into \code{forecast::nnetar} as \code{P}. Default value is \code{0}.
 #' @param size A numeric integer value representing the number of parameters in the hidden layer of the neural network. If \code{NA_real_} is supplied, half of the number of input nodes plus 1 will be used. Default value is \code{NA_real_}.
 #' @param train_args A list representing additional call passed into the training function, \code{forecast::nnetar}. Default value is \code{list("repeats" = 50)}.
+#' @param pred_args A list representing additional call passed into the prediction function, \code{forecast::forecast.nnetar}. Default value is \code{list("bootstrap" = TRUE, "npaths" = 800)}.
 #' @export nn_sim
 nn_sim <- setClass("nn_sim",
                            slots = list(p = "numeric",
                                         P = "numeric",
                                         size = "numeric",
-                                        train_args = "list"),
+                                        train_args = "list",
+                                        pred_args = "list"),
                            contains = "sim",
                            prototype = list(name = "NN",
                                             p = NA_real_,
                                             P = 0,
                                             size = NA_real_,
-                                            train_args = list("repeats" = 50)),
+                                            train_args = list("repeats" = 50),
+                                            pred_args = list("bootstrap" = TRUE, "npaths" = 800)),
                            validity = check_valid_nn_sim)
 
 
@@ -113,13 +116,13 @@ setMethod("do_prediction",
               }
             }
 
-            if (length(test_xreg) == 0) {
-              predict_result <- forecast::forecast(target_model, PI = TRUE, h = object@extrap_step, npaths = 2 * length(trained_result$call$x), level = level)
-            } else {
+            args.tsmethod <- c(object@pred_args, list("object" = target_model, "PI" = TRUE, "h" = object@extrap_step, "level" = level))
+            if (length(test_xreg) != 0) {
               dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
               colnames(dxreg) <- colnames(trained_result$call$xreg)
-              predict_result <- forecast::forecast(target_model, PI = TRUE, xreg = dxreg, h = object@extrap_step, npaths = 2 * length(trained_result$call$x), level = level)
+              args.tsmethod <- c(args.tsmethod, list("xreg" = dxreg))
             }
+            predict_result <- do.call(forecast::forecast, args.tsmethod)
 
             expected <- as.numeric(predict_result$mean)
             pi_up <- max(as.numeric(predict_result$upper))
@@ -162,6 +165,7 @@ setMethod("get_hidden_slots",
           function(object) {
             hidden_lst <- methods::callNextMethod(object)
             hidden_lst[["train_args"]] <- methods::slot(object, "train_args")
+            hidden_lst[["pred_args"]] <- methods::slot(object, "pred_args")
             return(hidden_lst)
           })
 

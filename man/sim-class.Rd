@@ -45,6 +45,8 @@
 
 \item{train_args}{A list representing additional call passed into the training function, \code{forecast::nnetar}. Default value is \code{list("repeats" = 50)}.}
 
+\item{pred_args}{A list representing additional call passed into the prediction function, \code{forecast::forecast.nnetar}. Default value is \code{list("bootstrap" = TRUE, "npaths" = 800)}.}
+
 \item{p}{A numeric value representing the autoregressive order for VAR model. Default value is \code{1}.}
 }
 \description{

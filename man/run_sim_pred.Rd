@@ -11,6 +11,7 @@ run_sim_pred(
   foreground_xreg,
   sim_length,
   use_adjustment = FALSE,
+  use_actual_runtime = FALSE,
   background_x,
   background_xreg,
   pred_length,
@@ -32,6 +33,8 @@ run_sim_pred(
 \item{sim_length}{A numeric value representing the length of time for simulation, training size excluded.}
 
 \item{use_adjustment}{A logical value controlling whether adjustment plicy will be used based on the previous foreground predictions, parameter setting \code{react_speed} will be used.}
+
+\item{use_actual_runtime}{A logical value controlling whether the machine selection will be based on actual runtime information of the job.}
 
 \item{background_x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 

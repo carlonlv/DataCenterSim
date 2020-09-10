@@ -8,7 +8,8 @@ machines_select(
   machine_list,
   prob_vec_lst,
   job_info,
-  constraint_prob = sqrt(0.99)
+  constraint_prob = sqrt(0.99),
+  use_actual = FALSE
 )
 }
 \arguments{
@@ -17,6 +18,8 @@ machines_select(
 \item{prob_vec_lst}{A list representing probability vector at different bins.}
 
 \item{job_info}{A list containing requested CPU and clustering info of background job.}
+
+\item{use_actual}{A logical value representing whether actual runtime information will be used.}
 }
 \value{
 A list containing best background machine and the score corresponding to the choice.

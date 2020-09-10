@@ -260,40 +260,44 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
   window_multiplier <- sim_object@window_size
 
   if (cores == 1) {
-    fg_predict_info_lst <- lapply(1:ncol(foreground_x), function(ts_num) {
-      lapply(bins[-1], function(bin) {
-        lapply(0:(bin - 1), function(offs) {
-          trace_length <- sim_object@train_size + sim_length * window_multiplier
-          sim_object@window_size <- bin * window_multiplier
-          if (is.null(foreground_xreg)) {
-            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
-          } else {
-            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = foreground_xreg[1:trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
-          }
-          if (use_adjustment) {
-            predict_info[predict_info$adjustment, "pi_up"] <- 100
-          }
-          return(predict_info)
-        })
-      })
+    machine_bin_offs <- expand.grid(ts_num = 1:ncol(foreground_x), bin = bins[-1], offs = 0:(max(bins[-1]) - 1))
+    machine_bin_offs <- machine_bin_offs[machine_bin_offs$bin > machine_bin_offs$offs,]
+    machine_bin_offs <- dplyr::arrange_at(machine_bin_offs, .vars = c("ts_num", "bin", "offs"))
+    fg_predict_info_lst <- lapply(1:nrow(machine_bin_offs), function(row_num){
+      ts_num <- machine_bin_offs[row_num, "ts_num"]
+      bin <- machine_bin_offs[row_num, "bin"]
+      offs <- machine_bin_offs[row_num, "offs"]
+      trace_length <- sim_object@train_size + sim_length * window_multiplier
+      sim_object@window_size <- bin * window_multiplier
+      if (is.null(foreground_xreg)) {
+        predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+      } else {
+        predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = foreground_xreg[1:trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+      }
+      if (use_adjustment) {
+        predict_info[predict_info$adjustment, "pi_up"] <- 100
+      }
+      return(predict_info)
     })
   } else {
-    fg_predict_info_lst <- parallel::mclapply(1:ncol(foreground_x), function(ts_num) {
-      lapply(bins[-1], function(bin) {
-        lapply(0:(bin - 1), function(offs) {
-          trace_length <- sim_object@train_size + sim_length * window_multiplier
-          sim_object@window_size <- bin * window_multiplier
-          if (is.null(foreground_xreg)) {
-            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
-          } else {
-            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = foreground_xreg[1:trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
-          }
-          if (use_adjustment) {
-            predict_info[predict_info$adjustment, "pi_up"] <- 100
-          }
-          return(predict_info)
-        })
-      })
+    machine_bin_offs <- expand.grid(ts_num = 1:ncol(foreground_x), bin = bins[-1], offs = 0:(max(bins[-1]) - 1))
+    machine_bin_offs <- machine_bin_offs[machine_bin_offs$bin > machine_bin_offs$offs,]
+    machine_bin_offs <- dplyr::arrange_at(machine_bin_offs, .vars = c("ts_num", "bin", "offs"))
+    fg_predict_info_lst <- parallel::mclapply(1:nrow(machine_bin_offs), function(row_num){
+      ts_num <- machine_bin_offs[row_num, "ts_num"]
+      bin <- machine_bin_offs[row_num, "bin"]
+      offs <- machine_bin_offs[row_num, "offs"]
+      trace_length <- sim_object@train_size + sim_length * window_multiplier
+      sim_object@window_size <- bin * window_multiplier
+      if (is.null(foreground_xreg)) {
+        predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+      } else {
+        predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[1:trace_length,], xreg = foreground_xreg[1:trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+      }
+      if (use_adjustment) {
+        predict_info[predict_info$adjustment, "pi_up"] <- 100
+      }
+      return(predict_info)
     }, mc.cores = cores)
   }
 
@@ -330,14 +334,15 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         machine_info_pi_up[[i]] <- sapply(1:length(bins[-1]), function(bin_idx) {
           bin <- bins[-1][bin_idx]
 
-          quot <- ((current_time - sim_object@train_size - window_multiplier) / window_multiplier) %/% bin + 1
-          remain <- ((current_time - sim_object@train_size - window_multiplier) / window_multiplier) %% bin + 1
+          quot <- ((current_time - sim_object@train_size - window_multiplier) / window_multiplier) %/% bin
+          remain <- ((current_time - sim_object@train_size - window_multiplier) / window_multiplier) %% bin
 
-          predict_info <- fg_predict_info_lst[[i]][[bin_idx]][[remain]]
-          if (quot > nrow(predict_info)) {
+          idx <- which(machine_bin_offs$ts_num == i & machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
+          predict_info <- fg_predict_info_lst[[idx]]
+          if ((quot + 1) > nrow(predict_info)) {
             return(NA)
           } else {
-            return(predict_info[quot, "pi_up"])
+            return(predict_info[(quot + 1), "pi_up"])
           }
         })
       }
@@ -381,9 +386,10 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     }
 
     machine_info_actual <- sapply(1:ncol(foreground_x), function(ts_num) {
-      quot <- (current_time - sim_object@train_size) / window_multiplier
-      predict_info <- fg_predict_info_lst[[ts_num]][[1]][[1]]
-      return(predict_info[quot, "actual"])
+      quot <- (current_time - sim_object@train_size - window_multiplier) / window_multiplier
+      idx <- which(machine_bin_offs$ts_num == ts_num)[1]
+      predict_info <- fg_predict_info_lst[[idx]]
+      return(predict_info[(quot + 1), "actual"])
     })
 
     machine_total_resource <- machine_total_resource + sum(100 - machine_info_actual, na.rm = TRUE)

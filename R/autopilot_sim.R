@@ -39,7 +39,7 @@ check_valid_autopilot_sim <- function(object) {
 
 
 #' @rdname sim-class
-#' @param statistics A character representing the type of statistics used to compute the recommendation at a specific time, can be either \code{"peak"}, \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{"peak"}.
+#' @param statistics A character representing the type of statistics used to compute the recommendation at a specific time, can be either \code{"peak"}, \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{"j-quantile"}.
 #' @param n A numeric integer representing the number of windows to find maximum over, used only when \code{"statistics"} is assigned to be \code{"peak"}. Default value is \code{288}.
 #' @param half_life A numerc integer representing the number of windows for the weight to drop to half, used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{144}.
 #' @param breaks A numeric integer or vector representing the number of breaks for each histogram in each window or the break points for \code{x}. Used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}, passed into \code{hist}. Default value is \code{10}.
@@ -53,7 +53,7 @@ autopilot_sim <- setClass("autopilot_sim",
                                         cut_off_weight = "numeric"),
                            contains = "sim",
                            prototype = list(name = "AUTOPILOT",
-                                            statistics = "peak",
+                                            statistics = "j-quantile",
                                             n = 288,
                                             half_life = 144,
                                             breaks = 10,

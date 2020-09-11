@@ -25,7 +25,7 @@
 
 \item{outlier_cval}{A numeric value representing the critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50).}
 
-\item{statistics}{A character representing the type of statistics used to compute the recommendation at a specific time, can be either \code{"peak"}, \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{"peak"}.}
+\item{statistics}{A character representing the type of statistics used to compute the recommendation at a specific time, can be either \code{"peak"}, \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{"j-quantile"}.}
 
 \item{n}{A numeric integer representing the number of windows to find maximum over, used only when \code{"statistics"} is assigned to be \code{"peak"}. Default value is \code{288}.}
 

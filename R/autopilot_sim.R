@@ -152,6 +152,9 @@ setMethod("get_param_slots",
             numeric_lst <- methods::callNextMethod(object)
             numeric_lst[["n"]] <- methods::slot(object, "n")
             numeric_lst[["half_life"]] <- methods::slot(object, "half_life")
+            if (length(object@breaks) == 1) {
+              numeric_lst[["breaks"]] <- methods::slot(object, "breaks")
+            }
             return(numeric_lst)
           })
 
@@ -175,8 +178,10 @@ setMethod("get_hidden_slots",
           signature(object = "autopilot_sim"),
           function(object) {
             hidden_lst <- methods::callNextMethod(object)
-            hidden_lst[["breaks"]] <- methods::slot(object, "breaks")
             hidden_lst[["cut_off_weight"]] <- methods::slot(object, "cut_off_weight")
+            if (length(object@breaks) != 1) {
+              hidden_lst[["breaks"]] <- methods::slot(object, "breaks")
+            }
             return(hidden_lst)
           })
 

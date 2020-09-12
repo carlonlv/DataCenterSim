@@ -456,16 +456,16 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     meta_setting <- c("sim_length" = sim_length, "sampled_machine_num" = sampled_machine_num, "use_adjustment" = use_adjustment, "use_actual_runtime" = use_actual_runtime, "sampled_job_num" = sampled_job_num, "bin_num" = length(bins[-1]), "repeats" = repeats)
     summ <- data.frame(as.list(colMeans(final_result, na.rm = TRUE)))
     if ("summary" %in% write_type) {
-      summ <- cbind(meta_setting, param_uni_df, summ)
+      summ <- cbind(as.data.frame(as.list(meta_setting), stringsAsFactors = FALSE), param_uni_df, summ)
       write_sim_result(summ, "other", paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
     } else {
       summ <- rbind(final_result, summ)
-      summ <- cbind(meta_setting, param_uni_df, data.frame("repeat" = c(1:repeats, 0)), summ)
+      summ <- cbind(as.data.frame(as.list(meta_setting), stringsAsFactors = FALSE), param_uni_df, data.frame("repeat" = c(1:repeats, 0)), summ)
       write_sim_result(summ, "other", paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
     }
   }
   print("Meta settings:")
-  print(paste(names(meta_setting), meta_setting, sep = ":"))
+  print(paste(names(meta_setting), meta_setting, sep = ":", collapse = ","))
   print("Foreground settings:")
   print(get_representation(sim_object, "char_con"))
   print(get_representation(sim_object, "param_con"))

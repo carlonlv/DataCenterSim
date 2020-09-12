@@ -582,7 +582,7 @@ show_result <- function(param_predict_info, show_msg = TRUE) {
 #'
 #' @description Write the result of a simulation to csv file.
 #' @param summ_df A dataframe containing the scores in all parameter settings and their performance.
-#' @param result_type A character that can be one of \code{"charwise"}, \code{"tracewise"}, \code{"paramwise"} or \code{"none"}.
+#' @param result_type A character that can be one of \code{"charwise"}, \code{"tracewise"}, \code{"paramwise"} or \code{"other"}.
 #' @param name A character that identifies the name of the result.
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
 #' @keywords internal
@@ -645,8 +645,6 @@ trace_reconstruct <- function(avg_trace, max_trace=NULL, orig_rate, new_rate, h=
   if (is.null(max_trace)) {
     return(constructed_sample)
   } else {
-    max_trace_mean_zero <- max_trace - mean(max_trace)
-
     window_num <- length(max_trace)
 
     for (i in 1:window_num) {

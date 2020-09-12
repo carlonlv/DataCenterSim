@@ -9,7 +9,7 @@ write_sim_result(summ_df, result_type, name, ...)
 \arguments{
 \item{summ_df}{A dataframe containing the scores in all parameter settings and their performance.}
 
-\item{result_type}{A character that can be one of \code{"charwise"}, \code{"tracewise"}, \code{"paramwise"} or \code{"none"}.}
+\item{result_type}{A character that can be one of \code{"charwise"}, \code{"tracewise"}, \code{"paramwise"} or \code{"other"}.}
 
 \item{name}{A character that identifies the name of the result.}
 

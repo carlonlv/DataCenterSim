@@ -31,8 +31,8 @@ An S4 Class to Represent A Prediction.
 
 \item{\code{train_policy}}{A character that represents the type of training policy that can either be \code{"offline"} or \code{"fixed"}. Default value is \code{"offline"}.}
 
-\item{\code{train_size}}{A numeric number that specify the training size after aggregated by \code{window_size} used for simulations. Default values is \code{5000}.}
+\item{\code{train_size}}{A numeric number that specify the training size used for simulations. Default values is \code{5000}.}
 
-\item{\code{update_freq}}{A numeric number that specify the length of testing after each training step after aggregated by \code{window_size}, also the amount of step to update after testing step is complete. Default values is \code{5000}.}
+\item{\code{update_freq}}{A numeric number that specify the length of testing after each training step, also the amount of step to update after testing step is complete. Default values is \code{5000}.}
 }}
 

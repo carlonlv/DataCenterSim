@@ -10,12 +10,14 @@ run_sim_pred(
   foreground_x,
   foreground_xreg,
   sim_length,
+  sampled_machine_num,
   use_adjustment = FALSE,
-  use_actual_runtime = FALSE,
   background_x,
   background_xreg,
-  pred_length,
+  use_actual_runtime = FALSE,
+  sampled_job_num,
   bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205),
+  repeats = 10,
   cores = parallel::detectCores(),
   write_type = "none",
   result_loc = getwd()
@@ -30,23 +32,27 @@ run_sim_pred(
 
 \item{foreground_xreg}{A matrix of size n by m representing the target dataset for scheduling and evaluations, or \code{NULL}.}
 
-\item{sim_length}{A numeric value representing the length of time for simulation, training size excluded.}
+\item{sim_length}{A numeric integer representing the length of time for simulation, training size excluded.}
+
+\item{sampled_machine_num}{A numeric integer representing the number of machines to sample and assign background jobs to.}
 
 \item{use_adjustment}{A logical value controlling whether adjustment plicy will be used based on the previous foreground predictions, parameter setting \code{react_speed} will be used.}
-
-\item{use_actual_runtime}{A logical value controlling whether the machine selection will be based on actual runtime information of the job.}
 
 \item{background_x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
 \item{background_xreg}{A matrix of size n by m representing the dataset that target dataset depends on for predicting.}
 
-\item{pred_length}{A numeric value representing the number of jobs for predictions, training size excluded.}
+\item{use_actual_runtime}{A logical value controlling whether the machine selection will be based on actual runtime information of the job.}
+
+\item{sampled_job_num}{A numeric integer representing the number of jobs for predictions, training size included.}
 
 \item{bins}{A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.}
 
+\item{repeats}{A numeric integer representing the number of repetitions for each setting, the result will be the mean of those repeated results.}
+
 \item{cores}{A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
 
-\item{write_type}{A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".}
+\item{write_type}{A character that represents how to write the result of simulation, can be "detailed", "summary" or "none". Default value is \code{"none"}.}
 
 \item{result_loc}{A character that specify the path to which the result of simulations will be saved to. Default is your work directory.}
 }

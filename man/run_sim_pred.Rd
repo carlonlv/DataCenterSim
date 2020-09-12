@@ -9,6 +9,7 @@ run_sim_pred(
   param_setting_pred,
   foreground_x,
   foreground_xreg,
+  lag_xreg = TRUE,
   sim_length,
   sampled_machine_num,
   use_adjustment = FALSE,
@@ -31,6 +32,8 @@ run_sim_pred(
 \item{foreground_x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
 \item{foreground_xreg}{A matrix of size n by m representing the target dataset for scheduling and evaluations, or \code{NULL}.}
+
+\item{lag_xreg}{A logical value representing whether the reggressor for foreground jobs needs to be lagged before applying the foreground model. Default value is \code{TRUE}.}
 
 \item{sim_length}{A numeric integer representing the length of time for simulation, training size excluded.}
 

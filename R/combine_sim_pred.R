@@ -242,6 +242,7 @@ compute_summary_performance <- function(predict_info, machine_available_resource
 #' @param bins A numeric vector representing a specific partioning of time
 #' @param foreground_x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param foreground_xreg A matrix of size n by m representing the target dataset for scheduling and evaluations, or \code{NULL}.
+#' @param lag_xreg A logical value representing whether the reggressor for foreground jobs needs to be lagged before applying the foreground model. Default value is \code{TRUE}.
 #' @param sim_length A numeric integer representing the length of time for simulation, training size excluded.
 #' @param sampled_machine_num A numeric integer representing the number of machines to sample and assign background jobs to.
 #' @param use_adjustment A logical value controlling whether adjustment plicy will be used based on the previous foreground predictions, parameter setting \code{react_speed} will be used.
@@ -256,7 +257,7 @@ compute_summary_performance <- function(predict_info, machine_available_resource
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @return A dataframe containing the decisions made by scheduler.
 #' @export
-run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, sim_length, sampled_machine_num, use_adjustment = FALSE, background_x, background_xreg, use_actual_runtime = FALSE, sampled_job_num, bins=c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), repeats = 10, cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
+run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, lag_xreg = TRUE, sim_length, sampled_machine_num, use_adjustment = FALSE, background_x, background_xreg, use_actual_runtime = FALSE, sampled_job_num, bins=c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), repeats = 10, cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
   sim_object <- methods::as(param_setting_sim, "sim")[[1]]
   window_multiplier <- sim_object@window_size
 
@@ -276,12 +277,18 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         ts_num <- machine_bin_offs[row_num, "ts_num"]
         bin <- machine_bin_offs[row_num, "bin"]
         offs <- machine_bin_offs[row_num, "offs"]
-        trace_length <- max(bins[-1]) + sim_object@train_size + sim_length * window_multiplier
+        trace_length <- (max(bins[-1]) + sim_object@train_size + sim_length) * window_multiplier
         sim_object@window_size <- bin * window_multiplier
+        sim_object@train_size <- sim_object@train_size * window_multiplier
         if (is.null(sampled_foreground_xreg)) {
-          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = sampled_foreground_x[(max(bins[-1]) + 1):trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = sampled_foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
         } else {
-          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = sampled_foreground_x[(max(bins[-1]) + 1):trace_length,], xreg = as.matrix(dplyr::mutate_all(as.data.frame(sampled_foreground_xreg), dplyr::lag, bin)[(max(bins[-1]) + 1):trace_length,]), start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+          if (lag_xreg) {
+            xreg <- as.matrix(dplyr::mutate_all(as.data.frame(sampled_foreground_xreg), dplyr::lag, bin)[(max(bins[-1]) * window_multiplier + 1):trace_length,])
+          } else {
+            xreg <- sampled_foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,]
+          }
+          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = sampled_foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
         }
         if (use_adjustment) {
           predict_info[predict_info$adjustment, "pi_up"] <- 100
@@ -296,12 +303,18 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         ts_num <- machine_bin_offs[row_num, "ts_num"]
         bin <- machine_bin_offs[row_num, "bin"]
         offs <- machine_bin_offs[row_num, "offs"]
-        trace_length <- max(bins[-1]) + sim_object@train_size + sim_length * window_multiplier
+        trace_length <- (max(bins[-1]) + sim_object@train_size + sim_length) * window_multiplier
         sim_object@window_size <- bin * window_multiplier
+        sim_object@train_size <- sim_object@train_size * window_multiplier
         if (is.null(sampled_foreground_xreg)) {
-          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = sampled_foreground_x[(max(bins[-1]) + 1):trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = sampled_foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
         } else {
-          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = sampled_foreground_x[(max(bins[-1]) + 1):trace_length,], xreg = as.matrix(dplyr::mutate_all(as.data.frame(sampled_foreground_xreg), dplyr::lag, bin)[(max(bins[-1]) + 1):trace_length,]), start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+          if (lag_xreg) {
+            xreg <- as.matrix(dplyr::mutate_all(as.data.frame(sampled_foreground_xreg), dplyr::lag, bin)[(max(bins[-1]) * window_multiplier + 1):trace_length,])
+          } else {
+            xreg <- sampled_foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,]
+          }
+          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = sampled_foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
         }
         if (use_adjustment) {
           predict_info[predict_info$adjustment, "pi_up"] <- 100
@@ -318,14 +331,14 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     bg_predict_info <- bg_predict_info_lst$predict_info
 
     ## Combined Simulation
-    bg_predict_info[, "timestamp"] <- max(bins[-1]) + sim_object@train_size + sample(c(1:sim_length) * window_multiplier, nrow(bg_predict_info), replace = TRUE)
+    bg_predict_info[, "timestamp"] <- (max(bins[-1]) + sim_object@train_size + sample(1:sim_length, nrow(bg_predict_info), replace = TRUE)) * window_multiplier
     bg_predict_info <- dplyr::inner_join(bg_predict_info, background_xreg, by = c("job_id" = "job_ID"))
 
     predict_info <- data.frame()
 
     machine_total_resource <- 0
-    current_time <-  max(bins[-1]) + sim_object@train_size + window_multiplier
-    while (current_time <= max(bins[-1]) + sim_object@train_size + sim_length * window_multiplier) {
+    current_time <-  (max(bins[-1]) + sim_object@train_size +  1) * window_multiplier
+    while (current_time <= (max(bins[-1]) + sim_object@train_size + sim_length) * window_multiplier) {
 
       ## Job Arrival
       arrival_jobs <- bg_predict_info[bg_predict_info$timestamp == current_time,]
@@ -343,8 +356,8 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           machine_info_pi_up[[i]] <- sapply(1:length(bins[-1]), function(bin_idx) {
             bin <- bins[-1][bin_idx]
 
-            quot <- ((current_time - max(bins[-1]) - sim_object@train_size - window_multiplier) / window_multiplier) %/% bin
-            remain <- ((current_time - max(bins[-1]) - sim_object@train_size - window_multiplier) / window_multiplier) %% bin
+            quot <- ((current_time - (max(bins[-1]) + sim_object@train_size + 1) * window_multiplier) / window_multiplier) %/% bin
+            remain <- ((current_time - (max(bins[-1]) + sim_object@train_size + 1) * window_multiplier) / window_multiplier) %% bin
 
             idx <- which(machine_bin_offs$ts_num == i & machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
             predict_info <- fg_predict_info_lst[[idx]]
@@ -395,7 +408,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
       }
 
       machine_info_actual <- sapply(1:sampled_machine_num, function(ts_num) {
-        quot <- (current_time - max(bins[-1]) - sim_object@train_size - window_multiplier) / window_multiplier
+        quot <- (current_time - (max(bins[-1]) + sim_object@train_size + 1) * window_multiplier) / window_multiplier
         idx <- which(machine_bin_offs$ts_num == ts_num)[1]
         predict_info <- fg_predict_info_lst[[idx]]
         return(predict_info[(quot + 1), "actual"])
@@ -440,16 +453,19 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
   if (!("none" %in% write_type)) {
     param_uni_df <- cbind(methods::as(sim_object, "data.frame"), methods::as(pred_object, "data.frame"))
+    meta_setting <- c("sim_length" = sim_length, "sampled_machine_num" = sampled_machine_num, "use_adjustment" = use_adjustment, "use_actual_runtime" = use_actual_runtime, "sampled_job_num" = sampled_job_num, "bin_num" = length(bins[-1]), "repeats" = repeats)
     summ <- data.frame(as.list(colMeans(final_result, na.rm = TRUE)))
     if ("summary" %in% write_type) {
-      summ <- cbind(param_uni_df, summ)
+      summ <- cbind(meta_setting, param_uni_df, summ)
       write_sim_result(summ, "other", paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
     } else {
       summ <- rbind(final_result, summ)
-      summ <- cbind(param_uni_df, data.frame("repeat" = c(1:repeats, 0)), summ)
+      summ <- cbind(meta_setting, param_uni_df, data.frame("repeat" = c(1:repeats, 0)), summ)
       write_sim_result(summ, "other", paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
     }
   }
+  print("Meta settings:")
+  print(paste(names(meta_setting), meta_setting, sep = ":"))
   print("Foreground settings:")
   print(get_representation(sim_object, "char_con"))
   print(get_representation(sim_object, "param_con"))

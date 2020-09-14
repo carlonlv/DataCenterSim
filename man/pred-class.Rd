@@ -15,8 +15,6 @@
 \arguments{
 \item{max_cluter}{A numeric value representing the maximum number of clusters to be selected by information criterion.}
 
-\item{min_obs}{A numeric value representing the minimum number of observations in each leaf of the tree.}
-
 \item{train_args}{A list representing additional call passed into the training function.}
 }
 \description{

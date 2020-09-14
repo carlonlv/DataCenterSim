@@ -18,16 +18,13 @@ check_valid_surtree_pred <- function(object) {
 
 
 #' @rdname pred-class
-#' @param min_obs A numeric value representing the minimum number of observations in each leaf of the tree.
 #' @param train_args A list representing additional call passed into the training function.
 #' @export surtree_pred
 surtree_pred <- setClass("surtree_pred",
-                     slots = list(min_obs = "numeric",
-                                  train_args = "list"),
+                     slots = list(train_args = "list"),
                      contains = "pred",
                      prototype = list(name = "SURTREE",
-                                      min_obs = 500,
-                                      train_args = list()),
+                                      train_args = list("control" = rpart::rpart.control(minbucket = 200))),
                      validity = check_valid_surtree_pred)
 
 
@@ -35,16 +32,21 @@ surtree_pred <- setClass("surtree_pred",
 setMethod("train_model",
           signature(object = "surtree_pred", train_x = "numeric", train_xreg = "data.frame", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            training_data <- cbind(train_xreg, "task_duration" = train_x)
-            training_data$task_duration <- discretization(object@bins,training_data$task_duration)
+            training_data <- cbind(train_xreg[,which(colnames(train_xreg) != "job_ID")], "task_duration" = train_x)
+            training_data$task_duration <- discretization(object@bins, training_data$task_duration)
+
             trained_result <- list()
-            Surv_tree <- function(training_data,minsize = 500){
-              response <- survival::Surv(training_data$task_duration,event = rep(1,length(training_data$task_duration)))
-              fit <- rpart::rpart(response ~ scheduling_class + priority + requestCPU + requestRAM + requestLocal_disk_space, data = training_data, method = "exp",control = rpart::rpart.control(minbucket = minsize))
-              tree_classify <- partykit::as.party(fit)
-              tree_classify
+
+            args.methods <- list()
+            for (i in names(object@train_args)) {
+              args.methods[[i]] <- object@train_args[[i]]
             }
-            model <- Surv_tree(training_data)
+
+            training_data$task_duration <- survival::Surv(training_data$task_duration,event = rep(1,length(training_data$task_duration)))
+            form <- as.formula(paste("task_duration ~ ", paste(colnames(train_xreg)[which(colnames(train_xreg) != "job_ID")], collapse = "+")))
+            model <- do.call(rpart::rpart, c(list("formula" = form, "data" = training_data, "method" = "exp"), args.methods))
+            model <- partykit::as.party(model)
+
             Get_Training_ProbVec <- function(model,training_data,breakpoints){
               probvec_Tree <- list()
               cluster1 <- as.numeric(predict(model, training_data[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")], type = "node"))
@@ -71,7 +73,7 @@ setMethod("do_prediction",
           function(object, trained_result, predict_info, test_x, test_xreg) {
             model <- trained_result$model
             nodes <- trained_result$nodes
-            test_clusters <- predict(model, test_xreg[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")], type = "node")
+            test_clusters <- predict(model, test_xreg[,which(colnames(test_xreg) != "job_ID")], type = "node")
             test_clusters2 <- which(nodes %in% test_clusters)
             predict_info[nrow(predict_info), "cluster_info"] <- test_clusters2
             return(predict_info)
@@ -85,7 +87,6 @@ setMethod("get_param_slots",
           signature(object = "surtree_pred"),
           function(object) {
             numeric_lst <- methods::callNextMethod(object)
-            numeric_lst[["min_obs"]] <- methods::slot(object, "min_obs")
             return(numeric_lst)
           })
 

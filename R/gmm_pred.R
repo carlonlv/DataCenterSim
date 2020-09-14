@@ -39,29 +39,28 @@ gmm_pred <- setClass("gmm_pred",
 setMethod("train_model",
           signature(object = "gmm_pred", train_x = "numeric", train_xreg = "data.frame", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            training_data <- cbind(train_xreg, "task_duration" = train_x)
-            training_data$task_duration <- discretization(object@bins,training_data$task_duration)
-            trained_result <- list()
-            Train_GMM <- function(training_data,upper_limBIC = 10){
-              GMM <- mclust::Mclust(training_data[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")],G = 1:upper_limBIC)
-              GMM
+            training_data <- cbind(train_xreg[,which(colnames(train_xreg) != "job_ID")], "task_duration" = train_x)
+            training_data$task_duration <- discretization(object@bins, training_data$task_duration)
+
+            args.methods <- list("G" = 1:object@max_cluter)
+            for (i in names(object@train_args)) {
+              args.methods[[i]] <- object@train_args[[i]]
             }
-            model <- Train_GMM(training_data)
-            Get_Training_ProbVec <- function(model,training_data,breakpoints){
+
+            model <- do.call(mclust::Mclust, c(list("data" = training_data[, which(colnames(training_data) != "task_duration")]), args.methods))
+            Get_Training_ProbVec <- function(model, training_data, breakpoints){
               bins <- length(breakpoints) - 1
               GMM_training_clusters <- model$classification
               probvec_GMM <- list()
               for (i in 1:length(sort(unique(GMM_training_clusters)))) {
-                datai <- training_data$task_duration[GMM_training_clusters == i]
+                datai <- training_data$task_duration[GMM_training_clusters == sort(unique(GMM_training_clusters))[i]]
                 hist1 <- hist(datai,breaks = breakpoints,plot = F)
                 probvec_GMM[[i]] <- hist1$counts/sum(hist1$counts)
               }
               probvec_GMM
             }
-            prob_vec <- Get_Training_ProbVec(model,training_data,object@bins)
-            trained_result$model <- model
-            trained_result$prob <- prob_vec
-            return(trained_result)
+            prob_vec <- Get_Training_ProbVec(model, training_data, object@bins)
+            return(list("model" = model, "prob" = prob_vec))
           })
 
 
@@ -70,8 +69,11 @@ setMethod("do_prediction",
           signature(object = "gmm_pred", trained_result = "list", predict_info = "data.frame", test_x = "numeric", test_xreg = "data.frame"),
           function(object, trained_result, predict_info, test_x, test_xreg) {
             model <- trained_result$model
-            GMM_test <- predict(model, test_xreg[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")])
+            GMM_test <- predict(model, test_xreg[,which(colnames(test_xreg) != "job_ID")])
             GMM_test_clusters <- GMM_test$classification
+            for (i in 1:length(sort(unique(trained_result$model$classification)))) {
+              GMM_test_clusters[GMM_test$classification == sort(unique(trained_result$model$classification))[i]] <- i
+            }
             predict_info[nrow(predict_info), "cluster_info"] <- GMM_test_clusters
             return(predict_info)
           })

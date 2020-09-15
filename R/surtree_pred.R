@@ -33,7 +33,7 @@ setMethod("train_model",
           signature(object = "surtree_pred", train_x = "numeric", train_xreg = "data.frame", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
             training_data <- cbind(train_xreg[,which(colnames(train_xreg) != "job_ID")], "task_duration" = train_x)
-            training_data$task_duration <- discretization(object@bins, training_data$task_duration)
+            response <- discretization(object@bins, training_data$task_duration)
 
             trained_result <- list()
 
@@ -42,17 +42,19 @@ setMethod("train_model",
               args.methods[[i]] <- object@train_args[[i]]
             }
 
-            training_data$task_duration <- survival::Surv(training_data$task_duration,event = rep(1,length(training_data$task_duration)))
+            training_data$task_duration <- survival::Surv(response, event = rep(1,length(training_data$task_duration)))
             form <- as.formula(paste("task_duration ~ ", paste(colnames(train_xreg)[which(colnames(train_xreg) != "job_ID")], collapse = "+")))
             model <- do.call(rpart::rpart, c(list("formula" = form, "data" = training_data, "method" = "exp"), args.methods))
             model <- partykit::as.party(model)
 
-            Get_Training_ProbVec <- function(model,training_data,breakpoints){
+            training_data$task_duration <- response
+
+            Get_Training_ProbVec <- function(model, training_data, breakpoints){
               probvec_Tree <- list()
-              cluster1 <- as.numeric(predict(model, training_data[,c("scheduling_class", "priority", "requestCPU", "requestRAM", "requestLocal_disk_space")], type = "node"))
+              cluster1 <- as.numeric(predict(model, training_data, type = "node"))
               for (i in 1:length(unique(cluster1))) {
                 datai <- training_data$task_duration[cluster1 == sort(unique(cluster1))[i]]
-                hist1 <- hist(datai,breaks = breakpoints,plot = F)
+                hist1 <- hist(datai, breaks = breakpoints, plot = F)
                 probvec_Tree[[i]] <- hist1$counts/sum(hist1$counts)
               }
               names(probvec_Tree) <- sort(unique(cluster1))

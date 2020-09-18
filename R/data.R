@@ -53,12 +53,13 @@
 #' @source \url{https://github.com/google/cluster-data/blob/master/ClusterData2011_2.md}
 "google_runtime_data"
 
-#' 128 Numbers of Parameter Settings
+#' 10000 Samples of Jobs of Google ClusterData 2011 traces
 #'
-#' A dataframe of parameter settings combining \code{window_size = c(12, 36)}, \code{cut_off_prob = c(0.005, 0.1)}, \code{granularity = c(100/32, 0)},
-#' \code{train_size = c(2500, 5000)}, \code{model_num = c(1, 3)}, \code{update_freq = c(3, 6)}, \code{react_speed = list(c(1,1), c(1,3))}.
-#' In order to pass into the \code{run_sim} argument, correct \code{name} column must be supplied.
+#' A dataframe conataining job wise features and running time for each row.
+#' The running time of jobs is aggregated in 5 minutes.
+#' The difference between \code{google_runtime_data} and \code{google_runtime_data2} is that \code{google_runtime_data2} is biased selection of jobs by removing
+#' the jobs with task duration less or equal to 1.
 #'
-#' @format A dataframe with 128 rows and 10 columns:
-#' Check \link{sim} for descriptions of the columns.
-"param_setting1"
+#' @format A dataframe with 10000 rows and 11 columns.
+#' @source \url{https://github.com/google/cluster-data/blob/master/ClusterData2011_2.md}
+"google_runtime_data2"

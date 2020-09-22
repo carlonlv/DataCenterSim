@@ -218,13 +218,13 @@ compute_summary_performance <- function(predict_info, machine_available_resource
 
   finished_numerator <- sum(finished_jobs$requestedCPU * finished_jobs$scheduled_time / window_multiplier)
   total_numerator <- finished_numerator + sum(killed_jobs$requestedCPU * ((killed_jobs$terminate_time - killed_jobs$arrival_time - killed_jobs$delayed_time + window_multiplier) / window_multiplier)) + sum(ongoing_jobs$requestedCPU * ((sim_end_time - ongoing_jobs$arrival_time - ongoing_jobs$delayed_time + window_multiplier) / window_multiplier))
-  optimistic_numerator <- sum(predict_info$requestedCPU * predict_info$scheduled_time / window_multiplier)
+  load_numerator <- sum(predict_info$requestedCPU * predict_info$scheduled_time / window_multiplier)
 
   denominator <- machine_available_resources
 
   result <- list("finished_utilization" = finished_numerator / denominator,
                  "total_utilization" = total_numerator / denominator,
-                 "optimistic_utlization" = optimistic_numerator / denominator,
+                 "load" = load_numerator / denominator,
                  "survival_rate" = sum(predict_info$status == 1) / sum(predict_info$status == 1 | predict_info$status == 2),
                  "unfinished_rate" = sum(predict_info$status == 0) / sum(predict_info$status != 4),
                  "denied_rate" = sum(predict_info$status == 3) / sum(predict_info$status != 4),

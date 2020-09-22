@@ -390,9 +390,9 @@ plot_generated_trace_diagnosis <- function(generated_trace, max_trace, avg_trace
   pooled_df <- rbind(gen_df, max_df, avg_df)
   comp_plt <- ggplot2::ggplot(pooled_df, aes_string(y = "CPU", x = "t")) +
     ggplot2::facet_wrap("type", ncol = 1) +
-    ggplot2::geom_line(data = subset(pooled_df, type == "original"), aes_string(y = "CPU", x = "t"), col = "black") +
-    ggplot2::geom_line(data = subset(pooled_df, type == "windowed_max"), aes_string(y = "CPU", x = "t", color = "generated", alpha = "generated"), na.rm = TRUE) +
-    ggplot2::geom_line(data = subset(pooled_df, type == "windowed_avg"), aes_string(y = "CPU", x = "t", color = "generated", alpha = "generated"), na.rm = TRUE) +
+    ggplot2::geom_line(data = subset(pooled_df, type == "original"), ggplot2::aes_string(y = "CPU", x = "t"), col = "black") +
+    ggplot2::geom_line(data = subset(pooled_df, type == "windowed_max"), ggplot2::aes_string(y = "CPU", x = "t", color = "generated", alpha = "generated"), na.rm = TRUE) +
+    ggplot2::geom_line(data = subset(pooled_df, type == "windowed_avg"), ggplot2::aes_string(y = "CPU", x = "t", color = "generated", alpha = "generated"), na.rm = TRUE) +
     ggplot2::scale_alpha_discrete("generated", range = c(0.5, 0.8)) +
     ggplot2::ylab("CPU Utilization") +
     ggplot2::ggtitle(paste("CPU Utilization of Generated Trace at", new_rate, "and Actual Maximum and Average at", orig_rate))

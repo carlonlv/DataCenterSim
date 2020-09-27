@@ -52,14 +52,3 @@
 #' @format A dataframe with 11409 rows and 11 columns.
 #' @source \url{https://github.com/google/cluster-data/blob/master/ClusterData2011_2.md}
 "google_runtime_data"
-
-#' 10000 Samples of Jobs of Google ClusterData 2011 traces
-#'
-#' A dataframe conataining job wise features and running time for each row.
-#' The running time of jobs is aggregated in 5 minutes.
-#' The difference between \code{google_runtime_data} and \code{google_runtime_data2} is that \code{google_runtime_data2} is biased selection of jobs by removing
-#' the jobs with task duration less or equal to 1.
-#'
-#' @format A dataframe with 10000 rows and 11 columns.
-#' @source \url{https://github.com/google/cluster-data/blob/master/ClusterData2011_2.md}
-"google_runtime_data2"

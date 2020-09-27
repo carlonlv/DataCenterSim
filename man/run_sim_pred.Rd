@@ -15,7 +15,6 @@ run_sim_pred(
   use_adjustment = FALSE,
   background_x,
   background_xreg,
-  use_actual_runtime = FALSE,
   sampled_job_num,
   bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205),
   repeats = 10,
@@ -44,8 +43,6 @@ run_sim_pred(
 \item{background_x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
 \item{background_xreg}{A matrix of size n by m representing the dataset that target dataset depends on for predicting.}
-
-\item{use_actual_runtime}{A logical value controlling whether the machine selection will be based on actual runtime information of the job.}
 
 \item{sampled_job_num}{A numeric integer representing the number of jobs for predictions, training size included.}
 

@@ -167,22 +167,17 @@ machine_update <- function(machine_pi_up, job_runtime_bin, job_requestedCPU) {
 #' @param machine_list A list representing the prediction upper bounds at different bins of machines.
 #' @param prob_vec_lst A list representing probability vector at different bins.
 #' @param job_info A list containing requested CPU and clustering info of background job.
-#' @param use_actual A logical value representing whether actual runtime information will be used.
 #' @return A list containing best background machine and the score corresponding to the choice.
 #' @keywords internal
-machines_select <- function(machine_list, prob_vec_lst, job_info, constraint_prob = sqrt(0.99), use_actual = FALSE){
+machines_select <- function(machine_list, prob_vec_lst, job_info, constraint_prob = sqrt(0.99)){
   compute_scheduler_score <- function(vec_pi_up, prob_vec_lst, job_info) {
     vec_pi_up <- ifelse(vec_pi_up > 100, 100, vec_pi_up)
     predicted_resourse <- 100 - vec_pi_up
-    if (use_actual) {
-      score <- job_info$requested_CPU / predicted_resourse[job_info$actual_runtime_bin]
-    } else {
-      prob_vec <- prob_vec_lst[[job_info$cluster_info]]
-      Ui <- sum(predicted_resourse * prob_vec, na.rm = TRUE)
-      #score <- ifelse(Ui < job_info$requested_CPU, -Inf, job_info$requested_CPU / Ui)
-      FinishProb <- sum(prob_vec[predicted_resourse >= job_info$requested_CPU], na.rm = TRUE)
-      score <- ifelse(FinishProb < constraint_prob, -Inf, job_info$requested_CPU / Ui)
-    }
+    prob_vec <- prob_vec_lst[[job_info$cluster_info]]
+    Ui <- sum(predicted_resourse * prob_vec, na.rm = TRUE)
+    #score <- ifelse(Ui < job_info$requested_CPU, -Inf, job_info$requested_CPU / Ui)
+    FinishProb <- sum(prob_vec[predicted_resourse >= job_info$requested_CPU], na.rm = TRUE)
+    score <- ifelse(FinishProb < constraint_prob, -Inf, job_info$requested_CPU / Ui)
     return(score)
   }
 
@@ -248,7 +243,6 @@ compute_summary_performance <- function(predict_info, machine_available_resource
 #' @param use_adjustment A logical value controlling whether adjustment plicy will be used based on the previous foreground predictions, parameter setting \code{react_speed} will be used.
 #' @param background_x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param background_xreg A matrix of size n by m representing the dataset that target dataset depends on for predicting.
-#' @param use_actual_runtime A logical value controlling whether the machine selection will be based on actual runtime information of the job.
 #' @param sampled_job_num A numeric integer representing the number of jobs for predictions, training size included.
 #' @param bins A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.
 #' @param repeats A numeric integer representing the number of repetitions for each setting, the result will be the mean of those repeated results.
@@ -257,7 +251,7 @@ compute_summary_performance <- function(predict_info, machine_available_resource
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @return A dataframe containing the decisions made by scheduler.
 #' @export
-run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, lag_xreg = TRUE, sim_length, sampled_machine_num, use_adjustment = FALSE, background_x, background_xreg, use_actual_runtime = FALSE, sampled_job_num, bins=c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), repeats = 10, cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
+run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, lag_xreg = TRUE, sim_length, sampled_machine_num, use_adjustment = FALSE, background_x, background_xreg, sampled_job_num, bins=c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), repeats = 10, cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
   sim_object <- methods::as(param_setting_sim, "sim")[[1]]
   window_multiplier <- sim_object@window_size
 
@@ -386,7 +380,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           requested_CPU <- arrival_jobs[job_idx, "requestCPU"]
           job_id <- arrival_jobs[job_idx, "job_id"]
 
-          scheduler_score <- machines_select(machine_info_pi_up, prob_vec_lst, list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "actual_runtime_bin" = actual_runtime_bin), use_actual = use_actual_runtime)
+          scheduler_score <- machines_select(machine_info_pi_up, prob_vec_lst, list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "actual_runtime_bin" = actual_runtime_bin))
 
           if (is.na(scheduler_score$machine_id)) {
             if (job_id %in% predict_info$job_id) {
@@ -455,7 +449,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
   if (!("none" %in% write_type)) {
     param_uni_df <- cbind(methods::as(sim_object, "data.frame"), methods::as(pred_object, "data.frame"))
-    meta_setting <- c("sim_length" = sim_length, "sampled_machine_num" = sampled_machine_num, "use_adjustment" = use_adjustment, "use_actual_runtime" = use_actual_runtime, "sampled_job_num" = sampled_job_num, "bin_num" = length(bins[-1]), "repeats" = repeats)
+    meta_setting <- c("sim_length" = sim_length, "sampled_machine_num" = sampled_machine_num, "use_adjustment" = use_adjustment, "sampled_job_num" = sampled_job_num, "bin_num" = length(bins[-1]), "repeats" = repeats)
     summ <- data.frame(as.list(colMeans(final_result, na.rm = TRUE)))
     if ("summary" %in% write_type) {
       summ <- cbind(as.data.frame(as.list(meta_setting), stringsAsFactors = FALSE), param_uni_df, summ)

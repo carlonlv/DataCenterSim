@@ -65,7 +65,7 @@ predicting_pred <- function(object, x, xreg) {
   train_iter <- 1
   while (current <= last_time_update) {
     if (train_sig) {
-      train_start <- current
+      train_start <- 1
       train_end <- current + object@train_size - 1
 
       train_x <- x[train_start:train_end]

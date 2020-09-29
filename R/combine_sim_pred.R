@@ -258,6 +258,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
   pred_object <- methods::as(param_setting_pred, "pred")[[1]]
   pred_object@bins <- bins
 
+  print("Foreground model fitting...")
   final_result <- do.call(rbind, lapply(1:repeats, function(repeat_time) {
     ## Foreground
     sampled_machine <- sample.int(ncol(foreground_x), size = sampled_machine_num, replace = FALSE)
@@ -318,6 +319,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     }
 
     ## Background
+    print("Background model fitting...")
     sampled_background_jobs <- sample.int(length(background_x), sampled_job_num, replace = FALSE)
     pred_object@update_freq <- sampled_job_num - pred_object@train_size
     bg_predict_info_lst <- predicting_pred(pred_object, background_x[sampled_background_jobs], background_xreg[sampled_background_jobs,])
@@ -325,12 +327,16 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     bg_predict_info <- bg_predict_info_lst$predict_info
 
     ## Combined Simulation
+    print("Combined simulating...")
+
     bg_predict_info[, "timestamp"] <- (max(bins[-1]) + sim_object@train_size + sample(0:(sim_length - 1), nrow(bg_predict_info), replace = TRUE)) * window_multiplier
     bg_predict_info <- dplyr::inner_join(bg_predict_info, background_xreg, by = c("job_id" = "job_ID"))
 
     predict_info <- data.frame()
 
     machine_total_resource <- 0
+
+    pb <- txtProgressBar(min = max(bins[-1]) + sim_object@train_size, max = max(bins[-1]) + sim_object@train_size + sim_length - 1, style = 3)
     current_time <-  (max(bins[-1]) + sim_object@train_size) * window_multiplier
     while (current_time <= (max(bins[-1]) + sim_object@train_size + sim_length - 1) * window_multiplier) {
 
@@ -424,20 +430,26 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
             }
           }
         } else {
-          load_balance_jobs <- floor(nrow(arrival_jobs) / cores)
-          load_balance_machines <- floor(sampled_machine_num / cores)
+          load_balance_jobs <- nrow(arrival_jobs) %/% cores
+          load_balance_machines <- sampled_machine_num %/% cores
+
+          load_balance_remainder_jobs <- nrow(arrival_jobs) %% cores
+          load_balance_remainder_machines <- sampled_machine_num %% cores
 
           job_pools <- 1:nrow(arrival_jobs)
           machine_pools <- 1:sampled_machine_num
           group_job_list <- list()
           group_machine_list <- list()
           for (i in 1:cores) {
-            if (i < cores) {
-              grouped_jobs <- sample(job_pools, load_balance_jobs, replace = FALSE)
-              grouped_machines <- sample(machine_pools, load_balance_machines, replace = FALSE)
+            if (i <= load_balance_remainder_jobs) {
+              grouped_jobs <- sample(job_pools, load_balance_jobs + 1, replace = FALSE)
             } else {
-              grouped_jobs <- job_pools
-              grouped_machines <- machine_pools
+              grouped_jobs <- sample(job_pools, load_balance_jobs, replace = FALSE)
+            }
+            if (i <= load_balance_remainder_machines) {
+              grouped_machines <- sample(machine_pools, load_balance_machines + 1, replace = FALSE)
+            } else {
+              grouped_machines <- sample(machine_pools, load_balance_machines, replace = FALSE)
             }
             group_job_list[[i]] <- grouped_jobs
             job_pools <- job_pools[-which(job_pools %in% grouped_jobs)]
@@ -529,8 +541,11 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           }
         }
       }
+
+      setTxtProgressBar(pb, current_time / window_multiplier)
       current_time <- current_time + window_multiplier
     }
+    close(pb)
 
     summ <- compute_summary_performance(predict_info, machine_total_resource, current_time - window_multiplier, window_multiplier)
     return(as.data.frame(summ))

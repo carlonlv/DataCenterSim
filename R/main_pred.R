@@ -121,7 +121,14 @@ run_pred <- function(epoch_setting, x, xreg) {
                                       score_char_lst <- dplyr::group_map(char_epoch_setting,
                                                                          function(other, char) {
                                                                            param_uni_lst <- methods::as(cbind(char, other), "pred")
-                                                                           score_param_lst <- lapply(param_uni_lst, predicting_pred, x, xreg)
+                                                                           score_param_lst <- lapply(param_uni_lst, function(param_uni_object) {
+                                                                             print(get_representation(param_uni_object, "char_con"))
+                                                                             print(get_representation(param_uni_object, "param_con"))
+                                                                             start_time <- proc.time()
+                                                                             predicting_pred(param_uni_object, x, xreg)
+                                                                             end_time <- proc.time()
+                                                                             print(end_time - start_time)
+                                                                           })
                                                                            return(score_param_lst)
                                                                          })
                                       return(score_char_lst)

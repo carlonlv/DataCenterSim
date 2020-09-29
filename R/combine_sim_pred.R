@@ -393,101 +393,101 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           for (i in 1:length(update_machines)) {
             machine_info_pi_up[[update_machines[i]]] <- updated_machines[[i]]
           }
-        }
 
-        if (cores == 1 | nrow(arrival_jobs) < cores) {
-          for (job_idx in 1:nrow(arrival_jobs)) {
-            arrival_jobs <- arrival_jobs[order(arrival_jobs[, "requestCPU"], decreasing = TRUE),]
-            cluster_info <- arrival_jobs[job_idx, "cluster_info"]
-            actual_runtime <- arrival_jobs[job_idx, "actual"]
-            actual_runtime_bin <- which(actual_runtime == bins[-1])
-            requested_CPU <- arrival_jobs[job_idx, "requestCPU"]
-            job_id <- arrival_jobs[job_idx, "job_id"]
-
-            scheduler_score <- machines_select(machine_info_pi_up, prob_vec_lst, list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "actual_runtime_bin" = actual_runtime_bin))
-
-            if (is.na(scheduler_score$machine_id)) {
-              if (job_id %in% predict_info$job_id) {
-                predict_info[predict_info$job_id == job_id, "delayed_time"] <- predict_info[predict_info$job_id == job_id, "delayed_time"] + window_multiplier
-              } else {
-                predict_info <- rbind(predict_info, data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = window_multiplier, "scheduled_machine" = NA, "scheduled_score" = NA, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 3))
-              }
-            } else {
-              if (job_id %in% predict_info$job_id) {
-                predict_info[predict_info$job_id == job_id, "scheduled_machine"] <- scheduler_score$machine_id
-                predict_info[predict_info$job_id == job_id, "scheduled_score"] <- scheduler_score$score
-                predict_info[predict_info$job_id == job_id, "status"] <- 0
-              } else {
-                predict_info <- rbind(predict_info, data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = 0, "scheduled_machine" = scheduler_score$machine_id, "scheduled_score" = scheduler_score$score, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 0))
-              }
-              machine_info_pi_up[[scheduler_score$machine_id]] <- machine_update(machine_info_pi_up[[scheduler_score$machine_id]], actual_runtime_bin, requested_CPU)
-            }
-          }
-        } else {
-          load_balance_jobs <- floor(nrow(arrival_jobs) / cores)
-          load_balance_machines <- floor(sampled_machine_num / cores)
-
-          job_pools <- 1:nrow(arrival_jobs)
-          machine_pools <- 1:sampled_machine_num
-          group_job_list <- list()
-          group_machine_list <- list()
-          for (i in 1:cores) {
-            if (i < cores) {
-              grouped_jobs <- sample(job_pools, load_balance_jobs, replace = FALSE)
-              grouped_machines <- sample(machine_pools, load_balance_machines, replace = FALSE)
-            } else {
-              grouped_jobs <- job_pools
-              grouped_machines <- machine_pools
-            }
-            group_job_list[[i]] <- grouped_jobs
-            job_pools <- job_pools[-which(job_pools %in% grouped_jobs)]
-            group_machine_list[[i]] <- grouped_machines
-            machine_pools <- machine_pools[-which(machine_pools %in% grouped_machines)]
-          }
-
-          load_balanced_results <- do.call(rbind, parallel::mclapply(1:cores, function(core) {
-            loaded_arrival_jobs <- arrival_jobs[group_job_list[[core]],]
-            loaded_arrival_jobs <- loaded_arrival_jobs[order(loaded_arrival_jobs[, "requestCPU"], decreasing = TRUE),]
-            loaded_machine_info_pi_up <- machine_info_pi_up[group_machine_list[[core]]]
-            temp_predict_info <- data.frame()
-
-            for (job_idx in 1:nrow(loaded_arrival_jobs)) {
-              cluster_info <- loaded_arrival_jobs[job_idx, "cluster_info"]
-              actual_runtime <- loaded_arrival_jobs[job_idx, "actual"]
+          if (cores == 1 | nrow(arrival_jobs) < cores) {
+            for (job_idx in 1:nrow(arrival_jobs)) {
+              arrival_jobs <- arrival_jobs[order(arrival_jobs[, "requestCPU"], decreasing = TRUE),]
+              cluster_info <- arrival_jobs[job_idx, "cluster_info"]
+              actual_runtime <- arrival_jobs[job_idx, "actual"]
               actual_runtime_bin <- which(actual_runtime == bins[-1])
-              requested_CPU <- loaded_arrival_jobs[job_idx, "requestCPU"]
-              job_id <- loaded_arrival_jobs[job_idx, "job_id"]
+              requested_CPU <- arrival_jobs[job_idx, "requestCPU"]
+              job_id <- arrival_jobs[job_idx, "job_id"]
 
-              scheduler_score <- machines_select(loaded_machine_info_pi_up, prob_vec_lst, list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "actual_runtime_bin" = actual_runtime_bin))
+              scheduler_score <- machines_select(machine_info_pi_up, prob_vec_lst, list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "actual_runtime_bin" = actual_runtime_bin))
 
               if (is.na(scheduler_score$machine_id)) {
-                temp_predict_info <- rbind(temp_predict_info,
-                                           data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = window_multiplier, "scheduled_machine" = NA, "scheduled_score" = NA, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 3))
+                if (job_id %in% predict_info$job_id) {
+                  predict_info[predict_info$job_id == job_id, "delayed_time"] <- predict_info[predict_info$job_id == job_id, "delayed_time"] + window_multiplier
+                } else {
+                  predict_info <- rbind(predict_info, data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = window_multiplier, "scheduled_machine" = NA, "scheduled_score" = NA, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 3))
+                }
               } else {
-                temp_predict_info <- rbind(temp_predict_info,
-                                           data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = 0, "scheduled_machine" = group_machine_list[[core]][scheduler_score$machine_id], "scheduled_score" = scheduler_score$score, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 0))
-                loaded_machine_info_pi_up[[scheduler_score$machine_id]] <- machine_update(loaded_machine_info_pi_up[[scheduler_score$machine_id]], actual_runtime_bin, requested_CPU)
+                if (job_id %in% predict_info$job_id) {
+                  predict_info[predict_info$job_id == job_id, "scheduled_machine"] <- scheduler_score$machine_id
+                  predict_info[predict_info$job_id == job_id, "scheduled_score"] <- scheduler_score$score
+                  predict_info[predict_info$job_id == job_id, "status"] <- 0
+                } else {
+                  predict_info <- rbind(predict_info, data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = 0, "scheduled_machine" = scheduler_score$machine_id, "scheduled_score" = scheduler_score$score, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 0))
+                }
+                machine_info_pi_up[[scheduler_score$machine_id]] <- machine_update(machine_info_pi_up[[scheduler_score$machine_id]], actual_runtime_bin, requested_CPU)
               }
             }
-            return(temp_predict_info)
-          }, mc.cores = cores))
+          } else {
+            load_balance_jobs <- floor(nrow(arrival_jobs) / cores)
+            load_balance_machines <- floor(sampled_machine_num / cores)
 
-          conflict_jobs <- load_balanced_results[load_balanced_results$job_id %in% predict_info$job_id,]
-          if (nrow(conflict_jobs) > 0) {
-            for (i in 1:nrow(conflict_jobs)) {
-              conflict_job  <- conflict_jobs[i,]
-              job_id <- conflict_job$job_id
-
-              if (load_balanced_results[load_balanced_results$job_id == job_id, "status"] == 3) {
-                predict_info[predict_info$job_id == job_id, "delayed_time"] <- predict_info[predict_info$job_id == job_id, "delayed_time"] + window_multiplier
+            job_pools <- 1:nrow(arrival_jobs)
+            machine_pools <- 1:sampled_machine_num
+            group_job_list <- list()
+            group_machine_list <- list()
+            for (i in 1:cores) {
+              if (i < cores) {
+                grouped_jobs <- sample(job_pools, load_balance_jobs, replace = FALSE)
+                grouped_machines <- sample(machine_pools, load_balance_machines, replace = FALSE)
               } else {
-                predict_info[predict_info$job_id == job_id, "scheduled_machine"] <- conflict_job$scheduled_machine
-                predict_info[predict_info$job_id == job_id, "scheduled_score"] <- conflict_job$scheduled_score
-                predict_info[predict_info$job_id == job_id, "status"] <- conflict_job$status
+                grouped_jobs <- job_pools
+                grouped_machines <- machine_pools
+              }
+              group_job_list[[i]] <- grouped_jobs
+              job_pools <- job_pools[-which(job_pools %in% grouped_jobs)]
+              group_machine_list[[i]] <- grouped_machines
+              machine_pools <- machine_pools[-which(machine_pools %in% grouped_machines)]
+            }
+
+            load_balanced_results <- do.call(rbind, parallel::mclapply(1:cores, function(core) {
+              loaded_arrival_jobs <- arrival_jobs[group_job_list[[core]],]
+              loaded_arrival_jobs <- loaded_arrival_jobs[order(loaded_arrival_jobs[, "requestCPU"], decreasing = TRUE),]
+              loaded_machine_info_pi_up <- machine_info_pi_up[group_machine_list[[core]]]
+              temp_predict_info <- data.frame()
+
+              for (job_idx in 1:nrow(loaded_arrival_jobs)) {
+                cluster_info <- loaded_arrival_jobs[job_idx, "cluster_info"]
+                actual_runtime <- loaded_arrival_jobs[job_idx, "actual"]
+                actual_runtime_bin <- which(actual_runtime == bins[-1])
+                requested_CPU <- loaded_arrival_jobs[job_idx, "requestCPU"]
+                job_id <- loaded_arrival_jobs[job_idx, "job_id"]
+
+                scheduler_score <- machines_select(loaded_machine_info_pi_up, prob_vec_lst, list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "actual_runtime_bin" = actual_runtime_bin))
+
+                if (is.na(scheduler_score$machine_id)) {
+                  temp_predict_info <- rbind(temp_predict_info,
+                                             data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = window_multiplier, "scheduled_machine" = NA, "scheduled_score" = NA, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 3))
+                } else {
+                  temp_predict_info <- rbind(temp_predict_info,
+                                             data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = 0, "scheduled_machine" = group_machine_list[[core]][scheduler_score$machine_id], "scheduled_score" = scheduler_score$score, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 0))
+                  loaded_machine_info_pi_up[[scheduler_score$machine_id]] <- machine_update(loaded_machine_info_pi_up[[scheduler_score$machine_id]], actual_runtime_bin, requested_CPU)
+                }
+              }
+              return(temp_predict_info)
+            }, mc.cores = cores))
+
+            conflict_jobs <- load_balanced_results[load_balanced_results$job_id %in% predict_info$job_id,]
+            if (nrow(conflict_jobs) > 0) {
+              for (i in 1:nrow(conflict_jobs)) {
+                conflict_job  <- conflict_jobs[i,]
+                job_id <- conflict_job$job_id
+
+                if (load_balanced_results[load_balanced_results$job_id == job_id, "status"] == 3) {
+                  predict_info[predict_info$job_id == job_id, "delayed_time"] <- predict_info[predict_info$job_id == job_id, "delayed_time"] + window_multiplier
+                } else {
+                  predict_info[predict_info$job_id == job_id, "scheduled_machine"] <- conflict_job$scheduled_machine
+                  predict_info[predict_info$job_id == job_id, "scheduled_score"] <- conflict_job$scheduled_score
+                  predict_info[predict_info$job_id == job_id, "status"] <- conflict_job$status
+                }
               }
             }
+            predict_info <- rbind(predict_info, load_balanced_results[!(load_balanced_results$job_id %in% conflict_jobs$job_id),])
           }
-          predict_info <- rbind(predict_info, load_balanced_results[!(load_balanced_results$job_id %in% conflict_jobs$job_id),])
         }
       }
 

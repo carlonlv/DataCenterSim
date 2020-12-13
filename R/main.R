@@ -272,7 +272,7 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
 }
 
 
-#' Predictions of Background Jobs.
+#' Predictions of Foreground Jobs.
 #'
 #' Sequantially training and testing by predicting the availability of CPU resource at next windows.
 #'

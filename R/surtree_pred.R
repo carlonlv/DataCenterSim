@@ -43,7 +43,7 @@ setMethod("train_model",
             }
 
             training_data$task_duration <- survival::Surv(response, event = rep(1,length(training_data$task_duration)))
-            form <- as.formula(paste("task_duration ~ ", paste(colnames(train_xreg)[which(colnames(train_xreg) != "job_ID")], collapse = "+")))
+            form <- stats::as.formula(paste("task_duration ~ ", paste(colnames(train_xreg)[which(colnames(train_xreg) != "job_ID")], collapse = "+")))
             model <- do.call(rpart::rpart, c(list("formula" = form, "data" = training_data, "method" = "exp"), args.methods))
             model <- partykit::as.party(model)
 

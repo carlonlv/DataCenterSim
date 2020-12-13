@@ -29,43 +29,42 @@ plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size",
     charwise_summ[,i] <- as.factor(charwise_summ[,i])
   }
 
-  plt <- ggplot2::ggplot(charwise_summ, do.call(aes_string, mapping))
+  plt <- ggplot2::ggplot(charwise_summ, do.call(ggplot2::aes_string, mapping))
   if (!adjusted) {
     if (is.na(point_or_line)) {
       plt <- plt +
-        ggplot2::geom_line(aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE) +
-        ggplot2::geom_point(aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
+        ggplot2::geom_line(ggplot2::aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE) +
+        ggplot2::geom_point(ggplot2::aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
     } else if (point_or_line) {
       plt <- plt +
-        ggplot2::geom_point(aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
+        ggplot2::geom_point(ggplot2::aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
     } else {
       plt <- plt +
-        ggplot2::geom_line(aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
+        ggplot2::geom_line(ggplot2::aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
     }
   } else {
     if (is.na(point_or_line)) {
       plt <- plt +
-        ggplot2::geom_line(aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE) +
-        ggplot2::geom_point(aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
+        ggplot2::geom_line(ggplot2::aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE) +
+        ggplot2::geom_point(ggplot2::aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
     } else if (point_or_line) {
       plt <- plt +
-        ggplot2::geom_point(aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
+        ggplot2::geom_point(ggplot2::aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
     } else {
       plt <- plt +
-        ggplot2::geom_line(aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
+        ggplot2::geom_line(ggplot2::aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
     }
   }
 
   plt <- plt +
-    ggplot2::ylab("Score 2") +
-    ggplot2::xlab("Score 1") +
+    ggplot2::ylab("Utilization Rate") +
+    ggplot2::xlab("Survival Rate") +
     ggplot2::scale_color_brewer(name = ifelse(is.null(mapping[["color"]]), "empty", mapping[["color"]]), palette = "Set1", guide = ggplot2::guide_legend(ncol = 2)) +
     ggplot2::scale_fill_brewer(name = ifelse(is.null(mapping[["fill"]]), "empty", mapping[["fill"]]), palette = "Set3", guide = ggplot2::guide_legend(ncol =  2)) +
     ggplot2::scale_shape_manual(name = ifelse(is.null(mapping[["shape"]]), "empty", mapping[["shape"]]), values = 21:25, guide = ggplot2::guide_legend(ncol = 2)) +
     ggplot2::scale_alpha_discrete(name = ifelse(is.null(mapping[["alpha"]]), "empty", mapping[["alpha"]]), guide = ggplot2::guide_legend(ncol = 2)) +
     ggplot2::scale_size_manual(name = ifelse(is.null(mapping[["size"]]), "empty", mapping[["size"]]), guide = ggplot2::guide_legend(ncol = 2)) +
-    ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2)) +
-    ggplot2::ggtitle(paste("Model Performance at", name))
+    ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2))
 
   file_name <- paste("Model Performance at", name)
   save_path <- write_location_check(file_name = file_name, ...)
@@ -108,19 +107,17 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
   }
 
   plt1 <- ggplot2::ggplot(param_score) +
-    ggplot2::geom_histogram(aes_string(x = "score1.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
-    ggplot2::geom_histogram(aes_string(x = "score1_adj.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
+    ggplot2::geom_histogram(ggplot2::aes_string(x = "score1.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
+    ggplot2::geom_histogram(ggplot2::aes_string(x = "score1_adj.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
     ggplot2::theme(legend.position = "none") +
-    ggplot2::ggtitle("Performance of Score 1") +
     ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = 6), hjust = 0, label = c(msg[1], msg[2], msg1, msg2, msg3, msg4)) +
     ggplot2::geom_vline(xintercept = target, linetype = "dashed", color = "purple") +
     ggplot2::xlab("Score 1")
 
   plt2 <- ggplot2::ggplot(param_score) +
-    ggplot2::geom_histogram(aes_string(x = "score2.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
-    ggplot2::geom_histogram(aes_string(x = "score2_adj.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
+    ggplot2::geom_histogram(ggplot2::aes_string(x = "score2.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
+    ggplot2::geom_histogram(ggplot2::aes_string(x = "score2_adj.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
     ggplot2::theme(legend.position = "none") +
-    ggplot2::ggtitle("Performance of Score 2") +
     ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = 2), hjust = 0, label = c(msg[3], msg[4])) +
     ggplot2::xlab("Score 2")
 
@@ -131,25 +128,23 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
 
   result3 <- data.frame("score1.n" = c(param_score$score1.n, param_score$score1_adj.n), "score1.w" = c(param_score$score1.w, param_score$score1_adj.w), "adjusted" = c(rep(FALSE, length(param_score$score1.n)), rep(TRUE, length(param_score$score1_adj.n))))
   plt3 <- ggplot2::ggplot(result3) +
-    ggplot2::stat_density2d(aes_string(x = "score1.n", y = "score1.w", color = "..level..", linetype = "adjusted"), na.rm = TRUE, bins = c(30, 2000)) +
+    ggplot2::stat_density2d(ggplot2::aes_string(x = "score1.n", y = "score1.w", color = "..level..", linetype = "adjusted"), na.rm = TRUE, bins = c(30, 2000)) +
     ggplot2::scale_color_distiller(type = "div", palette = 9, direction = 1) +
-    ggplot2::geom_point(aes_string(x = "score1.n", y = "score1.w", fill = "adjusted"), alpha = 0.8, na.rm = TRUE, shape = 21) +
+    ggplot2::geom_point(ggplot2::aes_string(x = "score1.n", y = "score1.w", fill = "adjusted"), alpha = 0.8, na.rm = TRUE, shape = 21) +
     ggplot2::scale_fill_brewer(name = "adjusted", type = "div", palette = 2) +
     ggplot2::scale_linetype(name = "adjusted") +
     ggplot2::xlab("Score 1 Value") +
-    ggplot2::ylab("Score 1 Weight") +
-    ggplot2::ggtitle("2D Histogram of Score1")
+    ggplot2::ylab("Score 1 Weight")
 
   result3 <- data.frame("score2.n" = c(param_score$score2.n, param_score$score2_adj.n), "score2.w" = c(param_score$score2.w, param_score$score2_adj.w), "adjusted" = c(rep(FALSE, length(param_score$score2.n)), rep(TRUE, length(param_score$score2_adj.n))))
   plt4 <- ggplot2::ggplot(result3) +
-    ggplot2::stat_density2d(aes_string(x = "score2.n", y = "score2.w", color = "..level..", linetype = "adjusted"), na.rm = TRUE) +
+    ggplot2::stat_density2d(ggplot2::aes_string(x = "score2.n", y = "score2.w", color = "..level..", linetype = "adjusted"), na.rm = TRUE) +
     ggplot2::scale_color_distiller(type = "div", palette = 7, direction = 1) +
-    ggplot2::geom_point(aes_string(x = "score2.n", y = "score2.w", fill = "adjusted"), alpha = 0.8, na.rm = TRUE, shape = 21) +
+    ggplot2::geom_point(ggplot2::aes_string(x = "score2.n", y = "score2.w", fill = "adjusted"), alpha = 0.8, na.rm = TRUE, shape = 21) +
     ggplot2::scale_fill_brewer(name = "adjusted", type = "div", palette = 3) +
     ggplot2::scale_linetype(name = "adjusted") +
     ggplot2::xlab("Score 2 Value") +
-    ggplot2::ylab("Score 2 Weight") +
-    ggplot2::ggtitle("2D Histogram of Score2")
+    ggplot2::ylab("Score 2 Weight")
 
   plt <- gridExtra::arrangeGrob(plt3, plt4, ncol = 2, nrow = 1)
   file_name <- paste("Performance Plot 2D of Param", name, collapse = ",")
@@ -198,7 +193,6 @@ plot_sim_tracewise <- function(predict_info, name, ...) {
     ggplot2::xlab("Time (5 minutes)") +
     ggplot2::ylab("Cpu (percent)") +
     ggplot2::theme(legend.position = "none") +
-    ggplot2::ggtitle(paste("Tracewise Plot of", name)) +
     ggplot2::scale_fill_manual(values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(nrow(train_regions)))
 
   file_name <- paste("Tracewise Plot of", name)
@@ -228,8 +222,7 @@ plot_ecdf_traces_performance <- function(result_df, feature_name, adjusted, name
   ecdf_plt1 <- ggplot2::ggplot(result_df, aes(score1, colour = factor(feature))) +
     ggplot2::stat_ecdf(na.rm = TRUE) +
     ggplot2::scale_color_manual(name = feature_name, values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(unique(result_df$feature)))) +
-    ggplot2::ylab("Fraction of Data") +
-    ggplot2::ggtitle(paste("ECDF of score1", ifelse(adjusted, "adjusted", ""), "at Different", feature_name))
+    ggplot2::ylab("Fraction of Data")
 
   if (adjusted) {
     score2 <- result_df$score2_adj.n
@@ -239,8 +232,7 @@ plot_ecdf_traces_performance <- function(result_df, feature_name, adjusted, name
   ecdf_plt2 <- ggplot2::ggplot(result_df, aes(score2, colour = factor(feature))) +
     ggplot2::stat_ecdf(na.rm = TRUE) +
     ggplot2::scale_color_manual(name = feature_name, values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(unique(result_df$feature)))) +
-    ggplot2::ylab("Fraction of Data") +
-    ggplot2::ggtitle(paste("ECDF of score2", ifelse(adjusted, "adjusted", ""),"at Different", feature_name))
+    ggplot2::ylab("Fraction of Data")
 
   file_name <- paste("ECDF of scores", ifelse(adjusted, "adjusted", ""), "at Different", feature_name, "Of", name)
   save_path <- write_location_check(file_name = file_name, ...)
@@ -283,7 +275,7 @@ plot_ecdf_acf <- function(dataset1, dataset2=NULL, lags, freqs, corr_method = "p
       diff_windowed_traces_lst <- lapply(lags, function(l) {
         diff_windowed_trace <- sapply(1:ncol(dataset1), function(ts_num) {
           tc <- dataset1[, ts_num]
-          windowed_tc <- convert_frequency_dataset(tc, freq, response[1])
+          windowed_tc <- convert_frequency_dataset(tc, freq, response[2])
           if (diffs[2] >= 1 & diff_lags[2] >= 1) {
             diff_windowed_tc <- diff(windowed_tc, lag = diff_lags[2], differences = diffs[2])
           } else {
@@ -298,7 +290,7 @@ plot_ecdf_acf <- function(dataset1, dataset2=NULL, lags, freqs, corr_method = "p
       diff_windowed_traces_lst <- lapply(lags, function(l) {
         diff_windowed_trace <- sapply(1:ncol(dataset2), function(ts_num) {
           tc <- dataset2[, ts_num]
-          windowed_tc <- convert_frequency_dataset(tc, freq, response[1])
+          windowed_tc <- convert_frequency_dataset(tc, freq, response[2])
           if (diffs[2] >= 1 & diff_lags[2] >= 1) {
             diff_windowed_tc <- diff(windowed_tc, lag = diff_lags[2], differences = diffs[2])
           } else {
@@ -333,13 +325,13 @@ plot_ecdf_acf <- function(dataset1, dataset2=NULL, lags, freqs, corr_method = "p
     na_percentage <-  dplyr::pull(na_percentage_df, var = -1)
     names(na_percentage) <- dplyr::pull(na_percentage_df, var = 1)
 
-    ecdf_plt <- ggplot2::ggplot(corr_df, aes(val, colour = factor(l))) +
+    ecdf_plt <- ggplot2::ggplot(corr_df, ggplot2::aes(val, colour = factor(l))) +
       ggplot2::stat_ecdf(na.rm = TRUE) +
-      ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = length(names(na_percentage))), hjust = 0, label = paste("NA percentage at lag", names(na_percentage), "is", na_percentage)) +
       ggplot2::scale_color_manual(name = "lags", values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(lags))) +
-      ggplot2::geom_vline(xintercept = c(-1.96 / sqrt(length(val) / length(lags)), 1.96 / sqrt(length(val) / length(lags))), linetype = "dashed", color = "red") +
-      ggplot2::ylab("Fraction of Data") +
-      ggplot2::ggtitle(paste("ECDF of Correlation at Different Lags Of Window Size", freq))
+      ggplot2::ylab("Fraction of Data")
+
+    #ggplot2::geom_vline(xintercept = c(-1.96 / sqrt(length(val) / length(lags)), 1.96 / sqrt(length(val) / length(lags))), linetype = "dashed", color = "red") +
+    #ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = length(names(na_percentage))), hjust = 0, label = paste("NA percentage at lag", names(na_percentage), "is", na_percentage)) +
 
     file_name <- paste("ECDF of Correlation at Different Lags Of Window Size", freq, "Of", name)
     save_path <- write_location_check(file_name = file_name, ...)
@@ -374,28 +366,27 @@ plot_generated_trace_diagnosis <- function(generated_trace, max_trace, avg_trace
   agg_max <- convert_frequency_dataset(generated_trace, orig_rate / new_rate, "max")
   agg_max <- c(rep(NA, length(max_trace) - length(agg_max)), agg_max)
   max_df <- data.frame("CPU" = c(max_trace, agg_max),
-                              "t" = c(orig_time, orig_time),
-                              "type" = "windowed_max",
-                              "generated" = c(rep(FALSE, length(max_trace)), rep(TRUE, length(agg_max))),
-                              stringsAsFactors = FALSE)
+                       "t" = c(orig_time, orig_time),
+                       "type" = "windowed_max",
+                       "generated" = c(rep(FALSE, length(max_trace)), rep(TRUE, length(agg_max))),
+                       stringsAsFactors = FALSE)
 
   agg_avg <- convert_frequency_dataset(generated_trace, orig_rate / new_rate, "avg")
   agg_avg <- c(rep(NA, length(avg_trace) - length(agg_avg)), agg_avg)
   avg_df <- data.frame("CPU" = c(avg_trace, agg_avg),
-                              "t" = c(orig_time, orig_time),
-                              "type" = "windowed_avg",
-                              "generated" = c(rep(FALSE, length(max_trace)), rep(TRUE, length(agg_max))),
-                              stringsAsFactors = FALSE)
+                       "t" = c(orig_time, orig_time),
+                       "type" = "windowed_avg",
+                       "generated" = c(rep(FALSE, length(max_trace)), rep(TRUE, length(agg_max))),
+                       stringsAsFactors = FALSE)
 
   pooled_df <- rbind(gen_df, max_df, avg_df)
-  comp_plt <- ggplot2::ggplot(pooled_df, aes_string(y = "CPU", x = "t")) +
+  comp_plt <- ggplot2::ggplot(pooled_df, ggplot2::aes_string(y = "CPU", x = "t")) +
     ggplot2::facet_wrap("type", ncol = 1) +
-    ggplot2::geom_line(data = subset(pooled_df, type == "original"), ggplot2::aes_string(y = "CPU", x = "t"), col = "black") +
-    ggplot2::geom_line(data = subset(pooled_df, type == "windowed_max"), ggplot2::aes_string(y = "CPU", x = "t", color = "generated", alpha = "generated"), na.rm = TRUE) +
-    ggplot2::geom_line(data = subset(pooled_df, type == "windowed_avg"), ggplot2::aes_string(y = "CPU", x = "t", color = "generated", alpha = "generated"), na.rm = TRUE) +
+    ggplot2::geom_line(data = subset(pooled_df, "type" == "original"), ggplot2::aes_string(y = "CPU", x = "t"), col = "black") +
+    ggplot2::geom_line(data = subset(pooled_df, "type" == "windowed_max"), ggplot2::aes_string(y = "CPU", x = "t", color = "generated", alpha = "generated"), na.rm = TRUE) +
+    ggplot2::geom_line(data = subset(pooled_df, "type" == "windowed_avg"), ggplot2::aes_string(y = "CPU", x = "t", color = "generated", alpha = "generated"), na.rm = TRUE) +
     ggplot2::scale_alpha_discrete("generated", range = c(0.5, 0.8)) +
-    ggplot2::ylab("CPU Utilization") +
-    ggplot2::ggtitle(paste("CPU Utilization of Generated Trace at", new_rate, "and Actual Maximum and Average at", orig_rate))
+    ggplot2::ylab("CPU Utilization")
 
   file_name <- paste("Diagnosis of Generated", trace_name, "at", new_rate)
   save_path <- write_location_check(file_name = file_name, ...)

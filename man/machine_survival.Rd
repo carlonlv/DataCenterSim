@@ -4,7 +4,14 @@
 \alias{machine_survival}
 \title{Find Outcome of A Scheduled Foreground Job}
 \usage{
-machine_survival(machine_list, job_list, current_time, cores, max_combn = 5000)
+machine_survival(
+  machine_list,
+  job_list,
+  current_time,
+  cores,
+  max_combn = 5000,
+  algo = "greedy"
+)
 }
 \arguments{
 \item{machine_list}{A numeric vector containing actual values at current time.}
@@ -15,7 +22,9 @@ machine_survival(machine_list, job_list, current_time, cores, max_combn = 5000)
 
 \item{cores}{A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
 
-\item{max_comb}{A numeric value representing the maximum number of combination in finding optimal combinations of jobs to kill, used for limit memory use. Default value is \code{5000}.}
+\item{algo}{A character value representing the aglorithm of choice. Default is \code{"greedy"} which is fast but does not yield the best choice. \code{"dynamic"} is slower but ultimate produces the best selections.}
+
+\item{max_comb}{A numeric value representing the maximum number of combination in finding optimal combinations of jobs, used for limit memory use, only used when \code{algo = "dynmaic"}. Default value is \code{5000}.}
 }
 \value{
 A list with keys representing decision and value job id falling into such decision.

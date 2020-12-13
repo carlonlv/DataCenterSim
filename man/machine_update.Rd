@@ -4,12 +4,10 @@
 \alias{machine_update}
 \title{Update Machine PI After Job Scheduling}
 \usage{
-machine_update(machine_pi_up, job_runtime_bin, job_requestedCPU)
+machine_update(machine_pi_up, job_requestedCPU)
 }
 \arguments{
 \item{machine_pi_up}{A numeric vector representing the prediction upper bound at different bins for a single machine.}
-
-\item{job_runtime_bin}{A numeric number representing which bin the runtime of job corresponds to.}
 
 \item{job_requestedCPU}{A numeric number representing the requestedCPU for the job.}
 }

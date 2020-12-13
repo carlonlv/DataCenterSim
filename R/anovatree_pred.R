@@ -41,7 +41,7 @@ setMethod("train_model",
                 args.methods[[i]] <- object@train_args[[i]]
               }
 
-              form <- as.formula(paste("task_duration ~ ", paste(colnames(train_xreg)[-which(colnames(train_xreg) == "job_ID")], collapse = "+")))
+              form <- stats::as.formula(paste("task_duration ~ ", paste(colnames(train_xreg)[-which(colnames(train_xreg) == "job_ID")], collapse = "+")))
               model <- do.call(rpart::rpart, c(list("formula" = form, "data" = training_data, "method" = "anova"), args.methods))
               model <- partykit::as.party(model)
 

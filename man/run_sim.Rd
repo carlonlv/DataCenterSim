@@ -2,7 +2,7 @@
 % Please edit documentation in R/main.R
 \name{run_sim}
 \alias{run_sim}
-\title{Predictions of Background Jobs.}
+\title{Predictions of Foreground Jobs.}
 \usage{
 run_sim(
   epoch_setting,

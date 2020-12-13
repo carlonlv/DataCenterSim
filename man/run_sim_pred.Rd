@@ -11,11 +11,12 @@ run_sim_pred(
   foreground_xreg,
   lag_xreg = TRUE,
   sim_length,
-  sampled_machine_num,
   use_adjustment = FALSE,
+  load_foreground_result = NULL,
   background_x,
   background_xreg,
-  sampled_job_num,
+  load_background_result = NULL,
+  heart_beats_percent = 1,
   bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205),
   repeats = 10,
   cores = parallel::detectCores(),
@@ -36,15 +37,17 @@ run_sim_pred(
 
 \item{sim_length}{A numeric integer representing the length of time for simulation, training size excluded.}
 
-\item{sampled_machine_num}{A numeric integer representing the number of machines to sample and assign background jobs to.}
-
 \item{use_adjustment}{A logical value controlling whether adjustment plicy will be used based on the previous foreground predictions, parameter setting \code{react_speed} will be used.}
+
+\item{load_foreground_result}{A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.}
 
 \item{background_x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
 \item{background_xreg}{A matrix of size n by m representing the dataset that target dataset depends on for predicting.}
 
-\item{sampled_job_num}{A numeric integer representing the number of jobs for predictions, training size included.}
+\item{load_background_result}{A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.}
+
+\item{heart_beats_percent}{A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.}
 
 \item{bins}{A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.}
 

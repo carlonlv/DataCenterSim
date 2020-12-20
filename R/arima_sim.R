@@ -62,7 +62,7 @@ arima_sim <- setClass("arima_sim",
                                      res_dist = "normal",
                                      outlier_type = "None",
                                      outlier_cval = NA_real_,
-                                     outlier_prediction = "Categorical-Dirichlet",
+                                     outlier_prediction = "None",
                                      outlier_prediction_prior = NA_real_,
                                      outlier_prediction_update_param = TRUE,
                                      train_args = list("order" = c(1, 0, 0))),
@@ -242,7 +242,6 @@ setMethod("do_prediction",
               new_x <- c(prev_x, new_x)
 
               res <- stats::ts(c(trained_result$residuals, predict_info$residuals[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]))
-              pars <- tsoutliers::coefs2poly(trained_result)
 
               if (is.na(object@outlier_cval)) {
                 cval <- ifelse(length(res) <= 50, 3, ifelse(length(res) >= 450, 4, 3 + 0.0025 * (length(res) - 50)))
@@ -252,6 +251,7 @@ setMethod("do_prediction",
 
               if (object@outlier_type != "None") {
                 # Find outliers from past residuals and remove their effect.
+                pars <- tsoutliers::coefs2poly(trained_result)
                 ol <- tsoutliers::locate.outliers.iloop(resid = res, pars = pars, cval = cval, types = ol_type, maxit = 20)
 
                 if (nrow(ol) > 0) {

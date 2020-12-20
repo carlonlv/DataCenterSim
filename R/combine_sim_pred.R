@@ -246,10 +246,8 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
   ## Foreground
   print("Foreground model fitting...")
-  if (!is.null(load_foreground_result)) {
-    if (file.exists(load_foreground_result)) {
-      load(load_foreground_result)
-    }
+  if (!is.null(load_foreground_result) & file.exists(load_foreground_result)) {
+    load(load_foreground_result)
   } else {
     if (cores == 1) {
       pbapply::pboptions(type = "txt")
@@ -305,24 +303,22 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         return(predict_info)
       }, mc.cores = cores, ignore.interactive = TRUE)
       if (!is.null(load_foreground_result)) {
-        save(load_foreground_result, file = load_foreground_result)
+        save(machine_bin_offs, fg_predict_info_lst, file = load_foreground_result)
       }
     }
+  }
 
-    ## Background
-    print("Background model fitting...")
+  ## Background
+  print("Background model fitting...")
+  if (!is.null(load_background_result) & file.exists(load_background_result)) {
+    load(load_background_result)
+  } else {
+    pred_object@update_freq <- length(background_x) - pred_object@train_size
+    bg_predict_info_lst <- predicting_pred(pred_object, background_x, background_xreg)
+    prob_vec_lst <- bg_predict_info_lst$trained_model$prob
+    bg_predict_info <- bg_predict_info_lst$predict_info
     if (!is.null(load_background_result)) {
-      if (file.exists(load_background_result)) {
-        load(load_background_result)
-      }
-    } else {
-      pred_object@update_freq <- length(background_x) - pred_object@train_size
-      bg_predict_info_lst <- predicting_pred(pred_object, background_x, background_xreg)
-      prob_vec_lst <- bg_predict_info_lst$trained_model$prob
-      bg_predict_info <- bg_predict_info_lst$predict_info
-      if (!is.null(load_background_result)) {
-        save(load_background_result, file = load_background_result)
-      }
+      save(bg_predict_info_lst, prob_vec_lst, bg_predict_info, file = load_background_result)
     }
   }
 
@@ -401,7 +397,6 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         }
 
         for (job_idx in 1:nrow(arrival_jobs)) {
-          arrival_jobs <- arrival_jobs[order(arrival_jobs[, "requestCPU"], decreasing = TRUE),]
           cluster_info <- arrival_jobs[job_idx, "cluster_info"]
           actual_runtime <- arrival_jobs[job_idx, "actual"]
           actual_runtime_bin <- which(actual_runtime == bins[-1])

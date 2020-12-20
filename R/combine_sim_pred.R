@@ -302,7 +302,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           predict_info[predict_info$adjustment, "pi_up"] <- 100
         }
         return(predict_info)
-      }, mc.cores = cores)
+      }, mc.cores = cores, ignore.interactive = TRUE)
       if (!is.null(load_foreground_result)) {
         save(load_foreground_result, file = load_foreground_result)
       }

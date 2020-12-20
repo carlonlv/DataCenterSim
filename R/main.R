@@ -301,7 +301,7 @@ run_sim <- function(epoch_setting, x, xreg, start_point=1, wait_time=0, cores=pa
                      score_char_lst <- dplyr::group_map(char_epoch_setting,
                                                       function(other, char) {
                                                         param_uni_lst <- methods::as(cbind(char, other), "sim")
-                                                        score_param_lst <- pbapply::pblapply(param_uni_lst, predicting_sim, x, xreg, start_point, wait_time, cores, write_type, plot_type, result_loc, as.character(name), get_representation(param_uni_lst[[1]], "char_con"))
+                                                        score_param_lst <- lapply(param_uni_lst, predicting_sim, x, xreg, start_point, wait_time, cores, write_type, plot_type, result_loc, as.character(name), get_representation(param_uni_lst[[1]], "char_con"))
                                                         param_uni_df <- data.frame()
                                                         score_param_df <- data.frame()
                                                         for (i in 1:length(score_param_lst)) {

@@ -130,7 +130,7 @@ setMethod("train_model",
                                                             trained_model[[1]]$param_mle$total[which(i == c(ol_type, "NO"))])
                     }
                     effect_mean <- ifelse(length(target_ol_info$coefhat) == 0, 0, mean(target_ol_info$coefhat))
-                    effect_var <- ifelse(length(target_ol_info$coefhat) == 0, 0, stats::var(target_ol_info$coefhat))
+                    effect_var <- ifelse(length(target_ol_info$coefhat) == 0 | length(target_ol_info$coefhat) == 1, 0, stats::var(target_ol_info$coefhat))
                     data.frame("param" = param, "total" = total, "effect_mean" = effect_mean, "effect_var" = effect_var)
                   }))
                   NO_param <- 1 - sum(param_mle$param)
@@ -154,7 +154,7 @@ setMethod("train_model",
                       )
                     }
                     effect_mean <- ifelse(length(target_ol_info$coefhat) == 0, 0, mean(target_ol_info$coefhat))
-                    effect_var <- ifelse(length(target_ol_info$coefhat) == 0, 0, stats::var(target_ol_info$coefhat))
+                    effect_var <- ifelse(length(target_ol_info$coefhat) == 0 | length(target_ol_info$coefhat) == 1, 0, stats::var(target_ol_info$coefhat))
                     data.frame("count" = count, "outlier_prediction_prior" = outlier_prediction_prior, "effect_mean" = effect_mean, "effect_var" = effect_var)
                   }))
                   NO_count <- length(new_train_x) - sum(param_mle$count)

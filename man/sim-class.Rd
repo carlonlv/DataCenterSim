@@ -19,6 +19,12 @@
 \alias{var_sim}
 \title{An S4 Class to Represent A Simulation.}
 \arguments{
+\item{outlier_prediction}{A character representing the distribution of occurences of outliers, and the prior distribution for probability of occurences. Current choices are "None", "Categorical" for predictions based on MLE, "Categorical-Dirichlet" for Bayesian prediction and prior distribution.}
+
+\item{outlier_prediction_prior}{A numeric vector representing the starting value of the hyperparameters of prior distirbution.}
+
+\item{outlier_prediction_update_param}{A logical value representing whether to update the value of the hyperparameters of prior distribution or MLE estimations of parameters depending on \code{outlier_prediction}.}
+
 \item{res_dist}{A character value representing the distribution of residual, \code{"normal"} for normal distribution or \code{"empirical"} for empirical distribution. Default value is \code{"normal"}.}
 
 \item{outlier_type}{A character value representing the type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.}

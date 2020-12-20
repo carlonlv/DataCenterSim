@@ -1,7 +1,7 @@
 Package: DataCenterSim
 Type: Package
 Title: Simulations for Data Centers
-Version: 0.7.8
+Version: 0.7.9
 Author: Jialun Lyu, Ziang Zhang
 Maintainer: Jialun Lyu <lyujialu@cs.toronto.edu>
 Description: The package attaches open source traces from Microsoft Azure Data Center and provides functions to run Time Series Analysis on datasets of Data Centers.
@@ -25,7 +25,8 @@ Imports:
   mclust (>= 5.4.5),
   sn (>= 1.6-2),
   signal (>= 0.7-6),
-  RcppAlgos (>= 2.4.1)
+  RcppAlgos (>= 2.4.1),
+  KScorrect (>= 1.4.0)
 License: GPL-2
 Encoding: UTF-8
 LazyData: true

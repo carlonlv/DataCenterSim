@@ -323,9 +323,9 @@ setMethod("do_prediction",
               predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "pi_up"] <- pi_up
               predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "expected"] <- expected
             } else {
-              if (object@res_dist == "normal" & object@outlier_type != "None" & object@outlier_prediction != "None") {
+              if (object@res_dist == "normal" & object@outlier_type != "None" & object@outlier_prediction != "None" & !is.null(trained_result$param_mle)) {
                 ol_occurence <- list()
-                if (object@outlier_prediction == "Categorical" & !is.null(trained_result$param_mle)) {
+                if (object@outlier_prediction == "Categorical") {
                   ## Probability of occurences
                   for (i in 1:(nrow(trained_result$param_mle) - 1)) {
                     ol_occurence[[ol_type[i]]] <- trained_result$param_mle[i, "param"]
@@ -333,7 +333,7 @@ setMethod("do_prediction",
                   ol_occurence[["NO"]] <- trained_result$param_mle[length(c("AO", "IO", "TC")), "param"]
                   ol_occurence <- data.frame(ol_occurence)
                   ol_occurence <- do.call(rbind, replicate(object@extrap_step, ol_occurence, simplify = FALSE))
-                } else {
+                } else if (object@outlier_prediction == "Categorical-Dirichlet") {
                   ## Probability of occurences
                   if (object@extrap_step > 1) {
                     stop("Multiple extrapolation step for Categorical-Dirichlet is not implemented.")

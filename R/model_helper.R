@@ -217,7 +217,7 @@ check_score_pred <- function(train_iter, test_iter, predict_iter, object, predic
 
     if (granularity == 0) {
       if (actual_available <= 0) {
-        score <- NA
+        score <- 1
       } else {
         score <- ifelse(predicted_available / actual_available > 1 | predicted_available / actual_available < 0, 0, predicted_available / actual_available)
       }

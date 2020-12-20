@@ -330,7 +330,7 @@ setMethod("do_prediction",
                   for (i in 1:(nrow(trained_result$param_mle) - 1)) {
                     ol_occurence[[ol_type[i]]] <- trained_result$param_mle[i, "param"]
                   }
-                  ol_occurence[["NO"]] <- trained_result$param_mle[length(c("AO", "IO", "TC")), "param"]
+                  ol_occurence[["NO"]] <- trained_result$param_mle[nrow(trained_result$param_mle), "param"]
                   ol_occurence <- data.frame(ol_occurence)
                   ol_occurence <- do.call(rbind, replicate(object@extrap_step, ol_occurence, simplify = FALSE))
                 } else if (object@outlier_prediction == "Categorical-Dirichlet") {

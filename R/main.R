@@ -245,6 +245,7 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
   print(get_representation(object, "param_con"))
   start_time <- proc.time()
   if (cores == 1) {
+    pbapply::pboptions(type = "tk")
     trace_score <- pbapply::pblapply(1:ncol(x), svt_predicting_sim, object = object, x = x, xreg = xreg, start_point = start_point, wait_time = wait_time, write_type = write_type, plot_type = plot_type, ..., get_representation(object, "param_con"))
   } else {
     trace_score <- pbmcapply::pbmclapply(1:ncol(x), svt_predicting_sim, object = object, x = x, xreg = xreg, start_point = start_point, wait_time = wait_time, write_type = write_type, plot_type = plot_type, mc.cores = cores, ignore.interactive = TRUE, ..., get_representation(object, "param_con"))

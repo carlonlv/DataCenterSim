@@ -252,6 +252,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     }
   } else {
     if (cores == 1) {
+      pbapply::pboptions(type = "txt")
       machine_bin_offs <- expand.grid(ts_num = 1:ncol(foreground_x), bin = bins[-1], offs = 0:(max(bins[-1]) - 1))
       machine_bin_offs <- machine_bin_offs[machine_bin_offs$bin > machine_bin_offs$offs,]
       machine_bin_offs <- dplyr::arrange_at(machine_bin_offs, .vars = c("ts_num", "bin", "offs"))
@@ -325,6 +326,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     }
   }
 
+  pbapply::pboptions(type = "txt")
   final_result <- do.call(rbind, pbapply::pblapply(1:repeats, function(repeat_time) {
     ## Combined Simulation
     print("Combined simulating...")

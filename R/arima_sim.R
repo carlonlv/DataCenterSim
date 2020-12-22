@@ -385,6 +385,8 @@ setMethod("get_characteristic_slots",
             character_lst <- methods::callNextMethod(object)
             character_lst[["res_dist"]] <- methods::slot(object, "res_dist")
             character_lst[["outlier_type"]] <- methods::slot(object, "outlier_type")
+            character_lst[["outlier_prediction"]] <- methods::slot(object, "outlier_prediction")
+            character_lst[["outlier_prediction_update_param"]] <- methods::slot(object, "outlier_prediction_update_param")
             return(character_lst)
           })
 
@@ -397,6 +399,7 @@ setMethod("get_hidden_slots",
           function(object) {
             hidden_lst <- methods::callNextMethod(object)
             hidden_lst[["train_args"]] <- methods::slot(object, "train_args")
+            hidden_lst[["outlier_prediction_prior"]] <- methods::slot(object, "outlier_prediction_prior")
             return(hidden_lst)
           })
 

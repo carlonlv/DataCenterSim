@@ -246,10 +246,8 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
   ## Foreground
   print("Foreground model fitting...")
-  if (!is.null(load_foreground_result)) {
-    if (file.exists(load_foreground_result)) {
-      load(load_foreground_result)
-    }
+  if (!is.null(load_foreground_result) & file.exists(load_foreground_result)) {
+    load(load_foreground_result)
   } else {
     if (cores == 1) {
       pbapply::pboptions(type = "txt")
@@ -341,10 +339,8 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
   ## Background
   print("Background model fitting...")
-  if (!is.null(load_background_result)) {
-    if (file.exists(load_background_result)) {
-      load(load_background_result)
-    }
+  if (!is.null(load_background_result) & file.exists(load_background_result)) {
+    load(load_background_result)
   } else {
     pred_object@update_freq <- length(background_x) - pred_object@train_size
     bg_predict_info_lst <- predicting_pred(pred_object, background_x, background_xreg)

@@ -280,28 +280,31 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
       machine_bin_offs <- expand.grid(ts_num = 1:ncol(foreground_x), bin = bins[-1], offs = 0:(max(bins[-1]) - 1))
       machine_bin_offs <- machine_bin_offs[machine_bin_offs$bin > machine_bin_offs$offs,]
       machine_bin_offs <- dplyr::arrange_at(machine_bin_offs, .vars = c("ts_num", "bin", "offs"))
-      fg_predict_info_lst <- pbmcapply::pbmclapply(1:nrow(machine_bin_offs), function(row_num){
-        ts_num <- machine_bin_offs[row_num, "ts_num"]
-        bin <- machine_bin_offs[row_num, "bin"]
-        offs <- machine_bin_offs[row_num, "offs"]
-        trace_length <- (max(bins[-1]) + sim_object@train_size + sim_length) * window_multiplier
-        sim_object@window_size <- bin * window_multiplier
-        sim_object@train_size <- sim_object@train_size * window_multiplier
-        if (is.null(foreground_xreg)) {
-          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
-        } else {
-          if (lag_xreg) {
-            xreg <- as.matrix(dplyr::mutate_all(as.data.frame(foreground_xreg), dplyr::lag, bin)[(max(bins[-1]) * window_multiplier + 1):trace_length,])
+      fg_predict_info_lst <- pbmcapply::pbmclapply(1:ncol(foreground_x), function(ts_num) {
+        temp_machine_bin_offs <- machine_bin_offs[machine_bin_offs$ts_num == ts_num,]
+        lapply(1:nrow(temp_machine_bin_offs), function(row_num){
+          ts_num <- temp_machine_bin_offs[row_num, "ts_num"]
+          bin <- temp_machine_bin_offs[row_num, "bin"]
+          offs <- temp_machine_bin_offs[row_num, "offs"]
+          trace_length <- (max(bins[-1]) + sim_object@train_size + sim_length) * window_multiplier
+          sim_object@window_size <- bin * window_multiplier
+          sim_object@train_size <- sim_object@train_size * window_multiplier
+          if (is.null(foreground_xreg)) {
+            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
           } else {
-            xreg <- foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,]
+            if (lag_xreg) {
+              xreg <- as.matrix(dplyr::mutate_all(as.data.frame(foreground_xreg), dplyr::lag, bin)[(max(bins[-1]) * window_multiplier + 1):trace_length,])
+            } else {
+              xreg <- foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,]
+            }
+            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
           }
-          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
-        }
-        if (use_adjustment) {
-          predict_info[predict_info$adjustment, "pi_up"] <- 100
-        }
-        return(predict_info)
-      }, mc.cores = cores, ignore.interactive = TRUE)
+          if (use_adjustment) {
+            predict_info[predict_info$adjustment, "pi_up"] <- 100
+          }
+          return(predict_info)
+        })
+      })
       #quot <- nrow(machine_bin_offs) %/% cores
       #remain <- nrow(machine_bin_offs) %% cores
       #partitions <- ifelse(c(1:cores) <= remain, quot + 1, quot)

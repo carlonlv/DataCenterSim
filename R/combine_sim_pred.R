@@ -304,7 +304,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           }
           return(predict_info)
         })
-      })
+      }, mc.cores = cores, ignore.interactive = TRUE)
       #quot <- nrow(machine_bin_offs) %/% cores
       #remain <- nrow(machine_bin_offs) %% cores
       #partitions <- ifelse(c(1:cores) <= remain, quot + 1, quot)

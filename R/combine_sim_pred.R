@@ -282,7 +282,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
       machine_bin_offs <- dplyr::arrange_at(machine_bin_offs, .vars = c("ts_num", "bin", "offs"))
       fg_predict_info_lst <- pbmcapply::pbmclapply(1:ncol(foreground_x), function(ts_num) {
         temp_machine_bin_offs <- machine_bin_offs[machine_bin_offs$ts_num == ts_num,]
-        lapply(1:nrow(temp_machine_bin_offs), function(row_num){
+        tryCatch(lapply(1:nrow(temp_machine_bin_offs), function(row_num){
           ts_num <- temp_machine_bin_offs[row_num, "ts_num"]
           bin <- temp_machine_bin_offs[row_num, "bin"]
           offs <- temp_machine_bin_offs[row_num, "offs"]
@@ -303,6 +303,8 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
             predict_info[predict_info$adjustment, "pi_up"] <- 100
           }
           return(predict_info)
+        }), error = function(e) {
+          return(ts_num)
         })
       }, mc.cores = cores, ignore.interactive = TRUE)
       #quot <- nrow(machine_bin_offs) %/% cores

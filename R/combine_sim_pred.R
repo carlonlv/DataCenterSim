@@ -356,7 +356,8 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     }
   }
 
-  stop("Under construction.")
+  print("Under construction.")
+  return(0)
 
   pbapply::pboptions(type = "txt")
   final_result <- do.call(rbind, pbapply::pblapply(1:repeats, function(repeat_time) {

@@ -251,7 +251,7 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
     #trace_score <- pbmcapply::pbmclapply(1:ncol(x), svt_predicting_sim, object = object, x = x, xreg = xreg, start_point = start_point, wait_time = wait_time, write_type = write_type, plot_type = plot_type, mc.cores = cores, ignore.interactive = TRUE, ..., get_representation(object, "param_con"))
     trace_score <- pbmcapply::pbmclapply(1:ncol(x), function(ts_num) {
       tryCatch({
-        svt_predicting_sim(object = object, x = x, xreg = xreg, start_point = start_point, wait_time = wait_time, write_type = write_type, plot_type = plot_type, ..., get_representation(object, "param_con"))
+        svt_predicting_sim(ts_num, object, x, xreg, start_point, wait_time, write_type, plot_type, ..., get_representation(object, "param_con"))
       }, error = function(e) {
         cat(paste(e, ts_num))
         return(ts_num)

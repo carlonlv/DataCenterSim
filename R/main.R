@@ -253,7 +253,8 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
       tryCatch({
         svt_predicting_sim(ts_num, object, x, xreg, start_point, wait_time, write_type, plot_type, ..., get_representation(object, "param_con"))
       }, error = function(e) {
-        cat(paste(e, ts_num))
+        print(ts_num)
+        print(e)
         return(ts_num)
       })
     }, mc.cores = cores, ignore.interactive = TRUE)

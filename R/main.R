@@ -264,13 +264,15 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
 
   ## Reformat Results
   trace_predict_info <- data.frame()
+  trace_names <- c()
   for (ts_num in 1:ncol(x)) {
     #trace_predict_info <- rbind(trace_predict_info, methods::as(trace_score[[ts_num]][["trace_score"]], "data.frame"))
     if (!is.numeric(trace_score[[ts_num]])) {
       trace_predict_info <- rbind(trace_predict_info, methods::as(trace_score[[ts_num]][["trace_score"]], "data.frame"))
+      trace_names <- c(trace_names, colnames(x)[ts_num])
     }
   }
-  trace_predict_info$trace_name <- colnames(x)
+  trace_predict_info$trace_name <- trace_names
 
   if ("paramwise" %in% write_type & !("none" %in% write_type)) {
     write_sim_result(trace_predict_info, "paramwise", as.character(Sys.time()), ..., get_representation(object, "param_con"))

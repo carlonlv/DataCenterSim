@@ -8,7 +8,7 @@
 #' @param max_comb A numeric value representing the maximum number of combination in finding optimal combinations of jobs, used for limit memory use, only used when \code{algo = "dynmaic"}. Default value is \code{5000}.
 #' @return A list with keys representing decision and value job id falling into such decision.
 #' @keywords internal
-machine_survival <- function(machine_list, job_list, current_time, cores, max_combn=5000, algo = "greedy") {
+machine_survival <- function(machine_list, job_list, current_time, window_multiplier, cores, max_combn=5000, algo = "greedy") {
   compute_loss <- function(job_process_time, job_process_resource, min_utilization_current) {
     if (sum(job_process_resource) < min_utilization_current) {
       return(Inf)
@@ -20,7 +20,7 @@ machine_survival <- function(machine_list, job_list, current_time, cores, max_co
   find_kill_candidate <- function(other_info, resource_diff, min_kill_num, max_combn) {
     current_remove_choices <- 1:min_kill_num
 
-    job_process_time <- current_time - (other_info[1:min_kill_num, "arrival_time"] + other_info[1:min_kill_num, "delayed_time"]) + 1
+    job_process_time <- current_time - (other_info[1:min_kill_num, "arrival_time"] + other_info[1:min_kill_num, "delayed_time"]) + window_multiplier
     job_process_resource <- other_info[1:min_kill_num, "requestedCPU"]
     loss_vec <- compute_loss(job_process_time, job_process_resource, resource_diff)
 
@@ -246,7 +246,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
   ## Foreground
   print("Foreground model fitting...")
-  if (!is.null(load_foreground_result) & file.exists(load_foreground_result)) {
+  if (ifelse(is.null(load_foreground_result), FALSE, file.exists(load_foreground_result))) {
     load(load_foreground_result)
   } else {
     if (cores == 1) {
@@ -344,7 +344,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
   ## Background
   print("Background model fitting...")
-  if (!is.null(load_background_result) & file.exists(load_background_result)) {
+  if (ifelse(is.null(load_background_result), FALSE, file.exists(load_background_result))) {
     load(load_background_result)
   } else {
     pred_object@update_freq <- length(background_x) - pred_object@train_size
@@ -357,7 +357,6 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
   }
 
   print("Under construction.")
-  return(0)
 
   pbapply::pboptions(type = "txt")
   final_result <- do.call(rbind, pbapply::pblapply(1:repeats, function(repeat_time) {
@@ -476,7 +475,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
       active_jobs <- predict_info[predict_info$status == 0,]
       ## Job Execution and Termination
       if (nrow(active_jobs) > 0) {
-        job_decisions <- machine_survival(machine_info_actual, active_jobs, current_time, cores)
+        job_decisions <- machine_survival(machine_info_actual, active_jobs, current_time, window_multiplier, cores)
 
         for (job_idx in 1:nrow(active_jobs)) {
           job_id <- active_jobs[job_idx, "job_id"]

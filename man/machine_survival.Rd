@@ -8,6 +8,7 @@ machine_survival(
   machine_list,
   job_list,
   current_time,
+  window_multiplier,
   cores,
   max_combn = 5000,
   algo = "greedy"

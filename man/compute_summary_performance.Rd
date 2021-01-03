@@ -6,13 +6,16 @@
 \usage{
 compute_summary_performance(
   predict_info,
+  past_failures,
   machine_available_resources,
   sim_end_time,
   window_multiplier
 )
 }
 \arguments{
-\item{predict_info}{A dataframe containing all the job scheduling information.}
+\item{predict_info}{A dataframe containing all the jobs scheduling information.}
+
+\item{past_failures}{A dataframe containing all the jobs killed by more than once.}
 
 \item{machine_available_resources}{A numeric number representing all the available resources across all machines of all time.}
 

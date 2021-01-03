@@ -186,29 +186,47 @@ machines_select <- function(machine_list, prob_vec_lst, job_info, heart_beats_pe
 
 #' Compute Performance of Scheduling of Jobs in Summary
 #'
-#' @param predict_info A dataframe containing all the job scheduling information.
+#' @param predict_info A dataframe containing all the jobs scheduling information.
+#' @param past_failures A dataframe containing all the jobs killed by more than once.
 #' @param machine_available_resources A numeric number representing all the available resources across all machines of all time.
 #' @param sim_end_time A numeric number representing the finish time of simulation.
 #' @param window_multiplier A numeric number representing the multiplier for delayed time and scheduled time.
 #' @return A list containing utilization for finished jobs and utilization for total jobs.
-compute_summary_performance <- function(predict_info, machine_available_resources, sim_end_time, window_multiplier) {
+compute_summary_performance <- function(predict_info, past_failures, machine_available_resources, sim_end_time, window_multiplier) {
   finished_jobs <- predict_info[predict_info$status == 1,]
-  killed_jobs <- predict_info[predict_info$status == 2,]
-  ongoing_jobs <- predict_info[predict_info$status == 0,]
-
   finished_numerator <- sum(finished_jobs$requestedCPU * finished_jobs$scheduled_time / window_multiplier)
-  total_numerator <- finished_numerator + sum(killed_jobs$requestedCPU * ((killed_jobs$terminate_time - killed_jobs$arrival_time - killed_jobs$delayed_time + window_multiplier) / window_multiplier)) + sum(ongoing_jobs$requestedCPU * ((sim_end_time - ongoing_jobs$arrival_time - ongoing_jobs$delayed_time + window_multiplier) / window_multiplier))
   optimistic_numerator <- sum(predict_info$requestedCPU * predict_info$scheduled_time / window_multiplier)
 
   denominator <- machine_available_resources
 
+  finished_jobs_num <- nrow(finished_jobs)
+  ongoing_jobs_num <- nrow(predict_info[predict_info$status == 0,])
+  killed_jobs_num <- nrow(past_failures)
+  survived_jobs_num <- nrow(finished_jobs) - sum(finished_jobs$job_id %in% past_failures$job_id)
+  denied_jobs_num <- nrow(predict_info[predict_info$status == 3,]) - sum(predict_info$status == 3 & predict_info$job_id %in% past_failures$job_id)
+
+  past_failures <- past_failures %>%
+    dplyr::group_by_at(.vars = "job_id") %>%
+    dplyr::tally() %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by_at(.vars = "n") %>%
+    dplyr::tally() %>%
+    dplyr::ungroup()
+
+  past_failures$nn <- past_failures$nn / sum(past_failures$nn)
+  colnames(past_failures) <- c("kill_count", "kill_count_number")
+
+  kill_count_summary <- list()
+  for (i in 1:nrow(past_failures)) {
+    kill_count_summary[[paste0("kill_count:", past_failures$kill_count[i])]] <- past_failures$kill_count_number[i]
+  }
+
   result <- list("finished_utilization" = finished_numerator / denominator,
-                 "total_utilization" = total_numerator / denominator,
                  "optimistic_utilization" = optimistic_numerator / denominator,
-                 "survival_rate" = sum(predict_info$status == 1) / sum(predict_info$status == 1 | predict_info$status == 2),
-                 "unfinished_rate" = sum(predict_info$status == 0) / sum(predict_info$status != 4),
-                 "denied_rate" = sum(predict_info$status == 3) / sum(predict_info$status != 4),
-                 "unconcluded_rate" = sum(predict_info$status == 4) / nrow(predict_info))
+                 "survival_rate" = survived_jobs_num / (survived_jobs_num + killed_jobs_num),
+                 "unfinished_rate" = ongoing_jobs_num / (finished_jobs_num + killed_jobs_num + ongoing_jobs_num + denied_jobs_num),
+                 "denied_rate" = denied_jobs_num / (finished_jobs_num + killed_jobs_num + ongoing_jobs_num + denied_jobs_num))
+  result <- c(result, kill_count_summary)
   return(result)
 }
 
@@ -384,21 +402,39 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
       }
 
       if (nrow(arrival_jobs) > 0) {
-        machine_info_pi_up <- list()
-        for (i in 1:ncol(foreground_x)) {
-          machine_info_pi_up[[i]] <- sapply(1:length(bins[-1]), function(bin_idx) {
-            bin <- bins[-1][bin_idx]
+        if (cores ==  1) {
+          machine_info_pi_up <- lapply(1:ncol(foreground_x), function(i) {
+            sapply(1:length(bins[-1]), function(bin_idx) {
+              bin <- bins[-1][bin_idx]
 
-            remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
-            quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
+              remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
+              quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
 
-            idx <- which(machine_bin_offs$ts_num == i & machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
-            predict_info <- fg_predict_info_lst[[idx]]
-            if (quot > nrow(predict_info)) {
-              return(NA)
-            } else {
-              return(predict_info[quot, "pi_up"])
-            }
+              idx <- which(machine_bin_offs$ts_num == i & machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
+              predict_info <- fg_predict_info_lst[[idx]]
+              if (quot > nrow(predict_info)) {
+                return(NA)
+              } else {
+                return(predict_info[quot, "pi_up"])
+              }
+            })
+          })
+        } else {
+          machine_info_pi_up <- parallel::mclapply(1:ncol(foreground_x), function(i) {
+            sapply(1:length(bins[-1]), function(bin_idx) {
+              bin <- bins[-1][bin_idx]
+
+              remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
+              quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
+
+              idx <- which(machine_bin_offs$ts_num == i & machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
+              predict_info <- fg_predict_info_lst[[idx]]
+              if (quot > nrow(predict_info)) {
+                return(NA)
+              } else {
+                return(predict_info[quot, "pi_up"])
+              }
+            })
           })
         }
 
@@ -461,14 +497,25 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         }
       }
 
-      machine_info_actual <- sapply(1:ncol(foreground_x), function(ts_num) {
-        bin <- 1
-        remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
-        quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
-        idx <- which(machine_bin_offs$ts_num == ts_num & machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
-        predict_info <- fg_predict_info_lst[[idx]]
-        return(predict_info[quot, "actual"])
-      })
+      if (cores == 1) {
+        machine_info_actual <- sapply(1:ncol(foreground_x), function(ts_num) {
+          bin <- 1
+          remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
+          quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
+          idx <- which(machine_bin_offs$ts_num == ts_num & machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
+          predict_info <- fg_predict_info_lst[[idx]]
+          return(predict_info[quot, "actual"])
+        })
+      } else {
+        machine_info_actual <- do.call(c, parallel::mclapply(1:ncol(foreground_x), function(ts_num) {
+          bin <- 1
+          remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
+          quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
+          idx <- which(machine_bin_offs$ts_num == ts_num & machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
+          predict_info <- fg_predict_info_lst[[idx]]
+          return(predict_info[quot, "actual"])
+        }))
+      }
 
       machine_total_resource <- machine_total_resource + sum(100 - machine_info_actual, na.rm = TRUE)
 
@@ -492,7 +539,6 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
             predict_info[predict_info$job_id == job_id, "scheduled_score"] <- NA
             predict_info[predict_info$job_id == job_id, "terminate_time"] <- NA
             predict_info[predict_info$job_id == job_id, "status"] <- 3
-
           } else if (job_id %in% job_decisions$unknown) {
             predict_info[predict_info$job_id == job_id, "status"] <- 4
           } else {
@@ -510,7 +556,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     }
     close(pb)
 
-    summ <- compute_summary_performance(predict_info, machine_total_resource, current_time - window_multiplier, window_multiplier)
+    summ <- compute_summary_performance(predict_info, past_failures, machine_total_resource, current_time - window_multiplier, window_multiplier)
     return(as.data.frame(summ))
   }))
 

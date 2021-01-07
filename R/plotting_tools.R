@@ -243,9 +243,9 @@ plot_ecdf_traces_performance <- function(result_df, feature_name, adjusted, name
 }
 
 
-#' Plot the ECDF of Autocorrelation Or Cross-correlation
+#' Plot the ECDF of Correlation Or Cross-correlation of Different Types
 #'
-#' Plot autocorrelation of \code{dataset1} with given lags or cross-correlation between \code{dataset1} and \code{dataset2} with given lags.
+#' Plot correlation of \code{dataset1} with given lags or cross-correlation between \code{dataset1} and \code{dataset2} with given lags.
 #' @param dataset1 A numeric dataframe or matrix with each column as a trace of type 1.
 #' @param dataset2 A numeric dataframe or matrix with same dimension as \code{dataset1} representing a different type of trace.
 #' @param lags A numeric vector representing the lag of autocorrelations or cross-correlations.
@@ -256,9 +256,9 @@ plot_ecdf_traces_performance <- function(result_df, feature_name, adjusted, name
 #' @param diff_lags A numeric vector of length two representing which lag to use when differencing on \code{dataset1} and \code{dataset2}.
 #' @param name A character that represents the identifier or name of the plot.
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
-#' @rdname plot_ecdf_acf
+#' @rdname plot_ecdf_correlation
 #' @export
-plot_ecdf_acf <- function(dataset1, dataset2=NULL, lags, freqs, corr_method = "pearson", response = c("max", "avg"), diffs=c(0,0), diff_lags=c(1,1), name, ...) {
+plot_ecdf_correlation <- function(dataset1, dataset2=NULL, lags, freqs, corr_method = "pearson", response = c("max", "avg"), diffs=c(0,0), diff_lags=c(1,1), name, ...) {
   lapply(freqs, function(freq) {
     diff_windowed_traces <- sapply(1:ncol(dataset1), function(ts_num) {
       tc <- dataset1[, ts_num]
@@ -315,6 +315,83 @@ plot_ecdf_acf <- function(dataset1, dataset2=NULL, lags, freqs, corr_method = "p
     for (i in 1:length(lags)) {
       corr_df <- rbind(corr_df, data.frame("l" = lags[i], "val" = corr_lst[[i]]))
     }
+
+    l <- corr_df$l
+    val <- corr_df$val
+
+    na_percentage_df <- corr_df %>%
+      dplyr::group_by(l) %>%
+      dplyr::summarise("na_percentage" = sum(is.na(val)) / dplyr::n())
+    na_percentage <-  dplyr::pull(na_percentage_df, var = -1)
+    names(na_percentage) <- dplyr::pull(na_percentage_df, var = 1)
+
+    ecdf_plt <- ggplot2::ggplot(corr_df, ggplot2::aes(val, colour = factor(l))) +
+      ggplot2::stat_ecdf(na.rm = TRUE) +
+      ggplot2::scale_color_manual(name = "lags", values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(lags))) +
+      ggplot2::ylab("Fraction of Data")
+
+    #ggplot2::geom_vline(xintercept = c(-1.96 / sqrt(length(val) / length(lags)), 1.96 / sqrt(length(val) / length(lags))), linetype = "dashed", color = "red") +
+    #ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = length(names(na_percentage))), hjust = 0, label = paste("NA percentage at lag", names(na_percentage), "is", na_percentage)) +
+
+    file_name <- paste("ECDF of Correlation at Different Lags Of Window Size", freq, "Of", name)
+    save_path <- write_location_check(file_name = file_name, ...)
+    ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = ecdf_plt, width = 12, height = 7)
+  })
+  invisible()
+}
+
+
+#' Plot the ECDF of ACF, PACF and CCF
+#'
+#' Plot autocorrelation of \code{dataset1} with given lags or cross-correlation between \code{dataset1} and \code{dataset2} with given lags.
+#' @param dataset1 A numeric dataframe or matrix with each column as a trace of type 1.
+#' @param dataset2 A numeric dataframe or matrix with same dimension as \code{dataset1} representing a different type of trace.
+#' @param lags A numeric vector representing the lag of autocorrelations or cross-correlations.
+#' @param freqs A numeric vector representing the window size of observations to be aggregated.
+#' @param corr_method A character representing the type of correlation to be calculated, either \code{"acf"} or \code{"pacf"}. When dataset2 is provided, this argument is ignored.
+#' @param response A character vector of length two representing the type of aggregation, can be either \code{"max"} or \code{"avg"}
+#' @param name A character that represents the identifier or name of the plot.
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
+#' @rdname plot_ecdf_acf
+#' @export
+plot_ecdf_acf <- function(dataset1, dataset2=NULL, lags, freqs, corr_method = "acf", response = c("max", "avg"), name, ...) {
+  lapply(freqs, function(freq) {
+    windowed_traces1 <- sapply(1:ncol(dataset1), function(ts_num) {
+      tc <- dataset1[, ts_num]
+      windowed_tc <- convert_frequency_dataset(tc, freq, response[1])
+    })
+    colnames(windowed_traces1) <- colnames(dataset1)
+
+    if (is.null(dataset2)) {
+      if (corr_method == "acf") {
+        corr <- do.call(cbind, lapply(1:ncol(dataset1), function(ts_num) {
+          stats::acf(windowed_traces1[, ts_num], lag.max = max(lags), plot = FALSE, na.action = stats::na.pass)$acf
+        }))
+      } else {
+        corr <- do.call(cbind, lapply(1:ncol(dataset1), function(ts_num) {
+          stats::pacf(windowed_traces1[, ts_num], lag.max = max(lags), plot = FALSE, na.action = stats::na.pass)$acf
+        }))
+      }
+    } else {
+      windowed_traces2 <- sapply(1:ncol(dataset2), function(ts_num) {
+        tc <- dataset2[, ts_num]
+        windowed_tc <- convert_frequency_dataset(tc, freq, response[1])
+      })
+      colnames(windowed_traces2) <- colnames(dataset2)
+
+      corr <- do.call(cbind, lapply(1:ncol(dataset1), function(ts_num) {
+        stats::ccf(windowed_traces1[, ts_num], windowed_traces2[, ts_num], lag.max = max(lags), plot = FALSE, na.action = stats::na.pass)$acf
+      }))
+    }
+
+    corr <- as.data.frame(t(as.matrix(corr)))
+    corr <- corr[, lags]
+    colnames(corr) <- lags
+    rownames(corr) <- colnames(dataset1)
+
+    corr_df <- utils::stack(corr)
+    corr_df$ind <- as.numeric(corr_df$ind)
+    colnames(corr_df) <- c("val", "l")
 
     l <- corr_df$l
     val <- corr_df$val

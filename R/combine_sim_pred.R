@@ -358,7 +358,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
     machine_total_resource <- 0
 
-    pb <- utils::txtProgressBar(min = max(bins[-1]) + sim_object@train_size, max = max(bins[-1]) + sim_object@train_size + sim_length - 1, style = 3)
+    pb <- utils::txtProgressBar(min = (max(bins[-1]) + sim_object@train_size) * window_multiplier, max = (max(bins[-1]) + sim_object@train_size + sim_length - 1) * window_multiplier, style = 3)
     current_time <-  (max(bins[-1]) + sim_object@train_size) * window_multiplier
     while (current_time <= (max(bins[-1]) + sim_object@train_size + sim_length - 1) * window_multiplier) {
 

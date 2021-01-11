@@ -298,7 +298,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
       machine_bin_offs <- expand.grid(ts_num = 1:ncol(foreground_x), bin = bins[-1], offs = 0:(max(bins[-1]) - 1))
       machine_bin_offs <- machine_bin_offs[machine_bin_offs$bin > machine_bin_offs$offs,]
       machine_bin_offs <- dplyr::arrange_at(machine_bin_offs, .vars = c("ts_num", "bin", "offs"))
-      fg_predict_info_lst <- pbmcapply::pbmclapply(1:ncol(foreground_x), function(ts_num) {
+      fg_predict_info_lst <- do.call(c, pbmcapply::pbmclapply(1:ncol(foreground_x), function(ts_num) {
         temp_machine_bin_offs <- machine_bin_offs[machine_bin_offs$ts_num == ts_num,]
         lapply(1:nrow(temp_machine_bin_offs), function(row_num){
           ts_num <- temp_machine_bin_offs[row_num, "ts_num"]
@@ -322,7 +322,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           }
           return(predict_info)
         })
-      }, mc.cores = cores, ignore.interactive = TRUE)
+      }, mc.cores = cores, ignore.interactive = TRUE))
       if (!is.null(load_foreground_result)) {
         save(machine_bin_offs, fg_predict_info_lst, file = load_foreground_result)
       }
@@ -342,8 +342,6 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
       save(bg_predict_info_lst, prob_vec_lst, bg_predict_info, file = load_background_result)
     }
   }
-
-  return("Under construction.")
 
   pbapply::pboptions(type = "txt")
   final_result <- do.call(rbind, pbapply::pblapply(1:repeats, function(repeat_time) {

@@ -8,7 +8,7 @@ machines_select(
   machine_list,
   prob_vec_lst,
   job_info,
-  heart_beats_percent,
+  heartbeats_percent,
   constraint_prob = sqrt(0.99)
 )
 }
@@ -19,7 +19,7 @@ machines_select(
 
 \item{job_info}{A list containing requested CPU and clustering info of background job.}
 
-\item{heart_beats_percent}{A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.}
+\item{heartbeats_percent}{A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.}
 
 \item{constraint_prob}{A numeric value representing the cut off for survival probability of a job to be scheduled.}
 }

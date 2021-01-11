@@ -142,11 +142,11 @@ machine_update <- function(machine_pi_up, job_requestedCPU) {
 #' @param machine_list A list representing the prediction upper bounds at different bins of machines.
 #' @param prob_vec_lst A list representing probability vector at different bins.
 #' @param job_info A list containing requested CPU and clustering info of background job.
-#' @param heart_beats_percent A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.
+#' @param heartbeats_percent A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.
 #' @param constraint_prob A numeric value representing the cut off for survival probability of a job to be scheduled.
 #' @return A list containing best background machine and the score corresponding to the choice.
 #' @keywords internal
-machines_select <- function(machine_list, prob_vec_lst, job_info, heart_beats_percent, constraint_prob = sqrt(0.99)){
+machines_select <- function(machine_list, prob_vec_lst, job_info, heartbeats_percent, constraint_prob = sqrt(0.99)){
   compute_scheduler_score <- function(vec_pi_up, prob_vec_lst, job_info) {
     vec_pi_up <- ifelse(vec_pi_up > 100, 100, vec_pi_up)
     predicted_resourse <- 100 - vec_pi_up
@@ -164,7 +164,7 @@ machines_select <- function(machine_list, prob_vec_lst, job_info, heart_beats_pe
     return(score)
   }
 
-  randomized_machine_idx <- sample.int(length(machine_list), size = ceiling(length(machine_list) * heart_beats_percent), replace = FALSE)
+  randomized_machine_idx <- sample.int(length(machine_list), size = ceiling(length(machine_list) * heartbeats_percent), replace = FALSE)
 
   D <- sapply(randomized_machine_idx, function(machine_idx) {
     compute_scheduler_score(machine_list[[machine_idx]], prob_vec_lst, job_info)
@@ -246,7 +246,7 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 #' @param load_foreground_result A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.
 #' @param background_x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param background_xreg A matrix of size n by m representing the dataset that target dataset depends on for predicting.
-#' @param heart_beats_percent A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.
+#' @param heartbeats_percent A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.
 #' @param load_background_result A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.
 #' @param bins A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.
 #' @param repeats A numeric integer representing the number of repetitions for each setting, the result will be the mean of those repeated results.
@@ -255,7 +255,7 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @return A dataframe containing the decisions made by scheduler.
 #' @export
-run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, lag_xreg = TRUE, sim_length, use_adjustment = FALSE, load_foreground_result = NULL, background_x, background_xreg, load_background_result = NULL, heart_beats_percent = 1, bins=c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), repeats = 10, cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
+run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, lag_xreg = TRUE, sim_length, use_adjustment = FALSE, load_foreground_result = NULL, background_x, background_xreg, load_background_result = NULL, heartbeats_percent = 1, bins=c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), repeats = 10, cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
   sim_object <- methods::as(param_setting_sim, "sim")[[1]]
   window_multiplier <- sim_object@window_size
 
@@ -443,7 +443,10 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           job_id <- arrival_jobs[job_idx, "job_id"]
           past_survived_time <- ifelse(job_id %in% past_failures$job_id, max(past_failures[past_failures$job_id == job_id, "run_time"]), -1)
           past_survived_time_bin <- which(past_survived_time == bins[-1])
-          scheduler_score <- machines_select(machine_info_pi_up, prob_vec_lst, list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "past_scheduled_time" = past_survived_time_bin), heart_beats_percent)
+          scheduler_score <- machines_select(machine_list = machine_info_pi_up,
+                                             prob_vec_lst = prob_vec_lst,
+                                             job_info = list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "past_scheduled_time" = past_survived_time_bin),
+                                             heartbeats_percent = heartbeats_percent)
 
           if (is.na(scheduler_score$machine_id)) {
             if (job_id %in% predict_info$job_id) {

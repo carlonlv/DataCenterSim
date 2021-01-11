@@ -6,20 +6,20 @@
 \usage{
 machines_select(
   machine_list,
+  signal_machines_idx,
   prob_vec_lst,
   job_info,
-  heartbeats_percent,
   constraint_prob = sqrt(0.99)
 )
 }
 \arguments{
 \item{machine_list}{A list representing the prediction upper bounds at different bins of machines.}
 
+\item{signal_machines_idx}{A vector of indices of machines that update their heartbeats.}
+
 \item{prob_vec_lst}{A list representing probability vector at different bins.}
 
 \item{job_info}{A list containing requested CPU and clustering info of background job.}
-
-\item{heartbeats_percent}{A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.}
 
 \item{constraint_prob}{A numeric value representing the cut off for survival probability of a job to be scheduled.}
 }

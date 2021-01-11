@@ -140,13 +140,13 @@ machine_update <- function(machine_pi_up, job_requestedCPU) {
 #' Select the Best Machine for A Foreground Job
 #'
 #' @param machine_list A list representing the prediction upper bounds at different bins of machines.
+#' @param signal_machines_idx A vector of indices of machines that update their heartbeats.
 #' @param prob_vec_lst A list representing probability vector at different bins.
 #' @param job_info A list containing requested CPU and clustering info of background job.
-#' @param heartbeats_percent A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.
 #' @param constraint_prob A numeric value representing the cut off for survival probability of a job to be scheduled.
 #' @return A list containing best background machine and the score corresponding to the choice.
 #' @keywords internal
-machines_select <- function(machine_list, prob_vec_lst, job_info, heartbeats_percent, constraint_prob = sqrt(0.99)){
+machines_select <- function(machine_list, signal_machines_idx, prob_vec_lst, job_info, constraint_prob = sqrt(0.99)){
   compute_scheduler_score <- function(vec_pi_up, prob_vec_lst, job_info) {
     vec_pi_up <- ifelse(vec_pi_up > 100, 100, vec_pi_up)
     predicted_resourse <- 100 - vec_pi_up
@@ -164,9 +164,7 @@ machines_select <- function(machine_list, prob_vec_lst, job_info, heartbeats_per
     return(score)
   }
 
-  randomized_machine_idx <- sample.int(length(machine_list), size = ceiling(length(machine_list) * heartbeats_percent), replace = FALSE)
-
-  D <- sapply(randomized_machine_idx, function(machine_idx) {
+  D <- sapply(signal_machines_idx, function(machine_idx) {
     compute_scheduler_score(machine_list[[machine_idx]], prob_vec_lst, job_info)
   })
 
@@ -177,7 +175,7 @@ machines_select <- function(machine_list, prob_vec_lst, job_info, heartbeats_per
     machine_id <- NA
     score <- -Inf
   } else {
-    machine_id <- randomized_machine_idx[which(D == max(D, na.rm = TRUE))[1]]
+    machine_id <- signal_machines_idx[which(D == max(D, na.rm = TRUE))[1]]
     score <- max(D, na.rm = TRUE)
   }
   return(list("machine_id" = machine_id, "score" = score))
@@ -435,6 +433,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           }
         }
 
+        randomized_machine_idx <- sample.int(1:ncol(foreground_x), size = ceiling(ncol(foreground_x) * heartbeats_percent), replace = FALSE)
         for (job_idx in 1:nrow(arrival_jobs)) {
           cluster_info <- arrival_jobs[job_idx, "cluster_info"]
           actual_runtime <- arrival_jobs[job_idx, "actual"]
@@ -444,9 +443,9 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           past_survived_time <- ifelse(job_id %in% past_failures$job_id, max(past_failures[past_failures$job_id == job_id, "run_time"]), -1)
           past_survived_time_bin <- which(past_survived_time == bins[-1])
           scheduler_score <- machines_select(machine_list = machine_info_pi_up,
+                                             signal_machines_idx = randomized_machine_idx,
                                              prob_vec_lst = prob_vec_lst,
-                                             job_info = list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "past_scheduled_time" = past_survived_time_bin),
-                                             heartbeats_percent = heartbeats_percent)
+                                             job_info = list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "past_scheduled_time" = past_survived_time_bin))
 
           if (is.na(scheduler_score$machine_id)) {
             if (job_id %in% predict_info$job_id) {

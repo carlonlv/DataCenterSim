@@ -433,7 +433,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           }
         }
 
-        randomized_machine_idx <- sample.int(1:ncol(foreground_x), size = ceiling(ncol(foreground_x) * heartbeats_percent), replace = FALSE)
+        randomized_machine_idx <- sample.int(ncol(foreground_x), size = ceiling(ncol(foreground_x) * heartbeats_percent), replace = FALSE)
         for (job_idx in 1:nrow(arrival_jobs)) {
           cluster_info <- arrival_jobs[job_idx, "cluster_info"]
           actual_runtime <- arrival_jobs[job_idx, "actual"]

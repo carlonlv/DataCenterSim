@@ -23,7 +23,7 @@ machine_survival(
 
 \item{cores}{A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
 
-\item{algo}{A character value representing the aglorithm of choice. Default is \code{"greedy"} which is fast but does not yield the best choice. \code{"dynamic"} is slower but ultimate produces the best selections.}
+\item{algo}{A character value representing the algorithm of choice. Default is \code{"greedy"} which is fast but does not yield the best choice. \code{"dynamic"} is slower but ultimate produces the best selections.}
 
 \item{max_comb}{A numeric value representing the maximum number of combination in finding optimal combinations of jobs, used for limit memory use, only used when \code{algo = "dynmaic"}. Default value is \code{5000}.}
 }

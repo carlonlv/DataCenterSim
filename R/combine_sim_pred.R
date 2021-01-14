@@ -147,9 +147,10 @@ machine_update <- function(machine_pi_up, job_requestedCPU) {
 #' @param prob_vec_lst A list representing probability vector at different bins.
 #' @param job_info A list containing requested CPU and clustering info of background job.
 #' @param constraint_prob A numeric value representing the cut off for survival probability of a job to be scheduled.
+#' @param cores A numeric value representing number of cores to compute scores for each machine.
 #' @return A list containing best background machine and the score corresponding to the choice.
 #' @keywords internal
-machines_select <- function(machine_list, signal_machines_idx, prob_vec_lst, job_info, constraint_prob = sqrt(0.99)){
+machines_select <- function(machine_list, signal_machines_idx, prob_vec_lst, job_info, cores, constraint_prob = sqrt(0.99)){
   compute_scheduler_score <- function(vec_pi_up, prob_vec_lst, job_info) {
     vec_pi_up <- ifelse(vec_pi_up > 100, 100, vec_pi_up)
     predicted_resourse <- 100 - vec_pi_up
@@ -167,9 +168,15 @@ machines_select <- function(machine_list, signal_machines_idx, prob_vec_lst, job
     return(score)
   }
 
-  D <- sapply(signal_machines_idx, function(machine_idx) {
-    compute_scheduler_score(machine_list[[machine_idx]], prob_vec_lst, job_info)
-  })
+  if (cores == 1) {
+    D <- sapply(signal_machines_idx, function(machine_idx) {
+      compute_scheduler_score(machine_list[[machine_idx]], prob_vec_lst, job_info)
+    })
+  } else {
+    D <- parallel::mcmapply(function(machine_idx) {
+      compute_scheduler_score(machine_list[[machine_idx]], prob_vec_lst, job_info)
+    }, signal_machines_idx)
+  }
 
   if (all(is.na(D))) {
     machine_id <- NA
@@ -457,7 +464,8 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           scheduler_score <- machines_select(machine_list = machine_info_pi_up,
                                              signal_machines_idx = randomized_machine_idx,
                                              prob_vec_lst = prob_vec_lst,
-                                             job_info = list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "past_scheduled_time" = past_survived_time_bin))
+                                             job_info = list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "past_scheduled_time" = past_survived_time_bin),
+                                             cores = cores)
 
           if (is.na(scheduler_score$machine_id)) {
             if (job_id %in% predict_info$job_id) {

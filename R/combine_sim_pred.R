@@ -498,14 +498,14 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           return(predict_info[quot, "actual"])
         })
       } else {
-        machine_info_actual <- do.call(c, pbmcapply::pbmclapply(1:ncol(foreground_x), function(ts_num) {
+        machine_info_actual <- pbmcapply::pbmclapply(1:ncol(foreground_x), function(ts_num) {
           bin <- 1
           remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
           quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
           idx <- which(machine_bin_offs$ts_num == ts_num & machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
           predict_info <- fg_predict_info_lst[[idx]]
           return(predict_info[quot, "actual"])
-        }, mc.cores = cores, ignore.interactive = TRUE))
+        }, mc.cores = cores, ignore.interactive = TRUE)
       }
 
       machine_total_resource <- machine_total_resource + sum(100 - machine_info_actual, na.rm = TRUE)

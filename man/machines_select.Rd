@@ -9,6 +9,7 @@ machines_select(
   signal_machines_idx,
   prob_vec_lst,
   job_info,
+  cores,
   constraint_prob = sqrt(0.99)
 )
 }
@@ -20,6 +21,8 @@ machines_select(
 \item{prob_vec_lst}{A list representing probability vector at different bins.}
 
 \item{job_info}{A list containing requested CPU and clustering info of background job.}
+
+\item{cores}{A numeric value representing number of cores to compute scores for each machine.}
 
 \item{constraint_prob}{A numeric value representing the cut off for survival probability of a job to be scheduled.}
 }

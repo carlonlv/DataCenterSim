@@ -289,14 +289,14 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
 
 #' Predictions of Foreground Jobs.
 #'
-#' Sequantially training and testing by predicting the availability of CPU resource at next windows.
+#' Sequentially training and testing by predicting the availability of CPU resource at next windows.
 #'
 #' @param epoch_setting A dataframe representing a specific parameter setting.
 #' @param x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param xreg A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations, or \code{NULL}.
 #' @param start_point A numeric number that represents the starting point of the simulation. Default value is \code{1}.
 #' @param wait_time A numeric number that represents the time between training and testing. Default value is \code{0}.
-#' @param cores A numeric numeb representing the number of threads for parallel programming for multiple traces, not supported for windows users.
+#' @param cores A numeric numb representing the number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_type A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param plot_type A character that represents how to plot the result of simulation can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.

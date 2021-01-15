@@ -27,7 +27,7 @@ run_sim(
 
 \item{wait_time}{A numeric number that represents the time between training and testing. Default value is \code{0}.}
 
-\item{cores}{A numeric numeb representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
+\item{cores}{A numeric numb representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
 
 \item{write_type}{A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".}
 
@@ -39,5 +39,5 @@ run_sim(
 A list of S4 sim result object.
 }
 \description{
-Sequantially training and testing by predicting the availability of CPU resource at next windows.
+Sequentially training and testing by predicting the availability of CPU resource at next windows.
 }

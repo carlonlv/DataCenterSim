@@ -64,11 +64,12 @@ plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size",
     ggplot2::scale_shape_manual(name = ifelse(is.null(mapping[["shape"]]), "empty", mapping[["shape"]]), values = 21:25, guide = ggplot2::guide_legend(ncol = 2)) +
     ggplot2::scale_alpha_discrete(name = ifelse(is.null(mapping[["alpha"]]), "empty", mapping[["alpha"]]), guide = ggplot2::guide_legend(ncol = 2)) +
     ggplot2::scale_size_manual(name = ifelse(is.null(mapping[["size"]]), "empty", mapping[["size"]]), guide = ggplot2::guide_legend(ncol = 2)) +
-    ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2))
+    ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2)) +
+    ggplot2::theme_bw()
 
   file_name <- paste("Model Performance at", name)
   save_path <- write_location_check(file_name = file_name, ...)
-  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 12, height = 7)
+  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 7, height = 5)
   invisible()
 }
 
@@ -112,19 +113,24 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
     ggplot2::theme(legend.position = "none") +
     ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = 6), hjust = 0, label = c(msg[1], msg[2], msg1, msg2, msg3, msg4)) +
     ggplot2::geom_vline(xintercept = target, linetype = "dashed", color = "purple") +
-    ggplot2::xlab("Score 1")
+    ggplot2::xlab("Score 1") +
+    ggplot2::theme_bw() +
+    ggsci::scale_color_ucscgb()
+
 
   plt2 <- ggplot2::ggplot(param_score) +
     ggplot2::geom_histogram(ggplot2::aes_string(x = "score2.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
     ggplot2::geom_histogram(ggplot2::aes_string(x = "score2_adj.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
     ggplot2::theme(legend.position = "none") +
     ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = 2), hjust = 0, label = c(msg[3], msg[4])) +
-    ggplot2::xlab("Score 2")
+    ggplot2::xlab("Score 2") +
+    ggplot2::theme_bw() +
+    ggsci::scale_color_ucscgb()
 
   plt <- gridExtra::arrangeGrob(plt1, plt2, ncol = 2, nrow = 1)
   file_name <- paste("Performance Plot 1D of Param", name, collapse = ",")
   save_path <- write_location_check(file_name = file_name, ...)
-  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 12, height = 7)
+  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 7, height = 5)
 
   result3 <- data.frame("score1.n" = c(param_score$score1.n, param_score$score1_adj.n), "score1.w" = c(param_score$score1.w, param_score$score1_adj.w), "adjusted" = c(rep(FALSE, length(param_score$score1.n)), rep(TRUE, length(param_score$score1_adj.n))))
   plt3 <- ggplot2::ggplot(result3) +
@@ -134,7 +140,8 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
     ggplot2::scale_fill_brewer(name = "adjusted", type = "div", palette = 2) +
     ggplot2::scale_linetype(name = "adjusted") +
     ggplot2::xlab("Score 1 Value") +
-    ggplot2::ylab("Score 1 Weight")
+    ggplot2::ylab("Score 1 Weight") +
+    ggplot2::theme_bw()
 
   result3 <- data.frame("score2.n" = c(param_score$score2.n, param_score$score2_adj.n), "score2.w" = c(param_score$score2.w, param_score$score2_adj.w), "adjusted" = c(rep(FALSE, length(param_score$score2.n)), rep(TRUE, length(param_score$score2_adj.n))))
   plt4 <- ggplot2::ggplot(result3) +
@@ -144,12 +151,13 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
     ggplot2::scale_fill_brewer(name = "adjusted", type = "div", palette = 3) +
     ggplot2::scale_linetype(name = "adjusted") +
     ggplot2::xlab("Score 2 Value") +
-    ggplot2::ylab("Score 2 Weight")
+    ggplot2::ylab("Score 2 Weight") +
+    ggplot2::theme_bw()
 
   plt <- gridExtra::arrangeGrob(plt3, plt4, ncol = 2, nrow = 1)
   file_name <- paste("Performance Plot 2D of Param", name, collapse = ",")
   save_path <- write_location_check(file_name = file_name, ...)
-  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 12, height = 7)
+  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 7, height = 5)
   invisible()
 }
 
@@ -193,11 +201,13 @@ plot_sim_tracewise <- function(predict_info, name, ...) {
     ggplot2::xlab("Time (5 minutes)") +
     ggplot2::ylab("Cpu (percent)") +
     ggplot2::theme(legend.position = "none") +
-    ggplot2::scale_fill_manual(values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(nrow(train_regions)))
+    ggplot2::scale_fill_manual(values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(nrow(train_regions))) +
+    ggplot2::theme_bw() +
+    ggsci::scale_color_ucscgb()
 
   file_name <- paste("Tracewise Plot of", name)
   save_path <- write_location_check(file_name = file_name, ...)
-  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = ts_plt, width = 12, height = 7)
+  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = ts_plt, width = 7, height = 5)
   invisible()
 }
 
@@ -222,7 +232,8 @@ plot_ecdf_traces_performance <- function(result_df, feature_name, adjusted, name
   ecdf_plt1 <- ggplot2::ggplot(result_df, aes(score1, colour = factor(feature))) +
     ggplot2::stat_ecdf(na.rm = TRUE) +
     ggplot2::scale_color_manual(name = feature_name, values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(unique(result_df$feature)))) +
-    ggplot2::ylab("Fraction of Data")
+    ggplot2::ylab("Fraction of Data") +
+    ggplot2::theme_bw()
 
   if (adjusted) {
     score2 <- result_df$score2_adj.n
@@ -232,13 +243,14 @@ plot_ecdf_traces_performance <- function(result_df, feature_name, adjusted, name
   ecdf_plt2 <- ggplot2::ggplot(result_df, aes(score2, colour = factor(feature))) +
     ggplot2::stat_ecdf(na.rm = TRUE) +
     ggplot2::scale_color_manual(name = feature_name, values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(unique(result_df$feature)))) +
-    ggplot2::ylab("Fraction of Data")
+    ggplot2::ylab("Fraction of Data") +
+    ggplot2::theme_bw()
 
   file_name <- paste("ECDF of scores", ifelse(adjusted, "adjusted", ""), "at Different", feature_name, "Of", name)
   save_path <- write_location_check(file_name = file_name, ...)
 
   plt <- gridExtra::arrangeGrob(ecdf_plt1, ecdf_plt2, ncol = 2, nrow = 1)
-  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 12, height = 7)
+  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 7, height = 5)
   invisible()
 }
 
@@ -327,15 +339,16 @@ plot_ecdf_correlation <- function(dataset1, dataset2=NULL, lags, freqs, corr_met
 
     ecdf_plt <- ggplot2::ggplot(corr_df, ggplot2::aes(val, colour = factor(l))) +
       ggplot2::stat_ecdf(na.rm = TRUE) +
-      ggplot2::scale_color_manual(name = "lags", values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(lags))) +
-      ggplot2::ylab("Fraction of Data")
+      ggplot2::ylab("Fraction of Data") +
+      ggplot2::theme_bw() +
+      ggsci::scale_color_ucscgb(name = "lags")
 
     #ggplot2::geom_vline(xintercept = c(-1.96 / sqrt(length(val) / length(lags)), 1.96 / sqrt(length(val) / length(lags))), linetype = "dashed", color = "red") +
     #ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = length(names(na_percentage))), hjust = 0, label = paste("NA percentage at lag", names(na_percentage), "is", na_percentage)) +
 
     file_name <- paste("ECDF of Correlation at Different Lags Of Window Size", freq, "Of", name)
     save_path <- write_location_check(file_name = file_name, ...)
-    ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = ecdf_plt, width = 12, height = 7)
+    ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = ecdf_plt, width = 7, height = 5)
   })
   invisible()
 }
@@ -404,15 +417,16 @@ plot_ecdf_acf <- function(dataset1, dataset2=NULL, lags, freqs, corr_method = "a
 
     ecdf_plt <- ggplot2::ggplot(corr_df, ggplot2::aes(val, colour = factor(l))) +
       ggplot2::stat_ecdf(na.rm = TRUE) +
-      ggplot2::scale_color_manual(name = "lags", values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(lags))) +
-      ggplot2::ylab("Fraction of Data")
+      ggplot2::ylab("Fraction of Data") +
+      ggplot2::theme_bw() +
+      ggsci::scale_color_ucscgb(name = "lags")
 
     #ggplot2::geom_vline(xintercept = c(-1.96 / sqrt(length(val) / length(lags)), 1.96 / sqrt(length(val) / length(lags))), linetype = "dashed", color = "red") +
     #ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = length(names(na_percentage))), hjust = 0, label = paste("NA percentage at lag", names(na_percentage), "is", na_percentage)) +
 
     file_name <- paste("ECDF of Correlation at Different Lags Of Window Size", freq, "Of", name)
     save_path <- write_location_check(file_name = file_name, ...)
-    ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = ecdf_plt, width = 12, height = 7)
+    ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = ecdf_plt, width = 7, height = 5)
   })
   invisible()
 }
@@ -463,10 +477,12 @@ plot_generated_trace_diagnosis <- function(generated_trace, max_trace, avg_trace
     ggplot2::geom_line(data = subset(pooled_df, "type" == "windowed_max"), ggplot2::aes_string(y = "CPU", x = "t", color = "generated", alpha = "generated"), na.rm = TRUE) +
     ggplot2::geom_line(data = subset(pooled_df, "type" == "windowed_avg"), ggplot2::aes_string(y = "CPU", x = "t", color = "generated", alpha = "generated"), na.rm = TRUE) +
     ggplot2::scale_alpha_discrete("generated", range = c(0.5, 0.8)) +
-    ggplot2::ylab("CPU Utilization")
+    ggplot2::ylab("CPU Utilization") +
+    ggplot2::theme_bw() +
+    ggsci::scale_color_ucscgb()
 
   file_name <- paste("Diagnosis of Generated", trace_name, "at", new_rate)
   save_path <- write_location_check(file_name = file_name, ...)
-  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = comp_plt, width = 12, height = 7)
+  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = comp_plt, width = 7, height = 5)
   invisible()
 }

@@ -414,7 +414,6 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
               }
             })
           }, mc.cores = cores, ignore.interactive = TRUE)
-          save(machine_info_pi_up, file = "ddd.rda")
         }
 
         print("Updating predicted machine availability...")

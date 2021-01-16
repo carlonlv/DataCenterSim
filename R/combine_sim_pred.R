@@ -379,42 +379,25 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
       if (nrow(arrival_jobs) > 0) {
         print("Getting predicted machine availability...")
-        if (cores ==  1) {
-          pbapply::pboptions(type = "txt")
-          machine_info_pi_up <- pbapply::pblapply(1:ncol(foreground_x), function(i) {
-            sapply(1:length(bins[-1]), function(bin_idx) {
-              bin <- bins[-1][bin_idx]
 
-              remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
-              quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
+        pbapply::pboptions(type = "txt")
+        machine_info_pi_up <- pbapply::pblapply(1:ncol(foreground_x), function(i) {
+          sapply(1:length(bins[-1]), function(bin_idx) {
+            bin <- bins[-1][bin_idx]
 
-              idx <- which(machine_bin_offs$ts_num == i & machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
-              predict_info <- fg_predict_info_lst[[idx]]
-              if (quot > nrow(predict_info)) {
-                return(NA)
-              } else {
-                return(predict_info[quot, "pi_up"])
-              }
-            })
+            remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
+            quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
+
+            idx <- which(machine_bin_offs$ts_num == i & machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
+            predict_info <- fg_predict_info_lst[[idx]]
+            if (quot > nrow(predict_info)) {
+              return(NA)
+            } else {
+              return(predict_info[quot, "pi_up"])
+            }
           })
-        } else {
-          machine_info_pi_up <- pbmcapply::pbmclapply(1:ncol(foreground_x), function(i) {
-            sapply(1:length(bins[-1]), function(bin_idx) {
-              bin <- bins[-1][bin_idx]
+        })
 
-              remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
-              quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
-
-              idx <- which(machine_bin_offs$ts_num == i & machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
-              predict_info <- fg_predict_info_lst[[idx]]
-              if (quot > nrow(predict_info)) {
-                return(NA)
-              } else {
-                return(predict_info[quot, "pi_up"])
-              }
-            })
-          }, mc.cores = cores, ignore.interactive = TRUE)
-        }
 
         print("Updating predicted machine availability...")
         active_jobs <- predict_info[predict_info$status == 0,]

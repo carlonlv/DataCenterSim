@@ -29,43 +29,48 @@ plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size",
     charwise_summ[,i] <- as.factor(charwise_summ[,i])
   }
 
+  charwise_summ <- charwise_summ %>%
+    dplyr::group_by_at(.vars = as.character(mapping)) %>%
+    dplyr::arrange_at(.vars = "cut_off_prob")
+
   plt <- ggplot2::ggplot(charwise_summ, do.call(ggplot2::aes_string, mapping))
   if (!adjusted) {
     if (is.na(point_or_line)) {
       plt <- plt +
-        ggplot2::geom_line(ggplot2::aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE) +
-        ggplot2::geom_point(ggplot2::aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
+        ggplot2::geom_point(ggplot2::aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE) +
+        ggplot2::geom_path(ggplot2::aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
     } else if (point_or_line) {
       plt <- plt +
         ggplot2::geom_point(ggplot2::aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
     } else {
       plt <- plt +
-        ggplot2::geom_line(ggplot2::aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
+        ggplot2::geom_path(ggplot2::aes_string(x = "score1.n", y = "score2.n"), na.rm = TRUE)
     }
   } else {
     if (is.na(point_or_line)) {
       plt <- plt +
-        ggplot2::geom_line(ggplot2::aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE) +
-        ggplot2::geom_point(ggplot2::aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
+        ggplot2::geom_point(ggplot2::aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE) +
+        ggplot2::geom_path(ggplot2::aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
     } else if (point_or_line) {
       plt <- plt +
         ggplot2::geom_point(ggplot2::aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
     } else {
       plt <- plt +
-        ggplot2::geom_line(ggplot2::aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
+        ggplot2::geom_path(ggplot2::aes_string(x = "score1_adj.n", y = "score2_adj.n"), na.rm = TRUE)
     }
   }
 
   plt <- plt +
     ggplot2::ylab("Utilization Rate") +
     ggplot2::xlab("Survival Rate") +
-    ggplot2::scale_color_brewer(name = ifelse(is.null(mapping[["color"]]), "empty", mapping[["color"]]), palette = "Set1", guide = ggplot2::guide_legend(ncol = 2)) +
+    ggplot2::scale_color_brewer(name = ifelse(is.null(mapping[["color"]]), "empty", mapping[["color"]]), palette = "Set1", guide = ggplot2::guide_legend(ncol = 1)) +
     ggplot2::scale_fill_brewer(name = ifelse(is.null(mapping[["fill"]]), "empty", mapping[["fill"]]), palette = "Set3", guide = ggplot2::guide_legend(ncol =  2)) +
-    ggplot2::scale_shape_manual(name = ifelse(is.null(mapping[["shape"]]), "empty", mapping[["shape"]]), values = 21:25, guide = ggplot2::guide_legend(ncol = 2)) +
-    ggplot2::scale_alpha_discrete(name = ifelse(is.null(mapping[["alpha"]]), "empty", mapping[["alpha"]]), guide = ggplot2::guide_legend(ncol = 2)) +
-    ggplot2::scale_size_manual(name = ifelse(is.null(mapping[["size"]]), "empty", mapping[["size"]]), guide = ggplot2::guide_legend(ncol = 2)) +
+    ggplot2::scale_shape_manual(name = ifelse(is.null(mapping[["shape"]]), "empty", mapping[["shape"]]), values = 21:25, guide = ggplot2::guide_legend(ncol = 1)) +
+    ggplot2::scale_alpha_discrete(name = ifelse(is.null(mapping[["alpha"]]), "empty", mapping[["alpha"]]), guide = ggplot2::guide_legend(ncol = 1)) +
+    ggplot2::scale_size_manual(name = ifelse(is.null(mapping[["size"]]), "empty", mapping[["size"]]), guide = ggplot2::guide_legend(ncol = 1)) +
     ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2)) +
-    ggplot2::theme_bw()
+    ggplot2::theme_bw() +
+    ggplot2::theme(legend.position = c(0.25, 0.25), legend.background = ggplot2::element_rect(fill = "white", color = "black"))
 
   file_name <- paste("Model Performance at", name)
   save_path <- write_location_check(file_name = file_name, ...)
@@ -172,9 +177,6 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
 #' @export
 plot_sim_tracewise <- function(predict_info, name, ...) {
   time <- predict_info$time
-  actual <- predict_info$actual
-  pi_up <- predict_info$pi_up
-  adjustment <- predict_info$adjustment
   train_iter <- predict_info$train_iter
 
   train_start <- dplyr::group_by_at(predict_info, "train_iter") %>%
@@ -193,10 +195,10 @@ plot_sim_tracewise <- function(predict_info, name, ...) {
 
   training_iter <- train_regions$training_iter
 
-  ts_plt <- ggplot2::ggplot(data = predict_info, aes(x = time)) +
+  ts_plt <- ggplot2::ggplot(data = predict_info, ggplot2::aes_string(x = "time")) +
     ggplot2::geom_rect(data = train_regions, inherit.aes = FALSE, aes(xmin = train_start, xmax = train_end, fill = as.factor(training_iter)), ymin = -Inf, ymax = Inf, alpha = 0.5) +
-    ggplot2::geom_line(aes(y = actual), color = "black") +
-    ggplot2::geom_point(aes(y = pi_up, color = factor(adjustment), group = 1), na.rm = TRUE) +
+    ggplot2::geom_line(ggplot2::aes_string(y = "actual"), color = "black") +
+    ggplot2::geom_point(ggplot2::aes_string(y = "pi_up", color = "adjustment", group = 1), na.rm = TRUE) +
     ggplot2::geom_hline(yintercept = 100, linetype = "dashed", color = "yellow") +
     ggplot2::xlab("Time (5 minutes)") +
     ggplot2::ylab("Cpu (percent)") +

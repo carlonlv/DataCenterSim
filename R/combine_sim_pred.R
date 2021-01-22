@@ -452,7 +452,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         randomized_machine_idx <- sample.int(ncol(foreground_x), size = ceiling(ncol(foreground_x) * heartbeats_percent), replace = FALSE)
         print("Assigning jobs to machines...")
         pb <- progress::progress_bar$new(format = "  [:bar] :percent in :elapsed with eta: :eta",
-                                         total = nrow(arrival_jobs), clear = FALSE, width = 60)
+                                         total = nrow(arrival_jobs), clear = FALSE)
         pb$tick(0)
         for (job_idx in 1:nrow(arrival_jobs)) {
           pb$tick()
@@ -519,7 +519,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
         print("Enforcing scheduler decisions on jobs...")
         pb2 <- progress::progress_bar$new(format = "  [:bar] :percent in :elapsed with eta: :eta",
-                                          total = nrow(active_jobs), clear = FALSE, width = 60)
+                                          total = nrow(active_jobs), clear = FALSE)
         pb2$tick(0)
         for (job_idx in 1:nrow(active_jobs)) {
           pb2$tick()
@@ -558,6 +558,9 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
 
   if (!("none" %in% write_type)) {
+    fp <- write_location_check(file_name = paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
+    save(final_result, file = fs::path(fp, ext = "rda"))
+
     param_uni_df <- cbind(methods::as(sim_object, "data.frame"), methods::as(pred_object, "data.frame"))
     meta_setting <- c("sim_length" = sim_length, "use_adjustment" = use_adjustment, "bin_num" = length(bins[-1]), "repeats" = repeats)
     summ <- data.frame(as.list(colMeans(final_result, na.rm = TRUE)))

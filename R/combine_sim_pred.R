@@ -451,8 +451,9 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
         randomized_machine_idx <- sample.int(ncol(foreground_x), size = ceiling(ncol(foreground_x) * heartbeats_percent), replace = FALSE)
         print("Assigning jobs to machines...")
-        pb <- progress::progress_bar$new(format = "[:bar] :percent in :elapsed with eta: :eta",
+        pb <- progress::progress_bar$new(format = "  [:bar] :percent in :elapsed with eta: :eta",
                                          total = nrow(arrival_jobs), clear = FALSE, width = 60)
+        pb$tick(0)
         for (job_idx in 1:nrow(arrival_jobs)) {
           pb$tick()
           cluster_info <- arrival_jobs[job_idx, "cluster_info"]
@@ -499,14 +500,14 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           return(predict_info[quot, "actual"])
         })
       } else {
-        machine_info_actual <- pbmcapply::pbmclapply(1:ncol(foreground_x), function(ts_num) {
+        machine_info_actual <- pbmcapply::pbmcmapply(function(ts_num) {
           bin <- 1
           remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
           quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
           idx <-which(machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
           predict_info <- fg_predict_info_lst[[ts_num]][[idx]]
           return(predict_info[quot, "actual"])
-        }, mc.cores = cores, ignore.interactive = TRUE)
+        }, 1:ncol(foreground_x), mc.cores = cores, ignore.interactive = TRUE)
       }
 
       machine_total_resource <- machine_total_resource + sum(100 - machine_info_actual, na.rm = TRUE)
@@ -517,8 +518,9 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         job_decisions <- machine_survival(machine_info_actual, active_jobs, current_time, window_multiplier, cores)
 
         print("Enforcing scheduler decisions on jobs...")
-        pb2 <- progress::progress_bar$new(format = "[:bar] :percent in :elapsed with eta: :eta",
+        pb2 <- progress::progress_bar$new(format = "  [:bar] :percent in :elapsed with eta: :eta",
                                           total = nrow(active_jobs), clear = FALSE, width = 60)
+        pb2$tick(0)
         for (job_idx in 1:nrow(active_jobs)) {
           pb2$tick()
           job_id <- active_jobs[job_idx, "job_id"]

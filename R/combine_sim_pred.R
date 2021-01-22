@@ -175,7 +175,7 @@ machines_select <- function(machine_list, signal_machines_idx, prob_vec_lst, job
   } else {
     D <- parallel::mcmapply(function(machine_idx) {
       compute_scheduler_score(machine_list[[machine_idx]], prob_vec_lst, job_info)
-    }, signal_machines_idx)
+    }, signal_machines_idx, mc.cores = cores)
   }
 
   if (all(is.na(D))) {

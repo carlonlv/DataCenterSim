@@ -451,11 +451,9 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
         randomized_machine_idx <- sample.int(ncol(foreground_x), size = ceiling(ncol(foreground_x) * heartbeats_percent), replace = FALSE)
         print("Assigning jobs to machines...")
-        pb <- progress::progress_bar$new(format = "  [:bar] :percent in :elapsed with eta: :eta",
-                                         total = nrow(arrival_jobs), clear = FALSE)
-        pb$tick(0)
+        pb <- pbmcapply::progressBar(min = 1, max = nrow(arrival_jobs), style = "ETA")
         for (job_idx in 1:nrow(arrival_jobs)) {
-          pb$tick()
+          utils::setTxtProgressBar(pb, job_idx)
           cluster_info <- arrival_jobs[job_idx, "cluster_info"]
           actual_runtime <- arrival_jobs[job_idx, "actual"]
           actual_runtime_bin <- which(actual_runtime == bins[-1])
@@ -518,11 +516,9 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         job_decisions <- machine_survival(machine_info_actual, active_jobs, current_time, window_multiplier, cores)
 
         print("Enforcing scheduler decisions on jobs...")
-        pb2 <- progress::progress_bar$new(format = "  [:bar] :percent in :elapsed with eta: :eta",
-                                          total = nrow(active_jobs), clear = FALSE)
-        pb2$tick(0)
+        pb2 <- pbmcapply::progressBar(min = 1, max = nrow(active_jobs), style = "ETA")
         for (job_idx in 1:nrow(active_jobs)) {
-          pb2$tick()
+          utils::setTxtProgressBar(pb2, job_idx)
           job_id <- active_jobs[job_idx, "job_id"]
           requested_CPU <- active_jobs[job_idx, "requestedCPU"]
           scheduled_time <- active_jobs[job_idx, "arrival_time"] + active_jobs[job_idx, "delayed_time"]

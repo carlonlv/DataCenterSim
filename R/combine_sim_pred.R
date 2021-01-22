@@ -350,8 +350,6 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     }
   }
 
-  return(0)
-
   ## Combined Simulation
   print("Combined simulating...")
 

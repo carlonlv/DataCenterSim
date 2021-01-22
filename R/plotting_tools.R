@@ -231,7 +231,7 @@ plot_ecdf_traces_performance <- function(result_df, feature_name, adjusted, name
   } else {
     score1 <- result_df$score1.n
   }
-  ecdf_plt1 <- ggplot2::ggplot(result_df, aes(score1, colour = factor(feature))) +
+  ecdf_plt1 <- ggplot2::ggplot(result_df, ggplot2::aes(score1, colour = factor(feature))) +
     ggplot2::stat_ecdf(na.rm = TRUE) +
     ggplot2::scale_color_manual(name = feature_name, values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(unique(result_df$feature)))) +
     ggplot2::ylab("Fraction of Data") +
@@ -242,7 +242,7 @@ plot_ecdf_traces_performance <- function(result_df, feature_name, adjusted, name
   } else {
     score2 <- result_df$score2.n
   }
-  ecdf_plt2 <- ggplot2::ggplot(result_df, aes(score2, colour = factor(feature))) +
+  ecdf_plt2 <- ggplot2::ggplot(result_df, ggplot2::aes(score2, colour = factor(feature))) +
     ggplot2::stat_ecdf(na.rm = TRUE) +
     ggplot2::scale_color_manual(name = feature_name, values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(unique(result_df$feature)))) +
     ggplot2::ylab("Fraction of Data") +
@@ -343,7 +343,8 @@ plot_ecdf_correlation <- function(dataset1, dataset2=NULL, lags, freqs, corr_met
       ggplot2::stat_ecdf(na.rm = TRUE) +
       ggplot2::ylab("Fraction of Data") +
       ggplot2::theme_bw() +
-      ggsci::scale_color_ucscgb(name = "lags")
+      ggsci::scale_color_ucscgb(name = "lags") +
+      ggplot2::theme(legend.position = c(0.25, 0.75), legend.background = ggplot2::element_rect(fill = "white", color = "black"))
 
     #ggplot2::geom_vline(xintercept = c(-1.96 / sqrt(length(val) / length(lags)), 1.96 / sqrt(length(val) / length(lags))), linetype = "dashed", color = "red") +
     #ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = length(names(na_percentage))), hjust = 0, label = paste("NA percentage at lag", names(na_percentage), "is", na_percentage)) +
@@ -352,6 +353,73 @@ plot_ecdf_correlation <- function(dataset1, dataset2=NULL, lags, freqs, corr_met
     save_path <- write_location_check(file_name = file_name, ...)
     ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = ecdf_plt, width = 7, height = 5)
   })
+  invisible()
+}
+
+
+#' Plot the Heatmap of Correlation Or Cross-correlation of Different Window Sizes
+#'
+#' Plot correlation of \code{dataset1} or cross-correlation between \code{dataset1} and \code{dataset2}, in specified window sizes pairs.
+#' @param dataset1 A numeric dataframe or matrix with each column as a trace of type 1.
+#' @param dataset2 A numeric dataframe or matrix with same dimension as \code{dataset1} representing a different type of trace.
+#' @param window_size1 A numeric vector representing the window size corresponding to \code{dataset1}.
+#' @param window_size2 A numeric vector representing the window size corresponding to \code{dataset2} or \code{dataset1} if \code{dataset2} is \code{NULL}.
+#' @param response1 A character vector representing the type of aggregation of \code{dataset1}, can be either \code{"max"} or \code{"avg"}
+#' @param response2 A character vector representing the type of aggregation of \code{dataset2}, can be either \code{"max"} or \code{"avg"} or \code{NULL} if \code{dataset2} is \code{NULL}.
+#' @param corr_method A character representing the type of correlation to be calculated.
+#' @param cores A numeric value representing the number of threads for parallel programming, not supported for windows users.
+#' @param name A character that represents the identifier or name of the plot.
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
+#' @rdname plot_heatmap_correlations
+#' @export
+plot_heatmap_correlations <- function(dataset1, dataset2=NULL, window_size1, window_size2=NULL, response1, response2=NULL, corr_method, cores, name, ...) {
+  result_df <- expand.grid("window_size_x" = window_size1, "window_size_y" = window_size2)
+  if (cores == 1) {
+    pbapply::pboptions(type = "txt")
+    corr <- pbapply::pbmapply(function(rownum) {
+      w1 <- result_df[rownum, "window_size_x"]
+      w2 <- result_df[rownum, "window_size_y"]
+
+      alltraces_corr <- sapply(1:ncol(dataset1), function(ts_num) {
+        past_obs <- convert_frequency_dataset_overlapping(dataset1[1:(nrow(dataset1) - w2), ts_num], w1, response1)
+        if (is.null(dataset2)) {
+          future_obs <- convert_frequency_dataset_overlapping(dataset1[(w1 + 1):nrow(dataset1), ts_num], w2, response1)
+        } else {
+          future_obs <- convert_frequency_dataset_overlapping(dataset2[(w1 + 1):nrow(dataset2), ts_num], w2, response2)
+        }
+        return(stats::cor(past_obs, future_obs, method = corr_method, use = "na.or.complete"))
+      })
+      return(stats::median(alltraces_corr))
+    }, rownum = 1:nrow(result_df))
+  } else {
+    corr <- pbmcapply::pbmcmapply(function(rownum) {
+      w1 <- result_df[rownum, "window_size_x"]
+      w2 <- result_df[rownum, "window_size_y"]
+
+      alltraces_corr <- sapply(1:ncol(dataset1), function(ts_num) {
+        past_obs <- convert_frequency_dataset_overlapping(dataset1[1:(nrow(dataset1) - w2), ts_num], w1, response1)
+        if (is.null(dataset2)) {
+          future_obs <- convert_frequency_dataset_overlapping(dataset1[(w1 + 1):nrow(dataset1), ts_num], w2, response1)
+        } else {
+          future_obs <- convert_frequency_dataset_overlapping(dataset2[(w1 + 1):nrow(dataset2), ts_num], w2, response2)
+        }
+        return(stats::cor(past_obs, future_obs, method = corr_method, use = "na.or.complete"))
+      })
+      return(stats::median(alltraces_corr))
+    }, rownum = 1:nrow(result_df), mc.cores = cores, ignore.interactive = TRUE)
+  }
+
+  result_df$corr <- corr
+
+  file_name <- paste("Heatmap of Correlation between Neighbouring Windowsizes of", name)
+  save_path <- write_location_check(file_name = file_name, ...)
+
+  save(result_df, file = fs::path(save_path, ext = "rda"))
+
+  heatplt <- lattice::levelplot(as.formula("corr ~ window_size_x * window_size_y"), data = result_df, xlab = "", ylab = "")
+
+
+  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = heatplt, width = 7, height = 5)
   invisible()
 }
 
@@ -421,7 +489,8 @@ plot_ecdf_acf <- function(dataset1, dataset2=NULL, lags, freqs, corr_method = "a
       ggplot2::stat_ecdf(na.rm = TRUE) +
       ggplot2::ylab("Fraction of Data") +
       ggplot2::theme_bw() +
-      ggsci::scale_color_ucscgb(name = "lags")
+      ggsci::scale_color_ucscgb(name = "lags") +
+      ggplot2::theme(legend.position = c(0.25, 0.75), legend.background = ggplot2::element_rect(fill = "white", color = "black"))
 
     #ggplot2::geom_vline(xintercept = c(-1.96 / sqrt(length(val) / length(lags)), 1.96 / sqrt(length(val) / length(lags))), linetype = "dashed", color = "red") +
     #ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = length(names(na_percentage))), hjust = 0, label = paste("NA percentage at lag", names(na_percentage), "is", na_percentage)) +

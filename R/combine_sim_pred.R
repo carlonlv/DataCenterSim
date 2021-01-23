@@ -548,15 +548,15 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
       current_time <- current_time + window_multiplier
     }
 
+    fp <- write_location_check(file_name = paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
+    save(predict_info, past_failures, machine_total_resource, current_time, window_multiplier, file = fs::path(fp, ext = "rda"))
+
     summ <- compute_summary_performance(predict_info, past_failures, machine_total_resource, current_time - window_multiplier, window_multiplier)
     return(as.data.frame(summ))
   }))
 
 
   if (!("none" %in% write_type)) {
-    fp <- write_location_check(file_name = paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
-    save(final_result, file = fs::path(fp, ext = "rda"))
-
     param_uni_df <- cbind(methods::as(sim_object, "data.frame"), methods::as(pred_object, "data.frame"))
     meta_setting <- c("sim_length" = sim_length, "use_adjustment" = use_adjustment, "bin_num" = length(bins[-1]), "repeats" = repeats)
     summ <- data.frame(as.list(colMeans(final_result, na.rm = TRUE)))

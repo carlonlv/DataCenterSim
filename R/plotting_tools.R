@@ -416,10 +416,9 @@ plot_heatmap_correlations <- function(dataset1, dataset2=NULL, window_size1, win
 
   save(result_df, file = fs::path(save_path, ext = "rda"))
 
-  heatplt <- lattice::levelplot(as.formula("corr ~ window_size_x * window_size_y"), data = result_df, xlab = "", ylab = "")
-
-
-  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = heatplt, width = 7, height = 5)
+  lattice::trellis.device("png", filename = fs::path(save_path, ext = "png"), width = 7, height = 5, units = "in", res = 1200, pointsize = 4)
+  lattice::levelplot(as.formula("corr ~ window_size_x * window_size_y"), col.regions = grDevices::heat.colors(100, rev = TRUE), data = result_df, xlab = "", ylab = "")
+  dev.off()
   invisible()
 }
 

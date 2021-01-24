@@ -484,6 +484,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
             machine_info_pi_up[[scheduler_score$machine_id]] <- machine_update(machine_info_pi_up[[scheduler_score$machine_id]], requested_CPU)
           }
         }
+        print("")
       }
 
       print("Getting actual machine availability...")
@@ -502,7 +503,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           bin <- 1
           remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
           quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
-          idx <-which(machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
+          idx <- which(machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
           predict_info <- fg_predict_info_lst[[ts_num]][[idx]]
           return(predict_info[quot, "actual"])
         }, 1:ncol(foreground_x), mc.cores = cores, ignore.interactive = TRUE)
@@ -543,6 +544,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
             }
           }
         }
+        print("")
       }
 
       current_time <- current_time + window_multiplier

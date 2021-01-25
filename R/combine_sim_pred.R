@@ -451,7 +451,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
         randomized_machine_idx <- sample.int(ncol(foreground_x), size = ceiling(ncol(foreground_x) * heartbeats_percent), replace = FALSE)
         print("Assigning jobs to machines...")
-        pb <- pbmcapply::progressBar(min = 1, max = nrow(arrival_jobs), style = "ETA")
+        pb <- pbmcapply::progressBar(min = 0, max = nrow(arrival_jobs), style = "ETA")
         for (job_idx in 1:nrow(arrival_jobs)) {
           utils::setTxtProgressBar(pb, job_idx)
           cluster_info <- arrival_jobs[job_idx, "cluster_info"]
@@ -517,7 +517,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
         job_decisions <- machine_survival(machine_info_actual, active_jobs, current_time, window_multiplier, cores)
 
         print("Enforcing scheduler decisions on jobs...")
-        pb2 <- pbmcapply::progressBar(min = 1, max = nrow(active_jobs), style = "ETA")
+        pb2 <- pbmcapply::progressBar(min = 0, max = nrow(active_jobs), style = "ETA")
         for (job_idx in 1:nrow(active_jobs)) {
           utils::setTxtProgressBar(pb2, job_idx)
           job_id <- active_jobs[job_idx, "job_id"]

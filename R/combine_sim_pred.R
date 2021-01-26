@@ -179,7 +179,7 @@ machine_update <- function(machine_pi_up, job_requestedCPU) {
 #' @param cores A numeric value representing number of cores to compute scores for each machine.
 #' @return A list containing best background machine and the score corresponding to the choice.
 #' @keywords internal
-machines_select <- function(machine_list, signal_machines_idx, prob_vec_lst, job_info, cores, constraint_prob = sqrt(0.99)){
+machines_select <- function(machine_list, signal_machines_idx, prob_vec_lst, job_info, cores, constraint_prob){
   compute_scheduler_score <- function(vec_pi_up, prob_vec_lst, job_info) {
     vec_pi_up <- ifelse(vec_pi_up > 100, 100, vec_pi_up)
     predicted_resourse <- 100 - vec_pi_up
@@ -261,9 +261,9 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 
   result <- list("finished_utilization" = finished_numerator / denominator,
                  "optimistic_utilization" = optimistic_numerator / denominator,
-                 "total_job_count" <- nrow(predict_info),
+                 "total_job_count" = nrow(predict_info),
                  "denied_rate" = denied_jobs_num / nrow(predict_info),
-                 "total_schedule_attempts" <- survived_jobs_num + killed_jobs_num + ongoing_jobs_num,
+                 "total_schedule_attempts" = survived_jobs_num + killed_jobs_num + ongoing_jobs_num,
                  "survival_rate" = survived_jobs_num / (survived_jobs_num + killed_jobs_num),
                  "unfinished_rate" = ongoing_jobs_num / (survived_jobs_num + killed_jobs_num + ongoing_jobs_num))
   result <- c(result, kill_count_summary)
@@ -289,6 +289,7 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 #' @param heartbeats_percent A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.
 #' @param load_background_result A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.
 #' @param num_jobs A numeric value represents the length of queue at each timestamp.
+#' @param constraint_prob A numeric value representing the cut off for survival probability of a job to be scheduled.
 #' @param machines_full_indicator An numeric value that is used to identify whether all machines are full. The scheduler believes the machines are full after \code{machines_full_indicator} successive failures in scheduling.
 #' @param bins A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.
 #' @param cores A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.
@@ -296,7 +297,7 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @return A dataframe containing the decisions made by scheduler.
 #' @export
-run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, lag_xreg = TRUE, sim_length, use_adjustment = FALSE, load_foreground_result = NULL, background_x, background_xreg, load_background_result = NULL, num_jobs, machines_full_indicator = 10, heartbeats_percent = 1, bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
+run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, lag_xreg = TRUE, sim_length, use_adjustment = FALSE, load_foreground_result = NULL, background_x, background_xreg, load_background_result = NULL, num_jobs, machines_full_indicator = 10, heartbeats_percent = 1, constraint_prob = sqrt(0.99), bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
   sim_object <- methods::as(param_setting_sim, "sim")[[1]]
   window_multiplier <- sim_object@window_size
 
@@ -511,7 +512,8 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
                                              signal_machines_idx = randomized_machine_idx,
                                              prob_vec_lst = prob_vec_lst,
                                              job_info = list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "past_scheduled_time" = past_survived_time_bin),
-                                             cores = cores)
+                                             cores = cores,
+                                             constraint_prob = constraint_prob)
 
           if (is.na(scheduler_score$machine_id)) {
             if (emp_job_id %in% predict_info$emp_job_id) {

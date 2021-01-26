@@ -16,9 +16,10 @@ run_sim_pred(
   background_x,
   background_xreg,
   load_background_result = NULL,
-  num_jobs = length(background_x),
+  num_jobs,
   machines_full_indicator = 10,
   heartbeats_percent = 1,
+  constraint_prob = sqrt(0.99),
   bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205),
   cores = parallel::detectCores(),
   write_type = "none",
@@ -53,6 +54,8 @@ run_sim_pred(
 \item{machines_full_indicator}{An numeric value that is used to identify whether all machines are full. The scheduler believes the machines are full after \code{machines_full_indicator} successive failures in scheduling.}
 
 \item{heartbeats_percent}{A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.}
+
+\item{constraint_prob}{A numeric value representing the cut off for survival probability of a job to be scheduled.}
 
 \item{bins}{A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.}
 

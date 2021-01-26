@@ -10,7 +10,7 @@ machines_select(
   prob_vec_lst,
   job_info,
   cores,
-  constraint_prob = sqrt(0.99)
+  constraint_prob
 )
 }
 \arguments{

@@ -1,3 +1,32 @@
+#' Replenish the Background Queue by Using Bg_predict_info
+#'
+#' @param bg_predict_info A dataframe to be regenerated from.
+#' @param arrival_jobs A dataframe to be replenished.
+#' @param pin A numeric value representing the current position to pick from bg_predict_info.
+#' @param num_jobs A numeric value representing the resulting rows of arrival_jobs.
+#' @param emp_job_idx A numeric value from which the empirical job indices are assigned.
+#' @return A numeric vector representing the updated machine_pi_up after job scheduling.
+#' @keywords internal
+replenish_jobs <- function(bg_predict_info, arrival_jobs, pin, num_jobs, emp_job_idx) {
+  if (nrow(arrival_jobs) > num_jobs) {
+    pin <- max(pin - (nrow(arrival_jobs) - num_jobs) + 1, 1)
+    arrival_jobs <- arrival_jobs[1:num_jobs,]
+  } else if (nrow(arrival_jobs) < num_jobs) {
+    while (nrow(arrival_jobs) < num_jobs) {
+      temp <- bg_predict_info[pin:(min(pin + num_jobs - nrow(arrival_jobs) - 1, nrow(bg_predict_info))),]
+      temp$emp_job_id <- emp_job_idx:(emp_job_idx + nrow(temp) - 1)
+      emp_job_idx <- emp_job_idx + nrow(temp)
+      pin <- min(pin + num_jobs - nrow(arrival_jobs) - 1, nrow(bg_predict_info)) + 1
+      arrival_jobs <- rbind(arrival_jobs, temp)
+      if (pin > nrow(bg_predict_info)) {
+        pin <- 1
+      }
+    }
+  }
+  return(list("arrival_jobs" = arrival_jobs, "pin" = pin, "emp_job_idx" = emp_job_idx))
+}
+
+
 #' Find Outcome of A Scheduled Foreground Job
 #'
 #' @param machine_list A numeric vector containing actual values at current time.
@@ -72,7 +101,7 @@ machine_survival <- function(machine_list, job_list, current_time, window_multip
       resource_diff <- total_requested_resource - machine_available_resource
 
       if (is.na(resource_diff)) {
-        decision[["unknown"]] <- c(decision[["unknown"]], other_info$job_id)
+        decision[["unknown"]] <- c(decision[["unknown"]], other_info$emp_job_id)
       } else if (resource_diff > 0) {
         min_kill_num <- 0
         while ((total_requested_resource > machine_available_resource) & (min_kill_num < nrow(other_info))) {
@@ -85,7 +114,7 @@ machine_survival <- function(machine_list, job_list, current_time, window_multip
         } else {
           current_remove_choices <- 1:min_kill_num
         }
-        decision[["killed"]] <- c(decision[["killed"]], other_info$job_id[current_remove_choices])
+        decision[["killed"]] <- c(decision[["killed"]], other_info$emp_job_id[current_remove_choices])
       }
       return(decision)
     })
@@ -101,7 +130,7 @@ machine_survival <- function(machine_list, job_list, current_time, window_multip
       resource_diff <- total_requested_resource - machine_available_resource
 
       if (is.na(resource_diff)) {
-        decision[["unknown"]] <- c(decision[["unknown"]], other_info$job_id)
+        decision[["unknown"]] <- c(decision[["unknown"]], other_info$emp_job_id)
       } else if (resource_diff > 0) {
         min_kill_num <- 0
         while ((total_requested_resource > machine_available_resource) & (min_kill_num < nrow(other_info))) {
@@ -114,7 +143,7 @@ machine_survival <- function(machine_list, job_list, current_time, window_multip
         } else {
           current_remove_choices <- 1:min_kill_num
         }
-        decision[["killed"]] <- c(decision[["killed"]], other_info$job_id[current_remove_choices])
+        decision[["killed"]] <- c(decision[["killed"]], other_info$emp_job_id[current_remove_choices])
       }
       return(decision)
     }, mc.cores = cores, ignore.interactive = TRUE)
@@ -210,11 +239,12 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
   finished_jobs_num <- nrow(finished_jobs)
   ongoing_jobs_num <- nrow(predict_info[predict_info$status == 0,])
   killed_jobs_num <- nrow(past_failures)
-  survived_jobs_num <- nrow(finished_jobs) - sum(finished_jobs$job_id %in% past_failures$job_id)
-  denied_jobs_num <- nrow(predict_info[predict_info$status == 3,]) - sum(predict_info$status == 3 & predict_info$job_id %in% past_failures$job_id)
+  survived_jobs_num <- nrow(finished_jobs) - sum(finished_jobs$emp_job_id %in% past_failures$emp_job_id)
+  unscheduled_jobs_num <- nrow(predict_info[predict_info$status == 3,])
+  denied_jobs_num <- nrow(predict_info[predict_info$status == 3,]) - sum(predict_info$status == 3 & predict_info$emp_job_id %in% past_failures$emp_job_id)
 
   past_failures <- past_failures %>%
-    dplyr::group_by_at(.vars = "job_id") %>%
+    dplyr::group_by_at(.vars = "emp_job_id") %>%
     dplyr::tally() %>%
     dplyr::ungroup() %>%
     dplyr::group_by_at(.vars = "n") %>%
@@ -231,9 +261,11 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 
   result <- list("finished_utilization" = finished_numerator / denominator,
                  "optimistic_utilization" = optimistic_numerator / denominator,
+                 "total_job_count" <- nrow(predict_info),
+                 "denied_rate" = denied_jobs_num / nrow(predict_info),
+                 "total_schedule_attempts" <- survived_jobs_num + killed_jobs_num + ongoing_jobs_num,
                  "survival_rate" = survived_jobs_num / (survived_jobs_num + killed_jobs_num),
-                 "unfinished_rate" = ongoing_jobs_num / (finished_jobs_num + killed_jobs_num + ongoing_jobs_num + denied_jobs_num),
-                 "denied_rate" = denied_jobs_num / (finished_jobs_num + killed_jobs_num + ongoing_jobs_num + denied_jobs_num))
+                 "unfinished_rate" = ongoing_jobs_num / (survived_jobs_num + killed_jobs_num + ongoing_jobs_num))
   result <- c(result, kill_count_summary)
   return(result)
 }
@@ -256,14 +288,15 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 #' @param background_xreg A matrix of size n by m representing the dataset that target dataset depends on for predicting.
 #' @param heartbeats_percent A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.
 #' @param load_background_result A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.
+#' @param num_jobs A numeric value represents the length of queue at each timestamp.
+#' @param machines_full_indicator An numeric value that is used to identify whether all machines are full. The scheduler believes the machines are full after \code{machines_full_indicator} successive failures in scheduling.
 #' @param bins A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.
-#' @param repeats A numeric integer representing the number of repetitions for each setting, the result will be the mean of those repeated results.
 #' @param cores A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param write_type A character that represents how to write the result of simulation, can be "detailed", "summary" or "none". Default value is \code{"none"}.
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @return A dataframe containing the decisions made by scheduler.
 #' @export
-run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, lag_xreg = TRUE, sim_length, use_adjustment = FALSE, load_foreground_result = NULL, background_x, background_xreg, load_background_result = NULL, heartbeats_percent = 1, bins=c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), repeats = 10, cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
+run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, lag_xreg = TRUE, sim_length, use_adjustment = FALSE, load_foreground_result = NULL, background_x, background_xreg, load_background_result = NULL, num_jobs, machines_full_indicator = 10, heartbeats_percent = 1, bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
   sim_object <- methods::as(param_setting_sim, "sim")[[1]]
   window_multiplier <- sim_object@window_size
 
@@ -352,104 +385,116 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
   ## Combined Simulation
   print("Combined simulating...")
+  bg_predict_info <- dplyr::inner_join(bg_predict_info, background_xreg, by = c("job_id" = "job_ID"))
 
-  final_result <- do.call(rbind, lapply(1:repeats, function(repeat_time) {
-    print(paste("Repeat Number:", repeat_time))
+  arrival_jobs <- data.frame()
+  active_jobs <- data.frame()
+  predict_info <- data.frame()
+  past_failures <- data.frame()
 
-    bg_predict_info[, "timestamp"] <- (max(bins[-1]) + sim_object@train_size) * window_multiplier
-    bg_predict_info <- dplyr::inner_join(bg_predict_info, background_xreg, by = c("job_id" = "job_ID"))
+  pin <- 1
+  emp_job_idx <- 1
+  machine_total_resource <- 0
 
-    predict_info <- data.frame()
-    past_failures <- data.frame()
+  current_time <-  (max(bins[-1]) + sim_object@train_size) * window_multiplier
+  while (current_time <= (max(bins[-1]) + sim_object@train_size + sim_length - 1) * window_multiplier) {
+    print(paste0("Current time stamp is:", current_time, "."))
 
-    machine_total_resource <- 0
+    ## Job Arrival
+    if (nrow(predict_info) > 0) {
+      delayed_jobs <- predict_info[predict_info$status == 3,]
+      tp_arrival_jobs <- bg_predict_info[which(bg_predict_info$job_id %in% delayed_jobs$job_id),]
+      tp_arrival_jobs <- dplyr::inner_join(tp_arrival_jobs, delayed_jobs[, c("job_id", "emp_job_id")], by = "job_id")
+      arrival_jobs <- rbind(tp_arrival_jobs[, colnames(arrival_jobs)], arrival_jobs)
+    }
+    replenish_result <- replenish_jobs(bg_predict_info, arrival_jobs, pin, num_jobs, emp_job_idx)
+    arrival_jobs <- replenish_result$arrival_jobs
+    pin <- replenish_result$pin
+    emp_job_idx <- replenish_result$emp_job_idx
 
-    current_time <-  (max(bins[-1]) + sim_object@train_size) * window_multiplier
-    while (current_time <= (max(bins[-1]) + sim_object@train_size + sim_length - 1) * window_multiplier) {
-      print(paste0("Current time stamp is:", current_time, "."))
+    if (nrow(arrival_jobs) > 0) {
+      print("Getting predicted machine availability...")
 
-      ## Job Arrival
-      arrival_jobs <- bg_predict_info[bg_predict_info$timestamp == current_time,]
-      if (nrow(predict_info) > 0) {
-        recorded_jobs <- dplyr::inner_join(bg_predict_info, predict_info, by = "job_id")
-        delayed_jobs <- recorded_jobs[recorded_jobs$status == 3,]
-        arrival_jobs <- rbind(arrival_jobs, bg_predict_info[which(bg_predict_info$job_id %in% delayed_jobs$job_id),])
+      if (cores ==  1) {
+        pbapply::pboptions(type = "txt")
+        machine_info_pi_up <- pbapply::pblapply(1:ncol(foreground_x), function(ts_num) {
+          sapply(1:length(bins[-1]), function(bin_idx) {
+            bin <- bins[-1][bin_idx]
+
+            remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
+            quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
+
+            idx <- which(machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
+            predict_info <- fg_predict_info_lst[[ts_num]][[idx]]
+            if (quot > nrow(predict_info)) {
+              return(NA)
+            } else {
+              return(predict_info[quot, "pi_up"])
+            }
+          })
+        })
+      } else {
+        machine_info_pi_up <- pbmcapply::pbmclapply(1:ncol(foreground_x), function(ts_num) {
+          sapply(1:length(bins[-1]), function(bin_idx) {
+            bin <- bins[-1][bin_idx]
+
+            remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
+            quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
+
+            idx <- which(machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
+            predict_info <- fg_predict_info_lst[[ts_num]][[idx]]
+            if (quot > nrow(predict_info)) {
+              return(NA)
+            } else {
+              return(predict_info[quot, "pi_up"])
+            }
+          })
+        }, mc.cores = cores, ignore.interactive = TRUE)
       }
 
-      if (nrow(arrival_jobs) > 0) {
-        print("Getting predicted machine availability...")
 
-        if (cores ==  1) {
+      print("Updating predicted machine availability...")
+      active_jobs <- predict_info[predict_info$status == 0,]
+      if (nrow(active_jobs) > 0) {
+        update_machines <- unique(active_jobs$scheduled_machine)
+
+        if (cores == 1) {
           pbapply::pboptions(type = "txt")
-          machine_info_pi_up <- pbapply::pblapply(1:ncol(foreground_x), function(ts_num) {
-            sapply(1:length(bins[-1]), function(bin_idx) {
-              bin <- bins[-1][bin_idx]
-
-              remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
-              quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
-
-              idx <- which(machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
-              predict_info <- fg_predict_info_lst[[ts_num]][[idx]]
-              if (quot > nrow(predict_info)) {
-                return(NA)
-              } else {
-                return(predict_info[quot, "pi_up"])
-              }
-            })
+          updated_machines <- pbapply::pblapply(update_machines, function(machine) {
+            temp_active_jobs <- active_jobs[active_jobs$scheduled_machine == machine,]
+            result <- machine_info_pi_up[[machine]]
+            for (i in 1:nrow(temp_active_jobs)) {
+              temp_active_job <- temp_active_jobs[i,]
+              result <- machine_update(result, temp_active_job$requestedCPU)
+            }
+            return(result)
           })
         } else {
-          machine_info_pi_up <- pbmcapply::pbmclapply(1:ncol(foreground_x), function(ts_num) {
-            sapply(1:length(bins[-1]), function(bin_idx) {
-              bin <- bins[-1][bin_idx]
-
-              remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
-              quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
-
-              idx <- which(machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
-              predict_info <- fg_predict_info_lst[[ts_num]][[idx]]
-              if (quot > nrow(predict_info)) {
-                return(NA)
-              } else {
-                return(predict_info[quot, "pi_up"])
-              }
-            })
+          updated_machines <- pbmcapply::pbmclapply(update_machines, function(machine) {
+            temp_active_jobs <- active_jobs[active_jobs$scheduled_machine == machine,]
+            result <- machine_info_pi_up[[machine]]
+            for (i in 1:nrow(temp_active_jobs)) {
+              temp_active_job <- temp_active_jobs[i,]
+              result <- machine_update(result, temp_active_job$requestedCPU)
+            }
+            return(result)
           }, mc.cores = cores, ignore.interactive = TRUE)
         }
-
-
-        print("Updating predicted machine availability...")
-        active_jobs <- predict_info[predict_info$status == 0,]
-        if (nrow(active_jobs) > 0) {
-          update_machines <- unique(active_jobs$scheduled_machine)
-
-          if (cores == 1) {
-            pbapply::pboptions(type = "txt")
-            updated_machines <- pbapply::pblapply(update_machines, function(machine) {
-              temp_active_jobs <- active_jobs[active_jobs$scheduled_machine == machine,]
-              result <- machine_info_pi_up[[machine]]
-              for (i in 1:nrow(temp_active_jobs)) {
-                temp_active_job <- temp_active_jobs[i,]
-                result <- machine_update(result, temp_active_job$requestedCPU)
-              }
-              return(result)
-            })
-          } else {
-            updated_machines <- pbmcapply::pbmclapply(update_machines, function(machine) {
-              temp_active_jobs <- active_jobs[active_jobs$scheduled_machine == machine,]
-              result <- machine_info_pi_up[[machine]]
-              for (i in 1:nrow(temp_active_jobs)) {
-                temp_active_job <- temp_active_jobs[i,]
-                result <- machine_update(result, temp_active_job$requestedCPU)
-              }
-              return(result)
-            }, mc.cores = cores, ignore.interactive = TRUE)
-          }
-          for (i in 1:length(update_machines)) {
-            machine_info_pi_up[[update_machines[i]]] <- updated_machines[[i]]
-          }
+        for (i in 1:length(update_machines)) {
+          machine_info_pi_up[[update_machines[i]]] <- updated_machines[[i]]
         }
+      }
 
-        randomized_machine_idx <- sample.int(ncol(foreground_x), size = ceiling(ncol(foreground_x) * heartbeats_percent), replace = FALSE)
+      randomized_machine_idx <- sample.int(ncol(foreground_x), size = ceiling(ncol(foreground_x) * heartbeats_percent), replace = FALSE)
+
+      ctr <- 0
+      while (ctr < ifelse(machines_full_indicator > 0, machines_full_indicator, Inf)) {
+        ## Replenish the queue of the jobs
+        replenish_result <- replenish_jobs(bg_predict_info, arrival_jobs, pin, num_jobs, emp_job_idx)
+        arrival_jobs <- replenish_result$arrival_jobs
+        pin <- replenish_result$pin
+        emp_job_idx <- replenish_result$emp_job_idx
+
         print("Assigning jobs to machines...")
         pb <- pbmcapply::progressBar(min = 0, max = nrow(arrival_jobs), style = "ETA")
         for (job_idx in 1:nrow(arrival_jobs)) {
@@ -458,8 +503,9 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           actual_runtime <- arrival_jobs[job_idx, "actual"]
           actual_runtime_bin <- which(actual_runtime == bins[-1])
           requested_CPU <- arrival_jobs[job_idx, "requestCPU"]
+          emp_job_id <- arrival_jobs[job_idx, "emp_job_id"]
           job_id <- arrival_jobs[job_idx, "job_id"]
-          past_survived_time <- ifelse(job_id %in% past_failures$job_id, max(past_failures[past_failures$job_id == job_id, "run_time"]), -1)
+          past_survived_time <- ifelse(emp_job_id %in% past_failures$emp_job_id, max(past_failures[past_failures$emp_job_id == emp_job_id, "run_time"]), 0)
           past_survived_time_bin <- which(past_survived_time == bins[-1])
           scheduler_score <- machines_select(machine_list = machine_info_pi_up,
                                              signal_machines_idx = randomized_machine_idx,
@@ -468,109 +514,123 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
                                              cores = cores)
 
           if (is.na(scheduler_score$machine_id)) {
-            if (job_id %in% predict_info$job_id) {
-              predict_info[predict_info$job_id == job_id, "delayed_time"] <- predict_info[predict_info$job_id == job_id, "delayed_time"] + window_multiplier
+            if (emp_job_id %in% predict_info$emp_job_id) {
+              predict_info[predict_info$emp_job_id == emp_job_id, "delayed_time"] <- predict_info[predict_info$emp_job_id == emp_job_id, "delayed_time"] + window_multiplier
             } else {
-              predict_info <- rbind(predict_info, data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = window_multiplier, "scheduled_machine" = NA, "scheduled_score" = NA, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 3))
+              predict_info <- rbind(predict_info, data.frame("emp_job_id" = emp_job_id, "job_id" = job_id, "arrival_time" = current_time, "delayed_time" = window_multiplier, "scheduled_machine" = NA, "scheduled_score" = NA, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 3))
+            }
+            ctr <- ctr + 1
+            if (ctr > machines_full_indicator) {
+              if (job_idx < nrow(arrival_jobs)) {
+                arrival_jobs <- arrival_jobs[(job_idx + 1):nrow(arrival_jobs),]
+              } else {
+                arrival_jobs <- data.frame()
+              }
+              break
             }
           } else {
-            if (job_id %in% predict_info$job_id) {
-              predict_info[predict_info$job_id == job_id, "scheduled_machine"] <- scheduler_score$machine_id
-              predict_info[predict_info$job_id == job_id, "scheduled_score"] <- scheduler_score$score
-              predict_info[predict_info$job_id == job_id, "status"] <- 0
+            if (emp_job_id %in% predict_info$emp_job_id) {
+              predict_info[predict_info$emp_job_id == emp_job_id, "scheduled_machine"] <- scheduler_score$machine_id
+              predict_info[predict_info$emp_job_id == emp_job_id, "scheduled_score"] <- scheduler_score$score
+              predict_info[predict_info$emp_job_id == emp_job_id, "status"] <- 0
             } else {
-              predict_info <- rbind(predict_info, data.frame("job_id" = job_id, "arrival_time" = current_time, "delayed_time" = 0, "scheduled_machine" = scheduler_score$machine_id, "scheduled_score" = scheduler_score$score, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 0))
+              predict_info <- rbind(predict_info, data.frame("emp_job_id" = emp_job_id, "job_id" = job_id, "arrival_time" = current_time, "delayed_time" = 0, "scheduled_machine" = scheduler_score$machine_id, "scheduled_score" = scheduler_score$score, "scheduled_time" = actual_runtime * window_multiplier, "terminate_time" = NA, "requestedCPU" = requested_CPU, "status" = 0))
             }
             machine_info_pi_up[[scheduler_score$machine_id]] <- machine_update(machine_info_pi_up[[scheduler_score$machine_id]], requested_CPU)
+            ctr <- 0
           }
         }
-        print("")
-      }
+        close(pb)
 
-      print("Getting actual machine availability...")
-      if (cores == 1) {
-        pbapply::pboptions(type = "txt")
-        machine_info_actual <- pbapply::pbsapply(1:ncol(foreground_x), function(ts_num) {
-          bin <- 1
-          remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
-          quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
-          idx <- which(machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
-          predict_info <- fg_predict_info_lst[[ts_num]][[idx]]
-          return(predict_info[quot, "actual"])
-        })
-      } else {
-        machine_info_actual <- pbmcapply::pbmcmapply(function(ts_num) {
-          bin <- 1
-          remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
-          quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
-          idx <- which(machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
-          predict_info <- fg_predict_info_lst[[ts_num]][[idx]]
-          return(predict_info[quot, "actual"])
-        }, 1:ncol(foreground_x), mc.cores = cores, ignore.interactive = TRUE)
-      }
+        print(paste("ctr", ctr, sep = ":"))
 
-      machine_total_resource <- machine_total_resource + sum(100 - machine_info_actual, na.rm = TRUE)
-
-      active_jobs <- predict_info[predict_info$status == 0,]
-      ## Job Execution and Termination
-      if (nrow(active_jobs) > 0) {
-        job_decisions <- machine_survival(machine_info_actual, active_jobs, current_time, window_multiplier, cores)
-
-        print("Enforcing scheduler decisions on jobs...")
-        pb2 <- pbmcapply::progressBar(min = 0, max = nrow(active_jobs), style = "ETA")
-        for (job_idx in 1:nrow(active_jobs)) {
-          utils::setTxtProgressBar(pb2, job_idx)
-          job_id <- active_jobs[job_idx, "job_id"]
-          requested_CPU <- active_jobs[job_idx, "requestedCPU"]
-          scheduled_time <- active_jobs[job_idx, "arrival_time"] + active_jobs[job_idx, "delayed_time"]
-          actual_time <- active_jobs[job_idx, "scheduled_time"]
-          terminate_time <- scheduled_time + actual_time - window_multiplier
-
-          if (job_id %in% job_decisions$killed) {
-            ## Kill Job
-            past_failures <- rbind(past_failures, data.frame("job_id" = job_id, "deploy_time" = scheduled_time, "killed_time" = current_time, "run_time" = current_time - scheduled_time + window_multiplier, "scheduled_machine" = active_jobs[job_idx, "scheduled_machine"], "scheduled_score" = active_jobs[job_idx, "scheduled_score"], "requestedCPU" = requested_CPU))
-            predict_info[predict_info$job_id == job_id, "delayed_time"] <- predict_info[predict_info$job_id == job_id, "delayed_time"] + current_time - scheduled_time + window_multiplier
-            predict_info[predict_info$job_id == job_id, "scheduled_machine"] <- NA
-            predict_info[predict_info$job_id == job_id, "scheduled_score"] <- NA
-            predict_info[predict_info$job_id == job_id, "terminate_time"] <- NA
-            predict_info[predict_info$job_id == job_id, "status"] <- 3
-          } else if (job_id %in% job_decisions$unknown) {
-            predict_info[predict_info$job_id == job_id, "status"] <- 4
+        if (machines_full_indicator == 0){
+          if (job_idx < nrow(arrival_jobs)) {
+            arrival_jobs <- arrival_jobs[(job_idx + 1):nrow(arrival_jobs),]
           } else {
-            ## Check Terminated
-            if (terminate_time == current_time) {
-              predict_info[predict_info$job_id == job_id, "terminate_time"] <- current_time
-              predict_info[predict_info$job_id == job_id, "status"] <- 1
-            }
+            arrival_jobs <- data.frame()
           }
+          break
         }
-        print("")
       }
-
-      current_time <- current_time + window_multiplier
     }
 
-    fp <- write_location_check(file_name = paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
-    save(predict_info, past_failures, machine_total_resource, current_time, window_multiplier, file = fs::path(fp, ext = "rda"))
+    print("Getting actual machine availability...")
+    if (cores == 1) {
+      pbapply::pboptions(type = "txt")
+      machine_info_actual <- pbapply::pbsapply(1:ncol(foreground_x), function(ts_num) {
+        bin <- 1
+        remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
+        quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
+        idx <- which(machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
+        predict_info <- fg_predict_info_lst[[ts_num]][[idx]]
+        return(predict_info[quot, "actual"])
+      })
+    } else {
+      machine_info_actual <- pbmcapply::pbmcmapply(function(ts_num) {
+        bin <- 1
+        remain <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin) %% bin
+        quot <- ((current_time - (max(bins[-1]) + sim_object@train_size) * window_multiplier) / window_multiplier + bin - remain) / bin
+        idx <- which(machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
+        predict_info <- fg_predict_info_lst[[ts_num]][[idx]]
+        return(predict_info[quot, "actual"])
+      }, 1:ncol(foreground_x), mc.cores = cores, ignore.interactive = TRUE)
+    }
 
-    summ <- compute_summary_performance(predict_info, past_failures, machine_total_resource, current_time - window_multiplier, window_multiplier)
-    return(as.data.frame(summ))
-  }))
+    machine_total_resource <- machine_total_resource + sum(100 - machine_info_actual, na.rm = TRUE)
 
+    active_jobs <- predict_info[predict_info$status == 0,]
+    ## Job Execution and Termination
+    if (nrow(active_jobs) > 0) {
+      job_decisions <- machine_survival(machine_info_actual, active_jobs, current_time, window_multiplier, cores)
+
+      print("Enforcing scheduler decisions on jobs...")
+      pb2 <- pbmcapply::progressBar(min = 0, max = nrow(active_jobs), style = "ETA")
+      for (job_idx in 1:nrow(active_jobs)) {
+        utils::setTxtProgressBar(pb2, job_idx)
+        emp_job_id <- active_jobs[job_idx, "emp_job_id"]
+        job_id <- active_jobs[job_idx, "job_id"]
+        requested_CPU <- active_jobs[job_idx, "requestedCPU"]
+        scheduled_time <- active_jobs[job_idx, "arrival_time"] + active_jobs[job_idx, "delayed_time"]
+        actual_time <- active_jobs[job_idx, "scheduled_time"]
+        terminate_time <- scheduled_time + actual_time - window_multiplier
+
+        if (emp_job_id %in% job_decisions$killed) {
+          ## Kill Job
+          past_failures <- rbind(past_failures, data.frame("emp_job_id" = emp_job_id, "job_id" = job_id, "deploy_time" = scheduled_time, "killed_time" = current_time, "run_time" = current_time - scheduled_time + window_multiplier, "scheduled_machine" = active_jobs[job_idx, "scheduled_machine"], "scheduled_score" = active_jobs[job_idx, "scheduled_score"], "requestedCPU" = requested_CPU))
+          predict_info[predict_info$emp_job_id == emp_job_id, "delayed_time"] <- predict_info[predict_info$emp_job_id == emp_job_id, "delayed_time"] + current_time - scheduled_time + window_multiplier
+          predict_info[predict_info$emp_job_id == emp_job_id, "scheduled_machine"] <- NA
+          predict_info[predict_info$emp_job_id == emp_job_id, "scheduled_score"] <- NA
+          predict_info[predict_info$emp_job_id == emp_job_id, "terminate_time"] <- NA
+          predict_info[predict_info$emp_job_id == emp_job_id, "status"] <- 3
+        } else if (job_id %in% job_decisions$unknown) {
+          predict_info[predict_info$emp_job_id == emp_job_id, "status"] <- 4
+        } else {
+          ## Check Terminated
+          if (terminate_time == current_time) {
+            predict_info[predict_info$emp_job_id == emp_job_id, "terminate_time"] <- current_time
+            predict_info[predict_info$emp_job_id == emp_job_id, "status"] <- 1
+          }
+        }
+      }
+      close(pb2)
+    }
+
+    current_time <- current_time + window_multiplier
+  }
+
+  fp <- write_location_check(file_name = paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
+  save(predict_info, past_failures, machine_total_resource, current_time, window_multiplier, file = fs::path(fp, ext = "rda"))
+
+  summ <- compute_summary_performance(predict_info, past_failures, machine_total_resource, current_time - window_multiplier, window_multiplier)
 
   if (!("none" %in% write_type)) {
     param_uni_df <- cbind(methods::as(sim_object, "data.frame"), methods::as(pred_object, "data.frame"))
-    meta_setting <- c("sim_length" = sim_length, "use_adjustment" = use_adjustment, "bin_num" = length(bins[-1]), "repeats" = repeats)
-    summ <- data.frame(as.list(colMeans(final_result, na.rm = TRUE)))
-    if ("summary" %in% write_type) {
-      summ <- cbind(as.data.frame(as.list(meta_setting), stringsAsFactors = FALSE), param_uni_df, summ)
-      write_sim_result(summ, "other", paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
-    } else {
-      summ <- rbind(final_result, summ)
-      summ <- cbind(as.data.frame(as.list(meta_setting), stringsAsFactors = FALSE), param_uni_df, data.frame("repeat" = c(1:repeats, 0)), summ)
-      write_sim_result(summ, "other", paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
-    }
+    meta_setting <- c("sim_length" = sim_length, "use_adjustment" = use_adjustment, "bin_num" = length(bins[-1]), "heartbeats_percent" = heartbeats_percent)
+    summ <- cbind(as.data.frame(as.list(meta_setting), stringsAsFactors = FALSE), param_uni_df, summ)
+    write_sim_result(summ, "other", paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
   }
+
   print("Meta settings:")
   print(paste(names(meta_setting), meta_setting, sep = ":", collapse = ","))
   print("Foreground settings:")
@@ -580,5 +640,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
   print(get_representation(pred_object, "char_con"))
   print(get_representation(pred_object, "param_con"))
   print("Combined results:")
-  print(paste(names(colMeans(final_result, na.rm = TRUE)), as.numeric(colMeans(final_result, na.rm = TRUE)), sep = ":"))
+  print(paste(names(summ), as.numeric(summ), sep = ":"))
+
+  return(summ)
 }

@@ -16,9 +16,10 @@ run_sim_pred(
   background_x,
   background_xreg,
   load_background_result = NULL,
+  num_jobs = length(background_x),
+  machines_full_indicator = 10,
   heartbeats_percent = 1,
   bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205),
-  repeats = 10,
   cores = parallel::detectCores(),
   write_type = "none",
   result_loc = getwd()
@@ -47,11 +48,13 @@ run_sim_pred(
 
 \item{load_background_result}{A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.}
 
+\item{num_jobs}{A numeric value represents the length of queue at each timestamp.}
+
+\item{machines_full_indicator}{An numeric value that is used to identify whether all machines are full. The scheduler believes the machines are full after \code{machines_full_indicator} successive failures in scheduling.}
+
 \item{heartbeats_percent}{A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.}
 
 \item{bins}{A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.}
-
-\item{repeats}{A numeric integer representing the number of repetitions for each setting, the result will be the mean of those repeated results.}
 
 \item{cores}{A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.}
 

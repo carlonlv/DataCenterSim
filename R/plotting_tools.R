@@ -389,7 +389,7 @@ plot_heatmap_correlations <- function(dataset1, dataset2=NULL, window_size1, win
         }
         return(stats::cor(past_obs, future_obs, method = corr_method, use = "na.or.complete"))
       })
-      return(stats::median(abs(alltraces_corr), na.rm = TRUE))
+      return(mean(abs(alltraces_corr), na.rm = TRUE))
     }, rownum = 1:nrow(result_df))
   } else {
     corr <- pbmcapply::pbmcmapply(function(rownum) {
@@ -405,7 +405,7 @@ plot_heatmap_correlations <- function(dataset1, dataset2=NULL, window_size1, win
         }
         return(stats::cor(past_obs, future_obs, method = corr_method, use = "na.or.complete"))
       })
-      return(stats::median(abs(alltraces_corr), na.rm = TRUE))
+      return(mean(abs(alltraces_corr), na.rm = TRUE))
     }, rownum = 1:nrow(result_df), mc.cores = cores, ignore.interactive = TRUE)
   }
 

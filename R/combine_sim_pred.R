@@ -234,14 +234,19 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
   finished_numerator <- sum(finished_jobs$requestedCPU * finished_jobs$scheduled_time / window_multiplier)
   optimistic_numerator <- sum(predict_info$requestedCPU * predict_info$scheduled_time / window_multiplier)
 
-  denominator <- machine_available_resources
+  ongoing_jobs <- predict_info[predict_info$status == 0,]
+  ongoing_demoninator <- sum(ongoing_jobs$requestedCPU * (sim_end_time - ongoing_jobs$arrival_time - ongoing_jobs$delayed_time + window_multiplier) / window_multiplier)
+
+  unscheduled_jobs <- predict_info[predict_info$status == 3,]
+
+  denominator <- machine_available_resources - ongoing_demoninator
 
   finished_jobs_num <- nrow(finished_jobs)
-  ongoing_jobs_num <- nrow(predict_info[predict_info$status == 0,])
+  ongoing_jobs_num <- nrow(ongoing_jobs)
   killed_jobs_num <- nrow(past_failures)
   survived_jobs_num <- nrow(finished_jobs) - sum(finished_jobs$emp_job_id %in% past_failures$emp_job_id)
-  unscheduled_jobs_num <- nrow(predict_info[predict_info$status == 3,])
-  denied_jobs_num <- nrow(predict_info[predict_info$status == 3,]) - sum(predict_info$status == 3 & predict_info$emp_job_id %in% past_failures$emp_job_id)
+  unscheduled_jobs_num <- nrow(unscheduled_jobs)
+  denied_jobs_num <- nrow(unscheduled_jobs) - sum(unscheduled_jobs$emp_job_id %in% past_failures$emp_job_id)
 
   past_failures <- past_failures %>%
     dplyr::group_by_at(.vars = "emp_job_id") %>%
@@ -621,16 +626,13 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
     current_time <- current_time + window_multiplier
   }
 
-  fp <- write_location_check(file_name = paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
-  save(predict_info, past_failures, machine_total_resource, current_time, window_multiplier, file = fs::path(fp, ext = "rda"))
+
 
   summ <- compute_summary_performance(predict_info, past_failures, machine_total_resource, current_time - window_multiplier, window_multiplier)
 
   if (!("none" %in% write_type)) {
-    param_uni_df <- cbind(methods::as(sim_object, "data.frame"), methods::as(pred_object, "data.frame"))
-    meta_setting <- c("sim_length" = sim_length, "use_adjustment" = use_adjustment, "bin_num" = length(bins[-1]), "heartbeats_percent" = heartbeats_percent)
-    summ <- cbind(as.data.frame(as.list(meta_setting), stringsAsFactors = FALSE), param_uni_df, summ)
-    write_sim_result(summ, "other", paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
+    fp <- write_location_check(file_name = paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
+    save(sim_object, pred_object, predict_info, past_failures, machine_total_resource, current_time, window_multiplier, file = fs::path(fp, ext = "rda"))
   }
 
   print("Meta settings:")

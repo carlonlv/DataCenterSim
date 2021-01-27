@@ -629,10 +629,16 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
 
   summ <- compute_summary_performance(predict_info, past_failures, machine_total_resource, current_time - window_multiplier, window_multiplier)
+  meta_setting <- data.frame("sim_length" = sim_length,
+                             "use_adjustment" = use_adjustment,
+                             "num_jobs" = num_jobs,
+                             "machines_full_indicator" = machines_full_indicator,
+                             "heartbeats_percent" = heartbeats_percent,
+                             "constraint_prob" = constraint_prob)
 
   if (!("none" %in% write_type)) {
     fp <- write_location_check(file_name = paste0("combined", sim_object@name, pred_object@name, as.character(Sys.time())), result_loc, paste(get_representation(sim_object, "char_con"), get_representation(pred_object, "char_con")), paste(get_representation(sim_object, "param_con"), get_representation(pred_object, "param_con")))
-    save(sim_object, pred_object, predict_info, past_failures, machine_total_resource, current_time, window_multiplier, file = fs::path(fp, ext = "rda"))
+    save(sim_object, pred_object, meta_setting, bins, predict_info, past_failures, machine_total_resource, current_time, window_multiplier, file = fs::path(fp, ext = "rda"))
   }
 
   print("Meta settings:")

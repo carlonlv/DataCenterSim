@@ -502,6 +502,57 @@ plot_ecdf_acf <- function(dataset1, dataset2=NULL, lags, freqs, corr_method = "a
 }
 
 
+#' Plot the ECDF of data
+#'
+#' Plot data points of \code{dataset} with given window sizes using ECDF or Histogram.
+#' @param dataset A numeric dataframe or matrix with each column as a trace.
+#' @param window_size A numeric vector representing the window size of observations to be aggregated.
+#' @param ecdf_or_hist A boolean representing the type of plot to be generated, \code{TRUE} means Emprical CDF, \code{FALSE} means histogram.
+#' @param mean_or_median A boolean representing the type of aggregation across differenrt traces are used, \code{TRUE} means using mean, \code{FALSE} means using median.
+#' @param response A character vector of length two representing the type of aggregation, can be either \code{"max"} or \code{"avg"}
+#' @param cores A numeric value representing the number of threads for parallel programming, not supported for windows users.
+#' @param name A character that represents the identifier or name of the plot.
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
+#' @rdname plot_ecdf_data
+#' @export
+plot_ecdf_data <- function(dataset, window_size, ecdf_or_hist = TRUE, mean_or_median = TRUE, response = "max", cores, name, ...) {
+  result <- do.call(rbind, lapply(window_size, function(i) {
+    if (cores == 1) {
+      pbapply::pboptions(type = "txt")
+      windowed_data <- pbapply::pbmapply(function(ts_num) {
+        100 - convert_frequency_dataset(dataset[, ts_num], i, response, right.aligned = FALSE)
+      }, 1:ncol(dataset))
+    } else {
+      windowed_data <- pbmcapply::pbmcmapply(function(ts_num) {
+        100 - convert_frequency_dataset(dataset[, ts_num], i, response, right.aligned = FALSE)
+      }, 1:ncol(dataset), mc.cores = cores, ignore.interactive = TRUE)
+    }
+    windowed_data <- apply(windowed_data, 2, ifelse(mean_or_median, mean, stats::median), na.rm = TRUE)
+    data.frame("window_size" = i, "dat" = windowed_data)
+  }))
+  result$window_size <- as.factor(result$window_size)
+
+  if (ecdf_or_hist) {
+    plt <- ggplot2::ggplot(result, ggplot2::aes_string(x = "dat", colour = "window_size")) +
+      ggplot2::stat_ecdf(na.rm = TRUE)
+  } else {
+    plt <- ggplot2::ggplot(result, ggplot2::aes_string(x = "dat", colour = "window_size")) +
+      ggplot2::geom_histogram(na.rm = TRUE)
+  }
+  plt <- plt +
+    ggplot2::ylab("Fraction of Data") +
+    ggplot2::xlab("Average Available CPU (%)") +
+    ggplot2::theme_bw() +
+    ggsci::scale_color_ucscgb(name = "window size") +
+    ggplot2::theme(legend.position = c(0.25, 0.75), legend.background = ggplot2::element_rect(fill = "white", color = "black"))
+
+  file_name <- paste(ifelse(ecdf_or_hist, "ECDF", "Histogram"), "of Different Window Sizes", name)
+  save_path <- write_location_check(file_name = file_name, ...)
+  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 7, height = 5)
+  invisible()
+}
+
+
 #' Plot the Diagnosis of Generated Traces
 #'
 #' Plot the generated trace and the actual maximum and average to compare.

@@ -25,7 +25,7 @@ svt_predicting_sim(
 
 \item{start_point}{A numeric number that represents the starting point of the simulation. Default value is \code{1}.}
 
-\item{wait_time}{A numeric number that represents the time between training and testing. Default value is \code{0}.}
+\item{wait_time}{A numeric number that represents the time between testing and next training. Default value is \code{0}.}
 
 \item{write_type}{A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".}
 

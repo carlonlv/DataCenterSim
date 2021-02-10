@@ -77,7 +77,7 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
 #' @param x A numeric vector of length n representing the target dataset for scheduling and evaluations.
 #' @param xreg A numeric vector of length n representing the external regressor.
 #' @param start_point A numeric number that represents the starting point of the simulation. Default value is \code{1}.
-#' @param wait_time A numeric number that represents the time between training and testing. Default value is \code{0}.
+#' @param wait_time A numeric number that represents the time between testing and next training. Default value is \code{0}.
 #' @param write_type A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param plot_type A character that can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
@@ -100,7 +100,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
                              stringsAsFactors = FALSE)
 
   current <- start_point
-  last_time_update <- nrow(x) - wait_time - object@train_size - object@update_freq * object@extrap_step * object@window_size + 1
+  last_time_update <- nrow(x) - object@train_size - object@update_freq * object@extrap_step * object@window_size + 1
 
   train_models <- list()
   predict_histories <- list()
@@ -173,8 +173,8 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
     }
 
     ## Get test set
-    test_start <- current + object@train_size + wait_time
-    test_end <- current + object@train_size + wait_time + object@update_freq * object@extrap_step * object@window_size - 1
+    test_start <- current + object@train_size
+    test_end <- current + object@train_size + object@update_freq * object@extrap_step * object@window_size - 1
     test_x <- matrix(x[test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(x)[test_start:test_end], colnames(x)[ts_num]))
     if (is.null(xreg)) {
       test_xreg <- matrix(nrow = 0, ncol = 0)
@@ -210,7 +210,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
     }
 
     ## Update Step
-    current <- current + object@update_freq * object@extrap_step * object@window_size
+    current <- current + object@update_freq * object@extrap_step * object@window_size + wait_time
   }
 
   if ("tracewise" %in% write_type & !("none" %in% write_type)) {

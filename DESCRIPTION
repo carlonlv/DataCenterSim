@@ -48,6 +48,7 @@ Collate:
     'combine_sim_pred.R'
     'data.R'
     'gmm_pred.R'
+    'lm_sim.R'
     'plotting_tools.R'
     'model_helper.R'
     'main.R'

@@ -8,7 +8,8 @@ convert_frequency_dataset_overlapping(
   dataset,
   new_freq,
   response,
-  keep.names = TRUE
+  keep.names = TRUE,
+  jump = 1
 )
 }
 \arguments{
@@ -17,6 +18,8 @@ convert_frequency_dataset_overlapping(
 \item{new_freq}{An integer value.}
 
 \item{response}{If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.}
+
+\item{jump}{A numeric value representing the number of steps to jump after each windowing operations. Default value is \code{1}.}
 }
 \value{
 The vector of same size of input vector.

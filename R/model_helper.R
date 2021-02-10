@@ -89,15 +89,19 @@ convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = 
 #' @param dataset A vector of numeric value.
 #' @param new_freq An integer value.
 #' @param response If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.
+#' @param jump A numeric value representing the number of steps to jump after each windowing operations. Default value is \code{1}.
 #' @return The vector of same size of input vector.
 #' @keywords internal
-convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, keep.names = TRUE) {
+convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, keep.names = TRUE, jump = 1) {
   new_dataset <- c()
   new_names <- c()
   window_num <- length(dataset) - new_freq + 1
-  for (i in 1:window_num) {
-    from <- i
-    to <- i + new_freq - 1
+
+  window_num <- floor((length(dataset) - max(new_freq, jump)) / jump) + 1
+
+  for (i in seq(from = 1 + max(new_freq, jump) - 1, by = jump, length.out = window_num)) {
+    to <- i
+    from <- i - new_freq + 1
 
     if (response == "max") {
       new_val <- max(dataset[from:to], na.rm = TRUE)

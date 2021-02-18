@@ -98,7 +98,7 @@ setMethod("do_prediction",
 
             new_test_xreg <- convert_frequency_dataset_overlapping(new_test_xreg[(length(new_test_xreg) - object@window_size * (object@extrap_step - 1) - max(object@window_size_for_reg, object@window_size) + 1):length(new_test_xreg)], object@window_size_for_reg, object@window_type_for_reg, keep.names = TRUE, jump = object@window_size)
 
-            predict_result <- stats::predict(trained_result, newdata = data.frame("new_train_xreg" = new_test_xreg), interval = "prediction")
+            predict_result <- stats::predict(trained_result, newdata = data.frame("new_train_xreg" = new_test_xreg), interval = "prediction", level = level / 100)
 
             expected <- as.numeric(predict_result[,"fit"])
             pi_up <- as.numeric(predict_result[, "upr"])

@@ -55,15 +55,17 @@ lm_sim <- setClass("lm_sim",
 setMethod("train_model",
           signature(object = "lm_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            new_train_x <- convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE)
-            new_train_xreg <- convert_frequency_dataset_overlapping(train_xreg, object@window_size_for_reg, object@window_type_for_reg, keep.names = TRUE, jump = object@window_size)
+            new_train_x <- convert_frequency_dataset(setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)]), object@window_size, object@response, keep.names = TRUE, right.aligned = TRUE)
+            new_train_xreg <- convert_frequency_dataset_overlapping(setNames(train_xreg[1:(length(train_x) - object@window_size * object@extrap_step)], rownames(train_xreg)[1:(length(train_x) - object@window_size * object@extrap_step)]), object@window_size_for_reg, object@window_type_for_reg, keep.names = TRUE, jump = object@window_size)
 
-            args.method <- list()
+            args.method <- list("data" = data.frame("new_train_x" = new_train_x, "new_train_xreg" = new_train_xreg))
             for (i in names(object@train_args)) {
               args.method[[i]] <- object@train_args[[i]]
             }
 
             trained_result <- do.call(stats::lm, c(list("formula" = stats::as.formula("new_train_x~new_train_xreg")), args.method))
+            trained_result$call$x <- train_x
+            trained_result$call$xreg <- train_xreg
 
             if (object@res_dist == "skew_norm") {
               res <- stats::residuals(trained_result)
@@ -94,9 +96,9 @@ setMethod("do_prediction",
             trained_result <- trained_result[[1]]
             level <- (1 - object@cut_off_prob * 2) * 100
 
-            new_test_xreg <- c(trained_result$model$new_train_xreg, test_xreg[,1])
+            new_test_xreg <- c(trained_result$call$xreg, test_xreg[,1])
 
-            new_test_xreg <- convert_frequency_dataset_overlapping(new_test_xreg[(length(new_test_xreg) - object@window_size * (object@extrap_step - 1) - max(object@window_size_for_reg, object@window_size) + 1):length(new_test_xreg)], object@window_size_for_reg, object@window_type_for_reg, keep.names = TRUE, jump = object@window_size)
+            new_test_xreg <- convert_frequency_dataset_overlapping(new_test_xreg[(length(new_test_xreg) - object@window_size * object@extrap_step - object@window_size * (object@extrap_step - 1) - max(object@window_size_for_reg, object@window_size) + 1):(length(new_test_xreg) - object@window_size * object@extrap_step)], object@window_size_for_reg, object@window_type_for_reg, keep.names = TRUE, jump = object@window_size)
 
             predict_result <- stats::predict(trained_result, newdata = data.frame("new_train_xreg" = new_test_xreg), interval = "prediction", level = level / 100)
 

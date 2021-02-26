@@ -18,26 +18,22 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
   adjust_switch <- switch_status$adjust_switch
   react_counter <- switch_status$react_counter
 
-  test_predict_info <- data.frame("train_iter" = numeric(0),
-                                  "test_iter" = numeric(0),
-                                  "predict_iter" = numeric(0),
-                                  "time" = numeric(0),
-                                  "actual" = numeric(0),
-                                  "expected" = numeric(0),
-                                  "residuals" = numeric(0),
-                                  "pi_up" = numeric(0),
-                                  "adjustment" = logical(0),
-                                  "score_pred_1" = numeric(0),
-                                  "score_pred_2" = numeric(0),
-                                  stringsAsFactors = FALSE)
+  test_predict_info <- data.frame(stringsAsFactors = FALSE)
 
   last_time_schedule <- length(test_x) - object@window_size + 1
-
+  "actual" = numeric(0),
+  "expected" = numeric(0),
+  "residuals" = numeric(0),
+  "pi_up" = numeric(0),
+  "adjustment" = logical(0),
+  "score_pred_1" = numeric(0),
+  "score_pred_2" = numeric(0),
+  "time" = numeric(0),
   predict_iter <- 0
   current_end <- 1
   while (current_end <= last_time_schedule) {
     for (i in 1:object@extrap_step) {
-      test_predict_info[nrow(test_predict_info) + 1,] <- c(switch_status$train_iter, switch_status$test_iter, predict_iter + 1, rep(NA, ncol(test_predict_info) - 3))
+      identifier_info <- data.frame("train_iter" = switch_status$train_iter, "test_iter" = switch_status$test_iter, "predict_iter" = predict_iter + 1)
     }
 
     start_time <- current_end
@@ -151,8 +147,12 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
       train_start <- current
       train_end <- current + object@train_size - 1
       train_x <- matrix(x[train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(x)[train_start:train_end], colnames(x)[ts_num]))
-      if (!is.null(xreg)) {
+      if (!is.null(xreg) & (is.matrix(xreg) | is.data.frame(xreg))) {
         train_xreg <- matrix(xreg[train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[train_start:train_end], colnames(xreg)[ts_num]))
+      } else if (!is.null(xreg) & is.list(xreg)) {
+        train_xreg <- lapply(1:length(xreg), function(reg) {
+          matrix(xreg[[reg]][train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[train_start:train_end], colnames(xreg)[ts_num]))
+        })
       } else {
         train_xreg <- matrix(nrow = 0, ncol = 0)
       }
@@ -176,10 +176,14 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
     test_start <- current + object@train_size
     test_end <- current + object@train_size + object@update_freq * object@extrap_step * object@window_size - 1
     test_x <- matrix(x[test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(x)[test_start:test_end], colnames(x)[ts_num]))
-    if (is.null(xreg)) {
-      test_xreg <- matrix(nrow = 0, ncol = 0)
-    } else {
+    if (!is.null(xreg) & (is.matrix(xreg) | is.data.frame(xreg))) {
       test_xreg <- matrix(xreg[test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)[ts_num]))
+    } else if (!is.null(xreg) & is.list(xreg)) {
+      test_xreg <- lapply(1:length(xreg), function(reg) {
+        matrix(xreg[[reg]][test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)[ts_num]))
+      })
+    } else {
+      test_xreg <- matrix(nrow = 0, ncol = 0)
     }
 
     ## Test Model

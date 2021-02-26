@@ -92,14 +92,14 @@ convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = 
 #' @param jump A numeric value representing the number of steps to jump after each windowing operations. Default value is \code{1}.
 #' @return The vector of same size of input vector.
 #' @keywords internal
-convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, keep.names = TRUE, jump = 1) {
+convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, keep.names = TRUE, right.aligned = TRUE, jump = 1) {
   new_dataset <- c()
   new_names <- c()
   window_num <- length(dataset) - new_freq + 1
 
   window_num <- floor((length(dataset) - max(new_freq, jump)) / jump) + 1
 
-  for (i in seq(from = 1 + max(new_freq, jump) - 1, by = jump, length.out = window_num)) {
+  for (i in seq(to = length(dataset), by = jump, length.out = window_num)) {
     to <- i
     from <- i - new_freq + 1
 

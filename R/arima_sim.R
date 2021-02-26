@@ -4,7 +4,7 @@ NULL
 
 #' Validity Checker for arima_sim Object
 #'
-#' @param object A arima_sim object
+#' @param object A arima_sim object.
 #' @return \code{TRUE} if the input sim object is valid, vector of error messages otherwise.
 #' @keywords internal
 check_valid_arima_sim <- function(object) {
@@ -69,24 +69,342 @@ arima_sim <- setClass("arima_sim",
                     validity = check_valid_arima_sim)
 
 
+#' Estimate the effect of outliers
+#'
+#' @param object A arima_sim object.
+#' @param ol_type A vector of outlier types to be considered.
+#' @param new_train_x A time series representing the train data.
+#' @param tso_model A tso object from training data
+#' @param trained_model A list containing previous trained model.
+#' @return A list containing the means and variance of outliers for each type of outliers.
+#' @keywords internal
+estimate_outliers <- function(object, ol_type, new_train_x, tso_model, trained_model) {
+  if (object@outlier_prediction == "Categorical") {
+    param_mle <- do.call(rbind,  lapply(ol_type, function(i) {
+      target_ol_info <- tso_model$outlier[tso_model$outlier$type == i,]
+      param <- nrow(target_ol_info) / length(new_train_x)
+      total <- length(new_train_x)
+      if (object@outlier_prediction_update_param & length(trained_model) > 0) {
+        param <- stats::weighted.mean(
+          x = c(param, ifelse(is.null(trained_model[[1]]$param_mle),
+                              0,
+                              trained_model[[1]]$param_mle$param[which(i == ol_type)])),
+          w = c(length(new_train_x), ifelse(is.null(trained_model[[1]]$param_mle),
+                                            0,
+                                            trained_model[[1]]$param_mle$total[which(i == ol_type)])),
+          na.rm = TRUE
+        )
+        total <- length(new_train_x) + ifelse(is.null(trained_model[[1]]$param_mle),
+                                              0,
+                                              trained_model[[1]]$param_mle$total[which(i == c(ol_type, "NO"))])
+      }
+      effect_mean <- ifelse(length(target_ol_info$coefhat) == 0, 0, mean(target_ol_info$coefhat))
+      effect_var <- ifelse(length(target_ol_info$coefhat) == 0 | length(target_ol_info$coefhat) == 1, 0, stats::var(target_ol_info$coefhat))
+      data.frame("param" = param, "total" = total, "effect_mean" = effect_mean, "effect_var" = effect_var)
+    }))
+    NO_param <- 1 - sum(param_mle$param)
+    param_mle <- rbind(param_mle,
+                       c("param" = NO_param, "total" = length(new_train_x), "effect_mean" = 0, "effect_var" = 0))
+  } else if (object@outlier_prediction == "Categorical-Dirichlet") {
+    param_mle <- do.call(rbind,  lapply(ol_type, function(i) {
+      target_ol_info <- tso_model$outlier[tso_model$outlier$type == i,]
+      count <- nrow(target_ol_info)
+
+      if (is.na(object@outlier_prediction_prior)) {
+        outlier_prediction_prior <- 2
+      } else {
+        outlier_prediction_prior <- object@outlier_prediction_prior[which(i == c(ol_type, "NO"))]
+      }
+      if (object@outlier_prediction_update_param & length(trained_model) > 0) {
+        outlier_prediction_prior <- ifelse(
+          is.null(trained_model[[1]]$param_mle),
+          outlier_prediction_prior,
+          trained_model[[1]]$param_mle$outlier_prediction_prior[which(i == c(ol_type, "NO"))] + count
+        )
+      }
+      effect_mean <- ifelse(length(target_ol_info$coefhat) == 0, 0, mean(target_ol_info$coefhat))
+      effect_var <- ifelse(length(target_ol_info$coefhat) == 0 | length(target_ol_info$coefhat) == 1, 0, stats::var(target_ol_info$coefhat))
+      data.frame("count" = count, "outlier_prediction_prior" = outlier_prediction_prior, "effect_mean" = effect_mean, "effect_var" = effect_var)
+    }))
+    NO_count <- length(new_train_x) - sum(param_mle$count)
+    if (is.na(object@outlier_prediction_prior)) {
+      NO_outlier_prediction_prior <- 58
+    } else {
+      NO_outlier_prediction_prior <- object@outlier_prediction_prior[length(c(ol_type, "NO"))]
+    }
+    if (object@outlier_prediction_update_param & length(trained_model) > 0) {
+      NO_outlier_prediction_prior <- ifelse(
+        is.null(trained_model[[1]]$param_mle),
+        NO_outlier_prediction_prior,
+        trained_model[[1]]$param_mle$outlier_prediction_prior[length(c(ol_type, "NO"))]
+      ) + NO_count
+    }
+    param_mle <- rbind(param_mle,
+                       c("count" = NO_count, "outlier_prediction_prior" = NO_outlier_prediction_prior, "effect_mean" = 0, "effect_var" = 0))
+  } else {
+    param_mle <- NULL
+  }
+  return(param_mle)
+}
+
+#' Find and Adjust the Newly Observed Data in Tesing Set
+#'
+#' @param object A arima_sim object.
+#' @param trained_result A tso object.
+#' @param new_x A time series of new observations.
+#' @param res A time series of residuals up to current time.
+#' @return A time series of new observations with outlier effect adjusted.
+#' @keywords internal
+find_and_remove_outliers_testing_set <- function(object, trained_result, new_x, res) {
+  if (is.na(object@outlier_cval)) {
+    cval <- ifelse(length(res) <= 50, 3, ifelse(length(res) >= 450, 4, 3 + 0.0025 * (length(res) - 50)))
+  } else {
+    cval <- object@outlier_cval
+  }
+
+  if (object@outlier_type == "All") {
+    ol_type <- c("AO", "IO", "TC")
+  } else {
+    ol_type <- object@outlier_type
+  }
+
+  # Find outliers from past residuals and remove their effect.
+  pars <- tsoutliers::coefs2poly(trained_result)
+  ol <- tsoutliers::locate.outliers.iloop(resid = res, pars = pars, cval = cval, types = ol_type, maxit = 20)
+
+  if (nrow(ol) > 0) {
+    non_ol <- tsoutliers::find.consecutive.outliers(ol, object@outlier_type)
+    non_ol <- c(non_ol, which(ol$ind <= length(trained_result$residuals)))
+    non_ol <- unique(non_ol)
+    if (length(non_ol) > 0) {
+      ol <- ol[-non_ol,]
+    }
+    if (nrow(ol) > 0) {
+      new_x[ol$ind - length(trained_result$residuals)] <- new_x[ol$ind - length(trained_result$residuals)] - ol$coefhat
+    }
+  }
+  return(new_x)
+}
+
+
+#' Do Prediction Considering Outlier Occurrence Probability and Effect
+#'
+#' @param object A arima_sim object.
+#' @param trained_result A tso object.
+#' @param pi_up A dataframe containing predictions upper bound using normal distribution without considering outlier effect.
+#' @param expected A dataframe containing predictions upper bound using normal distribution without considering outlier effect.
+#' @param level A numeric vector representing the level of prediction interval.
+#' @return A list containing computed prediction upper bound, expected value and predicted parameters.
+#' @keywords internal
+prediction_including_outlier_effect <- function(object, trained_result, pi_up, expected, level) {
+  if (object@outlier_type == "All") {
+    ol_type <- c("AO", "IO", "TC")
+  } else {
+    ol_type <- object@outlier_type
+  }
+
+  ol_occurence <- list()
+  if (object@outlier_prediction == "Categorical") {
+    ## Probability of occurences
+    for (i in 1:(nrow(trained_result$param_mle) - 1)) {
+      ol_occurence[[ol_type[i]]] <- trained_result$param_mle[i, "param"]
+    }
+    ol_occurence[["NO"]] <- trained_result$param_mle[nrow(trained_result$param_mle), "param"]
+    ol_occurence <- data.frame(ol_occurence)
+    ol_occurence <- do.call(rbind, replicate(object@extrap_step, ol_occurence, simplify = FALSE))
+  } else if (object@outlier_prediction == "Categorical-Dirichlet") {
+    ## Probability of occurences
+    if (object@extrap_step > 1) {
+      stop("Multiple extrapolation step for Categorical-Dirichlet is not implemented.")
+    }
+    for (i in 1:(nrow(trained_result$param_mle) - 1)) {
+      ol_occurence[[ol_type[i]]] <- (trained_result$param_mle$count[i] + trained_result$param_mle$outlier_prediction_prior[i]) / sum(trained_result$param_mle$count, trained_result$param_mle$outlier_prediction_prior)
+    }
+    ol_occurence[["NO"]] <- (trained_result$param_mle$count[nrow(trained_result$param_mle)] + trained_result$param_mle$outlier_prediction_prior[nrow(trained_result$param_mle)]) / sum(trained_result$param_mle$count, trained_result$param_mle$outlier_prediction_prior)
+    ol_occurence <- data.frame(ol_occurence)
+  }
+
+  predict_var <- ((pi_up[,1] - expected[,1]) / stats::qnorm(level[1] / 100))^2
+
+  mu <- setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
+    expected[h,1] + trained_result$param_mle$effect_mean
+  }))), paste0("mu_", ol_type))
+  sd <- setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
+    sqrt(predict_var[h] + trained_result$param_mle$effect_var)
+  }))), paste0("sd_", ol_type))
+  pro <- setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
+    ol_occurence[h,]
+  }))), paste0("pro_", ol_type))
+  predicted_params <- cbind(mu, sd, pro)
+
+  pi_up <- setNames(as.data.frame(do.call(cbind, lapply(level, function(i) {
+    sapply(1:object@extrap_step, function(h) {
+      suppressWarnings(KScorrect::qmixnorm(i / 100,
+                                           mean = predicted_params[h, grep("mu_*", colnames(predicted_params), value = TRUE)],
+                                           sd = predicted_params[h, grep("sd_*", colnames(predicted_params), value = TRUE)],
+                                           pro = predicted_params[h, grep("pro_*", colnames(predicted_params), value = TRUE)]))
+    })
+  }))), object@cut_off_prob)
+  expected <- setNames(as.data.frame(sapply(1:object@extrap_step, function(h) {
+    expected[h] + sum(trained_result$param_mle$effect_mean * ol_occurence[h,])
+  })), "expected")
+
+  return(list("pi_up" = pi_up, "expected" = expected, "predicted_params" = predicted_params))
+}
+
+
+#' Estimate Parameters of Skew Normal Distribution Using MOM
+#'
+#' @param res A numeric vector of residuals of fitted model.
+#' @return A list containing the xi, omega and alpha.
+#' @keywords internal
+skew_norm_param_estimation <- function(res) {
+  skew_res <- sample_moment_lag(res, k = 0, r = 3, s = 0) / (sample_moment_lag(res, k = 0, r = 2, s = 0) ^ (3/2))
+  abs_skew_res <- min(abs(skew_res), 0.99)
+
+  # alpha
+  delta <- sign(skew_res) * sqrt((pi / 2) * (abs_skew_res^(2/3)) / ((abs_skew_res ^ (2/3)) + (2 - 0.5 * pi) ^ (2/3)))
+  alpha <- delta / sqrt(1 - delta ^ 2)
+
+  # omega
+  omega2 <- sample_moment_lag(res, k = 0, r = 2, s = 0) / (1 - 2 / pi * delta ^ (2))
+  omega <- sqrt(omega2)
+
+  # xi
+  xi <- 0 - sqrt(pi / 2) * omega * delta
+
+  return(list("xi" = xi, "omega" = omega, "alpha" = alpha))
+}
+
+#' @describeIn train_model Train ARMA Model specific to arima_sim object.
+setMethod("train_model",
+          signature(object = "arima_sim", train_x = "matrix", train_xreg = "NULL", trained_model = "list"),
+          function(object, train_x, train_xreg, trained_model) {
+            new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
+
+            args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
+            for (i in names(object@train_args)) {
+              args.tsmethod[[i]] <- object@train_args[[i]]
+            }
+
+            if (object@outlier_type == "None") {
+              trained_result <- do.call(forecast::Arima, c(list("y" = new_train_x), args.tsmethod))
+              trained_result$call$x <- new_train_x
+            } else {
+              if (is.na(object@outlier_cval)) {
+                cval <- ifelse(length(new_train_x) <= 50, 3, ifelse(length(new_train_x) >= 450, 4, 3 + 0.0025 * (length(new_train_x) - 50)))
+              } else {
+                cval <- object@outlier_cval
+              }
+
+              if (object@outlier_type == "All") {
+                ol_type <- c("AO", "IO", "TC")
+              } else {
+                ol_type <- object@outlier_type
+              }
+
+              trained_result <- tryCatch({
+                tso_model <- tsoutliers::tso(y = new_train_x, types = ol_type, cval = cval, maxit = 2, tsmethod = "arima", args.tsmethod = args.tsmethod, maxit.oloop = 12, maxit.iloop = 6)
+                param_mle <- estimate_outliers(object, ol_type, new_train_x, tso_model, trained_model)
+                c(tso_model$fit, list("param_mle" = param_mle))
+              }, error = function(e) {
+                ts_model <- do.call(forecast::Arima, c(list("y" = new_train_x), args.tsmethod))
+                ts_model$call$x <- new_train_x
+                ts_model
+              })
+            }
+
+            if (object@res_dist == "skew_norm") {
+              trained_result <- c(trained_result, skew_norm_param_estimation(trained_result$residuals))
+            }
+            return(list(trained_result))
+          })
+
+
+#' @describeIn do_prediction Do prediction based on trained AR1 Model.
+setMethod("do_prediction",
+          signature(object = "arima_sim", trained_result = "list", predict_info = "data.frame", test_x = "matrix", test_xreg = "NULL"),
+          function(object, trained_result, predict_info, test_x, test_xreg) {
+            trained_result <- trained_result[[1]]
+            level <- (1 - object@cut_off_prob * 2) * 100
+
+            if (object@res_dist == "empirical") {
+              bootstrap <- TRUE
+            } else {
+              bootstrap <- FALSE
+            }
+
+            if (nrow(predict_info) == 0) {
+              if (is.null(trained_result$call$xreg)) {
+                target_model <- forecast::Arima(y = trained_result$call$x, model = trained_result)
+              } else {
+                target_model <- forecast::Arima(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
+              }
+            } else {
+              new_x <- c(trained_result$call$x, predict_info$actual[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))])
+              res <- stats::ts(c(trained_result$residuals, predict_info$residuals[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]))
+
+              if (object@outlier_type != "None") {
+                new_x <- find_and_remove_outliers_testing_set(object, trained_result, new_x, res)
+              }
+
+              prev_xreg <- trained_result$call$xreg
+              if (is.null(prev_xreg)) {
+                # Outliers are not found.
+                target_model <- forecast::Arima(new_x, model = trained_result)
+              } else {
+                # Outliers are considered and found
+                new_xreg <- matrix(0, nrow = length(new_x) - length(trained_result$call$x), ncol = ncol(prev_xreg))
+                colnames(new_xreg) <- colnames(prev_xreg)
+                new_xreg <- rbind(prev_xreg, new_xreg)
+                target_model <- forecast::Arima(new_x, xreg = new_xreg, model = trained_result)
+              }
+            }
+
+            if (is.null(trained_result$call$xreg)) {
+              # Outliers are not considered or outliers are not found
+              predict_result <- forecast::forecast(target_model, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
+            } else {
+              dxreg <- matrix(0, nrow = object@extrap_step, ncol = ncol(trained_result$call$xreg))
+              colnames(dxreg) <- colnames(trained_result$call$xreg)
+              predict_result <- forecast::forecast(target_model, xreg = dxreg, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
+            }
+
+            expected <- setNames(as.data.frame(predict_result$mean), "expected")
+            pi_up <- setNames(as.data.frame(predict_result$upper), object@cut_off_prob)
+            predicted_params <- data.frame("mu" = predict_result$mean, "sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(level[1] / 100))
+
+            if (object@res_dist == "skew_norm") {
+              xi <- trained_result$xi + as.numeric(predict_result$mean)
+              omega <- trained_result$omega
+              alpha <- trained_result$alpha
+
+              expected <- setNames(as.data.frame(xi + sqrt(2 / pi) * omega * (alpha / sqrt(1 + alpha ^ 2))), "expected")
+              pi_up <- setNames(as.data.frame(do.call(cbind, lapply(level, function(i) {
+                max(sn::qsn(i / 100, xi = xi, omega = omega, alpha = alpha))
+              }))), object@cut_off_prob)
+              predicted_params <- data.frame("xi" = xi, "omega" = omega, "alpha" = alpha)
+            }
+
+            if (object@res_dist == "normal" & object@outlier_type != "None" & object@outlier_prediction != "None" & !is.null(trained_result$param_mle)) {
+              outlier_prediction_result <- prediction_including_outlier_effect(object, trained_result, pi_up, expected, level)
+
+              expected <- outlier_prediction_result$expected
+              pi_up <- outlier_prediction_result$pi_up
+              predicted_params <- outlier_prediction_result$predicted_params
+            }
+
+            return(cbind(expected, pi_up, predicted_params))
+          })
+
+
 #' @describeIn train_model Train ARMA Model specific to arima_sim object.
 setMethod("train_model",
           signature(object = "arima_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
             new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
-
-            if (length(train_xreg) == 0) {
-              new_train_xreg <- NULL
-            } else {
-              new_train_xreg <- as.matrix(convert_frequency_dataset(train_xreg, object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = TRUE))
-              colnames(new_train_xreg) <- "xreg"
-            }
-
-            if (is.na(object@outlier_cval)) {
-              cval <- ifelse(length(new_train_x) <= 50, 3, ifelse(length(new_train_x) >= 450, 4, 3 + 0.0025 * (length(new_train_x) - 50)))
-            } else {
-              cval <- object@outlier_cval
-            }
+            new_train_xreg <- as.matrix(convert_frequency_dataset(train_xreg, object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = TRUE))
+            colnames(new_train_xreg) <- "xreg"
 
             args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
             for (i in names(object@train_args)) {
@@ -95,13 +413,15 @@ setMethod("train_model",
 
             if (object@outlier_type == "None") {
               trained_result <- do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
-              if (length(new_train_xreg) != 0) {
-                trained_result$call$xreg <- new_train_xreg
-              } else {
-                trained_result$call$xreg <- NULL
-              }
               trained_result$call$x <- new_train_x
+              trained_result$call$xreg <- new_train_xreg
             } else {
+              if (is.na(object@outlier_cval)) {
+                cval <- ifelse(length(new_train_x) <= 50, 3, ifelse(length(new_train_x) >= 450, 4, 3 + 0.0025 * (length(new_train_x) - 50)))
+              } else {
+                cval <- object@outlier_cval
+              }
+
               if (object@outlier_type == "All") {
                 ol_type <- c("AO", "IO", "TC")
               } else {
@@ -110,102 +430,18 @@ setMethod("train_model",
 
               trained_result <- tryCatch({
                 tso_model <- tsoutliers::tso(y = new_train_x, xreg = new_train_xreg, types = ol_type, cval = cval, maxit = 2, tsmethod = "arima", args.tsmethod = args.tsmethod, maxit.oloop = 12, maxit.iloop = 6)
-                if (object@outlier_prediction == "Categorical") {
-                  param_mle <- do.call(rbind,  lapply(ol_type, function(i) {
-                    target_ol_info <- tso_model$outlier[tso_model$outlier$type == i,]
-                    param <- nrow(target_ol_info) / length(new_train_x)
-                    total <- length(new_train_x)
-                    if (object@outlier_prediction_update_param & length(trained_model) > 0) {
-                      param <- stats::weighted.mean(
-                        x = c(param, ifelse(is.null(trained_model[[1]]$param_mle),
-                                            0,
-                                            trained_model[[1]]$param_mle$param[which(i == ol_type)])),
-                        w = c(length(new_train_x), ifelse(is.null(trained_model[[1]]$param_mle),
-                                                          0,
-                                                          trained_model[[1]]$param_mle$total[which(i == ol_type)])),
-                        na.rm = TRUE
-                      )
-                      total <- length(new_train_x) + ifelse(is.null(trained_model[[1]]$param_mle),
-                                                            0,
-                                                            trained_model[[1]]$param_mle$total[which(i == c(ol_type, "NO"))])
-                    }
-                    effect_mean <- ifelse(length(target_ol_info$coefhat) == 0, 0, mean(target_ol_info$coefhat))
-                    effect_var <- ifelse(length(target_ol_info$coefhat) == 0 | length(target_ol_info$coefhat) == 1, 0, stats::var(target_ol_info$coefhat))
-                    data.frame("param" = param, "total" = total, "effect_mean" = effect_mean, "effect_var" = effect_var)
-                  }))
-                  NO_param <- 1 - sum(param_mle$param)
-                  param_mle <- rbind(param_mle,
-                                     c("param" = NO_param, "total" = length(new_train_x), "effect_mean" = 0, "effect_var" = 0))
-                } else if (object@outlier_prediction == "Categorical-Dirichlet") {
-                  param_mle <- do.call(rbind,  lapply(ol_type, function(i) {
-                    target_ol_info <- tso_model$outlier[tso_model$outlier$type == i,]
-                    count <- nrow(target_ol_info)
-
-                    if (is.na(object@outlier_prediction_prior)) {
-                      outlier_prediction_prior <- 2
-                    } else {
-                      outlier_prediction_prior <- object@outlier_prediction_prior[which(i == c(ol_type, "NO"))]
-                    }
-                    if (object@outlier_prediction_update_param & length(trained_model) > 0) {
-                      outlier_prediction_prior <- ifelse(
-                        is.null(trained_model[[1]]$param_mle),
-                        outlier_prediction_prior,
-                        trained_model[[1]]$param_mle$outlier_prediction_prior[which(i == c(ol_type, "NO"))] + count
-                      )
-                    }
-                    effect_mean <- ifelse(length(target_ol_info$coefhat) == 0, 0, mean(target_ol_info$coefhat))
-                    effect_var <- ifelse(length(target_ol_info$coefhat) == 0 | length(target_ol_info$coefhat) == 1, 0, stats::var(target_ol_info$coefhat))
-                    data.frame("count" = count, "outlier_prediction_prior" = outlier_prediction_prior, "effect_mean" = effect_mean, "effect_var" = effect_var)
-                  }))
-                  NO_count <- length(new_train_x) - sum(param_mle$count)
-                  if (is.na(object@outlier_prediction_prior)) {
-                    NO_outlier_prediction_prior <- 58
-                  } else {
-                    NO_outlier_prediction_prior <- object@outlier_prediction_prior[length(c(ol_type, "NO"))]
-                  }
-                  if (object@outlier_prediction_update_param & length(trained_model) > 0) {
-                    NO_outlier_prediction_prior <- ifelse(
-                      is.null(trained_model[[1]]$param_mle),
-                      NO_outlier_prediction_prior,
-                      trained_model[[1]]$param_mle$outlier_prediction_prior[length(c(ol_type, "NO"))]
-                    ) + NO_count
-                  }
-                  param_mle <- rbind(param_mle,
-                                     c("count" = NO_count, "outlier_prediction_prior" = NO_outlier_prediction_prior, "effect_mean" = 0, "effect_var" = 0))
-                } else {
-                  param_mle <- NULL
-                }
-
+                param_mle <- estimate_outliers(object, ol_type, new_train_x, tso_model, trained_model)
                 c(tso_model$fit, list("param_mle" = param_mle))
               }, error = function(e) {
                 ts_model <- do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
-                if (length(new_train_xreg) != 0) {
-                  ts_model$call$xreg <- new_train_xreg
-                } else {
-                  ts_model$call$xreg <- NULL
-                }
                 ts_model$call$x <- new_train_x
+                ts_model$call$xreg <- new_train_xreg
                 ts_model
               })
             }
 
             if (object@res_dist == "skew_norm") {
-              res <- trained_result$residuals
-              skew_res <- sample_moment_lag(res, k = 0, r = 3, s = 0) / (sample_moment_lag(res, k = 0, r = 2, s = 0) ^ (3/2))
-              abs_skew_res <- min(abs(skew_res), 0.99)
-
-              # alpha
-              delta <- sign(skew_res) * sqrt((pi / 2) * (abs_skew_res^(2/3)) / ((abs_skew_res ^ (2/3)) + (2 - 0.5 * pi) ^ (2/3)))
-              alpha <- delta / sqrt(1 - delta ^ 2)
-
-              # omega
-              omega2 <- sample_moment_lag(res, k = 0, r = 2, s = 0) / (1 - 2 / pi * delta ^ (2))
-              omega <- sqrt(omega2)
-
-              # xi
-              xi <- 0 - sqrt(pi / 2) * omega * delta
-
-              trained_result <- c(trained_result, list("xi" = xi, "omega" = omega, "alpha" = alpha))
+              trained_result <- c(trained_result, skew_norm_param_estimation(trained_result$residuals))
             }
             return(list(trained_result))
           })
@@ -224,143 +460,179 @@ setMethod("do_prediction",
               bootstrap <- FALSE
             }
 
-            if (object@outlier_type == "All") {
-              ol_type <- c("AO", "IO", "TC")
+            if (nrow(predict_info) == 0) {
+              target_model <- forecast::Arima(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
             } else {
-              ol_type <- object@outlier_type
-            }
-
-            if (nrow(predict_info) == object@extrap_step) {
-              if (is.null(trained_result$call$xreg)) {
-                target_model <- forecast::Arima(y = trained_result$call$x, model = trained_result)
-              } else {
-                target_model <- forecast::Arima(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
-              }
-            } else {
-              prev_x <- trained_result$call$x
-              new_x <- predict_info$actual[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
-              new_x <- c(prev_x, new_x)
-
+              new_x <- c(trained_result$call$x, predict_info$actual[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))])
               res <- stats::ts(c(trained_result$residuals, predict_info$residuals[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]))
 
-              if (is.na(object@outlier_cval)) {
-                cval <- ifelse(length(res) <= 50, 3, ifelse(length(res) >= 450, 4, 3 + 0.0025 * (length(res) - 50)))
-              } else {
-                cval <- object@outlier_cval
-              }
-
               if (object@outlier_type != "None") {
-                # Find outliers from past residuals and remove their effect.
-                pars <- tsoutliers::coefs2poly(trained_result)
-                ol <- tsoutliers::locate.outliers.iloop(resid = res, pars = pars, cval = cval, types = ol_type, maxit = 20)
-
-                if (nrow(ol) > 0) {
-                  non_ol <- tsoutliers::find.consecutive.outliers(ol, object@outlier_type)
-                  non_ol <- c(non_ol, which(ol$ind <= length(trained_result$residuals)))
-                  non_ol <- unique(non_ol)
-                  if (length(non_ol) > 0) {
-                    ol <- ol[-non_ol,]
-                  }
-                  if (nrow(ol) > 0) {
-                    new_x[ol$ind - length(trained_result$residuals)] <- new_x[ol$ind - length(trained_result$residuals)] - ol$coefhat
-                  }
-                }
+                new_x <- find_and_remove_outliers_testing_set(object, trained_result, new_x, res)
               }
 
               prev_xreg <- trained_result$call$xreg
-              if (is.null(prev_xreg)) {
-                # Outliers are not considered or outliers are not found, and no external regressor is considered.
-                target_model <- forecast::Arima(new_x, model = trained_result)
-              } else {
-                # Outliers are considered and found, or external regressor is considered.
-                if (length(test_xreg) == 0) {
-                  # No external regressor is considered.
-                  new_xreg <- matrix(nrow = length(new_x) - length(prev_x), ncol = 0)
-                } else {
-                  # External regressor is considered.
-                  new_xreg <- as.matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
-                }
-                if (ncol(new_xreg) < ncol(prev_xreg)) {
-                  # Outliers are considered and found.
-                  new_ol <- matrix(0, nrow = nrow(new_xreg), ncol = ncol(prev_xreg) - ncol(new_xreg))
-                  new_xreg <- cbind(new_xreg, new_ol)
-                }
-                colnames(new_xreg) <- colnames(prev_xreg)
-                new_xreg <- rbind(prev_xreg, new_xreg)
-                target_model <- forecast::Arima(new_x, xreg = new_xreg, model = trained_result)
+              new_xreg <- as.matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
+              if (ncol(new_xreg) < ncol(prev_xreg)) {
+                # Outliers are considered and found.
+                new_ol <- matrix(0, nrow = nrow(new_xreg), ncol = ncol(prev_xreg) - ncol(new_xreg))
+                new_xreg <- cbind(new_xreg, new_ol)
               }
+              colnames(new_xreg) <- colnames(prev_xreg)
+              new_xreg <- rbind(prev_xreg, new_xreg)
+              target_model <- forecast::Arima(new_x, xreg = new_xreg, model = trained_result)
             }
 
-            if (is.null(trained_result$call$xreg)) {
-              # Outliers are not considered or outliers are not found, and no external regressor is considered.
-              predict_result <- forecast::forecast(target_model, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
-            } else {
-              if (length(test_xreg) == 0) {
-                # No external regressor is considered.
-                dxreg <- matrix(0, nrow = object@extrap_step, ncol = ncol(trained_result$call$xreg))
-              } else {
-                # External regressor is considered.
-                dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
-                if (ncol(dxreg) < ncol(trained_result$call$xreg)) {
-                  dxreg <- cbind(dxreg, matrix(0, nrow = object@extrap_step, ncol = (ncol(trained_result$call$xreg) - ncol(test_xreg))))
-                }
-              }
-              colnames(dxreg) <- colnames(trained_result$call$xreg)
-              predict_result <- forecast::forecast(target_model, xreg = dxreg, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
+            dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
+            if (ncol(dxreg) < ncol(trained_result$call$xreg)) {
+              dxreg <- cbind(dxreg, matrix(0, nrow = object@extrap_step, ncol = (ncol(trained_result$call$xreg) - ncol(test_xreg))))
             }
+            colnames(dxreg) <- colnames(trained_result$call$xreg)
+            predict_result <- forecast::forecast(target_model, xreg = dxreg, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
 
-            expected <- as.numeric(predict_result$mean)
-            pi_up <- as.numeric(predict_result$upper)
+            expected <- setNames(as.data.frame(predict_result$mean), "expected")
+            pi_up <- setNames(as.data.frame(predict_result$upper), object@cut_off_prob)
+            predicted_params <- data.frame("mu" = predict_result$mean, "sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(level[1] / 100))
 
             if (object@res_dist == "skew_norm") {
               xi <- trained_result$xi + as.numeric(predict_result$mean)
               omega <- trained_result$omega
               alpha <- trained_result$alpha
 
-              expected <- xi + sqrt(2 / pi) * omega * (alpha / sqrt(1 + alpha ^ 2))
-              pi_up <- max(sn::qsn(level / 100, xi = xi, omega = omega, alpha = alpha))
-
-              predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "pi_up"] <- pi_up
-              predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "expected"] <- expected
-            } else {
-              if (object@res_dist == "normal" & object@outlier_type != "None" & object@outlier_prediction != "None" & !is.null(trained_result$param_mle)) {
-                ol_occurence <- list()
-                if (object@outlier_prediction == "Categorical") {
-                  ## Probability of occurences
-                  for (i in 1:(nrow(trained_result$param_mle) - 1)) {
-                    ol_occurence[[ol_type[i]]] <- trained_result$param_mle[i, "param"]
-                  }
-                  ol_occurence[["NO"]] <- trained_result$param_mle[nrow(trained_result$param_mle), "param"]
-                  ol_occurence <- data.frame(ol_occurence)
-                  ol_occurence <- do.call(rbind, replicate(object@extrap_step, ol_occurence, simplify = FALSE))
-                } else if (object@outlier_prediction == "Categorical-Dirichlet") {
-                  ## Probability of occurences
-                  if (object@extrap_step > 1) {
-                    stop("Multiple extrapolation step for Categorical-Dirichlet is not implemented.")
-                  }
-                  for (i in 1:(nrow(trained_result$param_mle) - 1)) {
-                    ol_occurence[[ol_type[i]]] <- (trained_result$param_mle$count[i] + trained_result$param_mle$outlier_prediction_prior[i]) / sum(trained_result$param_mle$count, trained_result$param_mle$outlier_prediction_prior)
-                  }
-                  ol_occurence[["NO"]] <- (trained_result$param_mle$count[nrow(trained_result$param_mle)] + trained_result$param_mle$outlier_prediction_prior[nrow(trained_result$param_mle)]) / sum(trained_result$param_mle$count, trained_result$param_mle$outlier_prediction_prior)
-                  ol_occurence <- data.frame(ol_occurence)
-                }
-
-                predict_var <- ((pi_up - expected) / stats::qnorm(level / 100))^2
-                pi_up <- sapply(1:object@extrap_step, function(h) {
-                  suppressWarnings(KScorrect::qmixnorm(level / 100,
-                                                       mean = expected[h] + trained_result$param_mle$effect_mean,
-                                                       sd = sqrt(predict_var[h] + trained_result$param_mle$effect_var),
-                                                       pro = ol_occurence[h,]))
-                })
-                expected <- sapply(1:object@extrap_step, function(h) {
-                  expected[h] + sum(trained_result$param_mle$effect_mean * ol_occurence[h,])
-                })
-              }
+              expected <- setNames(as.data.frame(xi + sqrt(2 / pi) * omega * (alpha / sqrt(1 + alpha ^ 2))), "expected")
+              pi_up <- setNames(as.data.frame(do.call(cbind, lapply(level, function(i) {
+                max(sn::qsn(i / 100, xi = xi, omega = omega, alpha = alpha))
+              }))), object@cut_off_prob)
+              predicted_params <- data.frame("xi" = xi, "omega" = omega, "alpha" = alpha)
             }
 
-            predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "pi_up"] <- pi_up
-            predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "expected"] <- expected
-            return(predict_info)
+            if (object@res_dist == "normal" & object@outlier_type != "None" & object@outlier_prediction != "None" & !is.null(trained_result$param_mle)) {
+              outlier_prediction_result <- prediction_including_outlier_effect(object, trained_result, pi_up, expected, level)
+
+              expected <- outlier_prediction_result$expected
+              pi_up <- outlier_prediction_result$pi_up
+              predicted_params <- outlier_prediction_result$predicted_params
+            }
+
+            return(cbind(expected, pi_up, predicted_params))
+          })
+
+
+#' @describeIn train_model Train ARMA Model specific to arima_sim object.
+setMethod("train_model",
+          signature(object = "arima_sim", train_x = "matrix", train_xreg = "list", trained_model = "list"),
+          function(object, train_x, train_xreg, trained_model) {
+            new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
+            new_train_xreg <- as.matrix(convert_frequency_dataset(train_xreg, object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = TRUE))
+            colnames(new_train_xreg) <- "xreg"
+
+            args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
+            for (i in names(object@train_args)) {
+              args.tsmethod[[i]] <- object@train_args[[i]]
+            }
+
+            if (object@outlier_type == "None") {
+              trained_result <- do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
+              trained_result$call$x <- new_train_x
+              trained_result$call$xreg <- new_train_xreg
+            } else {
+              if (is.na(object@outlier_cval)) {
+                cval <- ifelse(length(new_train_x) <= 50, 3, ifelse(length(new_train_x) >= 450, 4, 3 + 0.0025 * (length(new_train_x) - 50)))
+              } else {
+                cval <- object@outlier_cval
+              }
+
+              if (object@outlier_type == "All") {
+                ol_type <- c("AO", "IO", "TC")
+              } else {
+                ol_type <- object@outlier_type
+              }
+
+              trained_result <- tryCatch({
+                tso_model <- tsoutliers::tso(y = new_train_x, xreg = new_train_xreg, types = ol_type, cval = cval, maxit = 2, tsmethod = "arima", args.tsmethod = args.tsmethod, maxit.oloop = 12, maxit.iloop = 6)
+                param_mle <- estimate_outliers(object, ol_type, new_train_x, tso_model, trained_model)
+                c(tso_model$fit, list("param_mle" = param_mle))
+              }, error = function(e) {
+                ts_model <- do.call(forecast::Arima, c(list("y" = new_train_x, "xreg" = new_train_xreg), args.tsmethod))
+                ts_model$call$x <- new_train_x
+                ts_model$call$xreg <- new_train_xreg
+                ts_model
+              })
+            }
+
+            if (object@res_dist == "skew_norm") {
+              trained_result <- c(trained_result, skew_norm_param_estimation(trained_result$residuals))
+            }
+            return(list(trained_result))
+          })
+
+
+#' @describeIn do_prediction Do prediction based on trained AR1 Model.
+setMethod("do_prediction",
+          signature(object = "arima_sim", trained_result = "list", predict_info = "data.frame", test_x = "matrix", test_xreg = "list"),
+          function(object, trained_result, predict_info, test_x, test_xreg) {
+            trained_result <- trained_result[[1]]
+            level <- (1 - object@cut_off_prob * 2) * 100
+
+            if (object@res_dist == "empirical") {
+              bootstrap <- TRUE
+            } else {
+              bootstrap <- FALSE
+            }
+
+            if (nrow(predict_info) == 0) {
+              target_model <- forecast::Arima(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
+            } else {
+              new_x <- c(trained_result$call$x, predict_info$actual[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))])
+              res <- stats::ts(c(trained_result$residuals, predict_info$residuals[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]))
+
+              if (object@outlier_type != "None") {
+                new_x <- find_and_remove_outliers_testing_set(object, trained_result, new_x, res)
+              }
+
+              prev_xreg <- trained_result$call$xreg
+              new_xreg <- as.matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
+              if (ncol(new_xreg) < ncol(prev_xreg)) {
+                # Outliers are considered and found.
+                new_ol <- matrix(0, nrow = nrow(new_xreg), ncol = ncol(prev_xreg) - ncol(new_xreg))
+                new_xreg <- cbind(new_xreg, new_ol)
+              }
+              colnames(new_xreg) <- colnames(prev_xreg)
+              new_xreg <- rbind(prev_xreg, new_xreg)
+              target_model <- forecast::Arima(new_x, xreg = new_xreg, model = trained_result)
+            }
+
+            dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
+            if (ncol(dxreg) < ncol(trained_result$call$xreg)) {
+              dxreg <- cbind(dxreg, matrix(0, nrow = object@extrap_step, ncol = (ncol(trained_result$call$xreg) - ncol(test_xreg))))
+            }
+            colnames(dxreg) <- colnames(trained_result$call$xreg)
+            predict_result <- forecast::forecast(target_model, xreg = dxreg, h = object@extrap_step, bootstrap = bootstrap, npaths = length(trained_result$call$x), level = level)
+
+            expected <- setNames(as.data.frame(predict_result$mean), "expected")
+            pi_up <- setNames(as.data.frame(predict_result$upper), object@cut_off_prob)
+            predicted_params <- data.frame("mu" = predict_result$mean, "sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(level[1] / 100))
+
+            if (object@res_dist == "skew_norm") {
+              xi <- trained_result$xi + as.numeric(predict_result$mean)
+              omega <- trained_result$omega
+              alpha <- trained_result$alpha
+
+              expected <- setNames(as.data.frame(xi + sqrt(2 / pi) * omega * (alpha / sqrt(1 + alpha ^ 2))), "expected")
+              pi_up <- setNames(as.data.frame(do.call(cbind, lapply(level, function(i) {
+                max(sn::qsn(i / 100, xi = xi, omega = omega, alpha = alpha))
+              }))), object@cut_off_prob)
+              predicted_params <- data.frame("xi" = xi, "omega" = omega, "alpha" = alpha)
+            }
+
+            if (object@res_dist == "normal" & object@outlier_type != "None" & object@outlier_prediction != "None" & !is.null(trained_result$param_mle)) {
+              outlier_prediction_result <- prediction_including_outlier_effect(object, trained_result, pi_up, expected, level)
+
+              expected <- outlier_prediction_result$expected
+              pi_up <- outlier_prediction_result$pi_up
+              predicted_params <- outlier_prediction_result$predicted_params
+            }
+
+            return(cbind(expected, pi_up, predicted_params))
           })
 
 

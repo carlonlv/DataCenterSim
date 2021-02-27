@@ -42,7 +42,7 @@ sample_moment_lag <- function(dataset, k, r, s) {
 #' @param keep.names If this argument is \code{TRUE}, then if \code{dataset} has names representing the time stamp of each observation, then the output vector also keep names as aggretated time stamp of each observation.
 #' @param right.aligned If this argument is \code{TRUE}, then the converted frequency will be aligned from the right side instead of the left side.
 #' @return The vector of smaller size than input vector if \code{new_freq} is greater than 1.
-#' @keywords internal
+#' @export
 convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = TRUE, right.aligned = TRUE) {
   new_dataset <- c()
   new_names <- c()
@@ -89,9 +89,11 @@ convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = 
 #' @param dataset A vector of numeric value.
 #' @param new_freq An integer value.
 #' @param response If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.
+#' @param keep.names If this argument is \code{TRUE}, then if \code{dataset} has names representing the time stamp of each observation, then the output vector also keep names as aggretated time stamp of each observation.
+#' @param right.aligned If this argument is \code{TRUE}, then the converted frequency will be aligned from the right side instead of the left side.
 #' @param jump A numeric value representing the number of steps to jump after each windowing operations. Default value is \code{1}.
 #' @return The vector of same size of input vector.
-#' @keywords internal
+#' @export
 convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, keep.names = TRUE, right.aligned = TRUE, jump = 1) {
   new_dataset <- c()
   new_names <- c()
@@ -99,7 +101,12 @@ convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, k
 
   window_num <- floor((length(dataset) - max(new_freq, jump)) / jump) + 1
 
-  for (i in seq(to = length(dataset), by = jump, length.out = window_num)) {
+  if (right.aligned) {
+    indices <- seq(to = length(dataset), by = jump, length.out = window_num)
+  } else {
+    indices <- seq(from = 1, by = jump, length.out = window_num)
+  }
+  for (i in indices) {
     to <- i
     from <- i - new_freq + 1
 
@@ -134,29 +141,31 @@ convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, k
 #' @return A list containing update step and switch information.
 #' @keywords internal
 get_adjust_switch <- function(score1, react_counter, adjust_switch, react_speed) {
-  if (is.na(score1)) {
-    adjust_switch <- adjust_switch
-    react_counter <- react_counter
-  } else {
-    if (score1 > 0) {
-      if (!adjust_switch) {
-        react_counter <- 0
-      } else {
-        react_counter <- react_counter + 1
-        if (react_counter >= react_speed[2]) {
-          adjust_switch <- FALSE
-          react_counter <- 0
-        }
-      }
+  for (i in 1:length(score1)) {
+    if (is.na(score1[i])) {
+      adjust_switch[i] <- adjust_switch[i]
+      react_counter[i] <- react_counter[i]
     } else {
-      if (!adjust_switch) {
-        react_counter <- react_counter + 1
-        if (react_counter >= react_speed[1]) {
-          adjust_switch <- TRUE
-          react_counter <- 0
+      if (score1[i] > 0) {
+        if (!(adjust_switch[i])) {
+          react_counter[i] <- 0
+        } else {
+          react_counter[i] <- react_counter[i] + 1
+          if (react_counter[i] >= react_speed[2]) {
+            adjust_switch[i] <- FALSE
+            react_counter[i] <- 0
+          }
         }
       } else {
-        react_counter <- 0
+        if (!(adjust_switch[i])) {
+          react_counter[i] <- react_counter[i] + 1
+          if (react_counter[i] >= react_speed[1]) {
+            adjust_switch[i] <- TRUE
+            react_counter[i] <- 0
+          }
+        } else {
+          react_counter[i] <- 0
+        }
       }
     }
   }
@@ -167,16 +176,13 @@ get_adjust_switch <- function(score1, react_counter, adjust_switch, react_speed)
 #' Check Scores Of A Single Prediction.
 #'
 #' @description Check the score information of a prediction based on actual observations and predictions
-#' @param train_iter A numeric number representing the number of iteration of training step, used as identifier when evaluating training performance.
-#' @param test_iter A numeric number representing the number of iteration on testing step of the current training step.
-#' @param predict_iter A numeric number representing the number of iteration on prediction step of the current testing step.
 #' @param object An S4 sim object.
 #' @param predict_info The dataframe storing the prediction info
 #' @param actual_obs The actual observation corresponding to the predictions.
-#' @param adjust_switch A logical value representing the status of the adjust_switch.
+#' @param adjust_switch A logical vector representing the status of the adjust_switch.
 #' @return The updated prediction information dataframe with last row modified.
 #' @keywords internal
-check_score_pred <- function(train_iter, test_iter, predict_iter, object, predict_info, actual_obs, adjust_switch) {
+check_score_pred <- function(object, predict_info, actual_obs, adjust_switch) {
   check_residual <- function(expected, actual_obs) {
     return(ifelse(is.na(expected), NA_real_, actual_obs - expected))
   }
@@ -242,25 +248,31 @@ check_score_pred <- function(train_iter, test_iter, predict_iter, object, predic
   actual <- convert_frequency_dataset(actual_obs, object@window_size, object@response, keep.names = TRUE)
   time <- as.numeric(names(actual))
 
-  idx <- predict_info$train_iter == train_iter & predict_info$test_iter == test_iter & predict_info$predict_iter == predict_iter
-
-  pi_up <- predict_info[idx, "pi_up"]
-  expected <- predict_info[idx, "expected"]
-  score1 <- min(sapply(1:object@extrap_step, function(pred_step) {
-    check_score1(pi_up[pred_step], actual[pred_step], object@granularity)
-  }))
-  score2 <- mean(sapply(1:object@extrap_step, function(pred_step){
-    check_score2(pi_up[pred_step], actual[pred_step], object@granularity)
-  }))
+  pi_up <- predict_info[, grep("Quantile_*", colnames(predicted_params), value = TRUE)]
+  expected <- predict_info[, "expected"]
+  score1 <- sapply(1:ncol(pi_up), function(quan) {
+    min(sapply(1:object@extrap_step, function(pred_step) {
+      check_score1(pi_up[pred_step, quan], actual[pred_step], object@granularity)
+    }))
+  })
+  score2 <- sapply(1:ncol(pi_up), function(quan) {
+    mean(sapply(1:object@extrap_step, function(pred_step){
+      check_score2(pi_up[pred_step, quan], actual[pred_step], object@granularity)
+    }))
+  })
   res <- check_residual(expected, actual)
 
-  predict_info[idx, "time"] <- time
-  predict_info[idx, "actual"] <- actual
-  predict_info[idx, "residuals"] <- res
-  predict_info[idx, "adjustment"] <- adjust_switch
-  predict_info[idx, "score_pred_1"] <- score1
-  predict_info[idx, "score_pred_2"] <- score2
-  return(predict_info)
+  score_info <- cbind(matrix(rep(score1, each = object@extrap_step), nrow = object@extrap_step, ncol = length(object@cut_off_prob)),
+                      matrix(rep(score2, each = object@extrap_step), nrow = object@extrap_step, ncol = length(object@cut_off_prob)),
+                      matrix(rep(adjust_switch, each = object@extrap_step), nrow = object@extrap_step, ncol = length(object@cut_off_prob)))
+  colnames(score_info) <- c(paste0("score_pred_1_", 1 - object@cut_off_prob),
+                            paste0("score_pred_2_", 1 - object@cut_off_prob),
+                            paste0("adjustment_", 1 - object@cut_off_prob))
+  score_info <- as.data.frame(score_info)
+  score_info[, "time"] <- time
+  score_info[, "actual"] <- actual
+  score_info[, "residuals"] <- res
+  return(score_info)
 }
 
 
@@ -274,6 +286,8 @@ check_score_pred <- function(train_iter, test_iter, predict_iter, object, predic
 check_score_test <- function(test_predict_info, predict_info) {
   cbd_predict_info <- rbind(predict_info, test_predict_info)
   test_predict_info <- dplyr::distinct_at(test_predict_info, c("train_iter", "test_iter", "predict_iter"), .keep_all = TRUE)
+
+
   score_test_1.n <- stats::weighted.mean(test_predict_info$score_pred_1, rep(1, nrow(test_predict_info)), na.rm = TRUE)
   score_test_1.w <- length(stats::na.omit(test_predict_info$score_pred_1))
   score_test_1_adj.n <- stats::weighted.mean(test_predict_info$score_pred_1, ifelse(test_predict_info$adjustment, 0, 1), na.rm = TRUE)

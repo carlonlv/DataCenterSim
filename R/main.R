@@ -21,14 +21,6 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
   test_predict_info <- data.frame(stringsAsFactors = FALSE)
 
   last_time_schedule <- length(test_x) - object@window_size + 1
-  "actual" = numeric(0),
-  "expected" = numeric(0),
-  "residuals" = numeric(0),
-  "pi_up" = numeric(0),
-  "adjustment" = logical(0),
-  "score_pred_1" = numeric(0),
-  "score_pred_2" = numeric(0),
-  "time" = numeric(0),
   predict_iter <- 0
   current_end <- 1
   while (current_end <= last_time_schedule) {
@@ -41,19 +33,22 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
 
     predict_iter <- predict_iter + 1
     if (length(test_xreg) == 0) {
-      test_predict_info <- do_prediction(object, trained_result, test_predict_info, matrix(test_x[0:(start_time - 1),], ncol = 1, dimnames = list(rownames(test_x)[0:(start_time - 1)])), matrix(nrow = 0, ncol = 0))
+      predictor_info <- do_prediction(object, trained_result, test_predict_info, matrix(test_x[0:(start_time - 1),], ncol = 1, dimnames = list(rownames(test_x)[0:(start_time - 1)])), matrix(nrow = 0, ncol = 0))
     } else {
-      test_predict_info <- do_prediction(object, trained_result, test_predict_info, matrix(test_x[0:(start_time - 1),], ncol = 1, dimnames = list(rownames(test_x)[0:(start_time - 1)])), matrix(test_xreg[1:end_time,], ncol = 1, dimnames = list(rownames(test_xreg)[1:end_time])))
+      predictor_info <- do_prediction(object, trained_result, test_predict_info, matrix(test_x[0:(start_time - 1),], ncol = 1, dimnames = list(rownames(test_x)[0:(start_time - 1)])), matrix(test_xreg[0:(start_time - 1),], ncol = 1, dimnames = list(rownames(test_xreg)[0:(start_time - 1)])))
     }
 
     actual_obs <- stats::setNames(test_x[start_time:end_time], rownames(test_x)[start_time:end_time])
-    test_predict_info <- check_score_pred(switch_status$train_iter, switch_status$test_iter, predict_iter, object, test_predict_info, actual_obs, adjust_switch)
+    scoring_info <- check_score_pred(object, test_predict_info, actual_obs, adjust_switch)
 
     ## Update step based on adjustment policy
-    update_info <- get_adjust_switch(test_predict_info[nrow(test_predict_info), "score_pred_1"], react_counter, adjust_switch, object@react_speed)
+    update_info <- get_adjust_switch(scoring_info[nrow(scoring_info), grep("score_pred_1_*", colnames(scoring_info), value = TRUE)], react_counter, adjust_switch, object@react_speed)
 
     adjust_switch <- update_info$adjust_switch
     react_counter <- update_info$react_counter
+
+    ## Write to predict info dataframe
+    test_predict_info <- rbind(test_predict_info, cbind(predictor_info, scoring_info))
 
     current_end <- current_end + object@window_size * object@extrap_step
   }
@@ -82,66 +77,16 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
 svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait_time=0, write_type, plot_type, ...) {
   trace_name <- colnames(x)[ts_num]
 
-  predict_info <- data.frame("train_iter" = numeric(0),
-                             "test_iter" = numeric(0),
-                             "predict_iter" = numeric(0),
-                             "time" = numeric(0),
-                             "actual" = numeric(0),
-                             "expected" = numeric(0),
-                             "residuals" = numeric(0),
-                             "pi_up" = numeric(0),
-                             "adjustment" = logical(0),
-                             "score_pred_1" = numeric(0),
-                             "score_pred_2" = numeric(0),
-                             stringsAsFactors = FALSE)
+  predict_info <- data.frame(stringsAsFactors = FALSE)
 
   current <- start_point
   last_time_update <- nrow(x) - object@train_size - object@update_freq * object@extrap_step * object@window_size + 1
 
-  train_models <- list()
-  predict_histories <- list()
-
-  train_idx <- rep(NA, object@model_num)
-  test_idx <- rep(1, object@model_num)
-
-  active_model <- 1
+  train_models <- NULL
   train_iter <- 1
-
-  switch_sig <- FALSE
-  find_substitute_model <- FALSE
-  switch_status <- list("train_iter" = 1, "test_iter" = 1, "react_counter" = 0, "adjust_switch" = FALSE)
+  train_sig <- TRUE
+  switch_status <- list("train_iter" = 1, "test_iter" = 1, "react_counter" = rep(0, length(object@cut_off_prob)), "adjust_switch" = rep(FALSE, length(object@cut_off_prob)))
   while (current <= last_time_update) {
-    is_empty_model <- sapply(1:object@model_num, function(model_idx) {
-      is.null(train_models[[letters[model_idx]]])})
-    if (any(is_empty_model)) {
-      traincan_model <- which(is_empty_model)[1]
-      train_sig <- TRUE
-    } else {
-      if (object@train_policy == "offline") {
-        train_sig <- FALSE
-      } else if (object@train_policy == "fixed") {
-        train_sig <- TRUE
-      } else {
-        train_sig <- find_substitute_model
-      }
-    }
-
-    if (switch_sig) {
-      traincan_model <- find_worst_candidate(object@model_num, predict_histories, object@target)
-
-      candidate_models <- which(sapply(1:object@model_num, function(model_idx) {
-        is_well_performed(predict_histories[[letters[model_idx]]], object@target)
-      }))[-active_model]
-
-      if (length(candidate_models) == 0) {
-        active_model <- traincan_model
-        find_substitute_model <- TRUE
-      } else {
-        active_model <- find_best_candidate(candidate_models, predict_histories, object@target)
-        find_substitute_model <- FALSE
-      }
-    }
-
     if (train_sig) {
       # Get training set
       train_start <- current
@@ -154,22 +99,16 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
           matrix(xreg[[reg]][train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[train_start:train_end], colnames(xreg)[ts_num]))
         })
       } else {
-        train_xreg <- matrix(nrow = 0, ncol = 0)
+        train_xreg <- NULL
       }
 
-      if (is.null(train_models[[letters[traincan_model]]])) {
-        prev_trained_model <- list()
-      } else {
-        prev_trained_model <- train_models[[letters[traincan_model]]]
-      }
-      train_models[[letters[traincan_model]]] <- train_model(object, train_x, train_xreg, prev_trained_model)
-      predict_histories[[letters[traincan_model]]] <- NULL
-
-      train_idx[traincan_model] <- train_iter
-      test_idx[traincan_model] <- 1
+      train_models <- train_model(object, train_x, train_xreg, prev_trained_model)
 
       train_iter <- train_iter + 1
-      train_sig <- FALSE
+
+      if (object@train_policy == "offline") {
+        train_sig <- FALSE
+      }
     }
 
     ## Get test set
@@ -189,29 +128,10 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
     ## Test Model
     switch_status$train_iter <- train_idx[active_model]
     switch_status$test_iter <- test_idx[active_model]
-    for (i in 1:object@model_num) {
-      if (!is.null(train_models[[letters[i]]])) {
-        score_switch_info <- predict_model(object, train_models[[letters[i]]], test_x, test_xreg, predict_info, switch_status)
-        if (!is.null(predict_histories[[letters[i]]])) {
-          predict_histories[[letters[i]]] <- combine_result(predict_histories[[letters[i]]], score_switch_info[["test_sim_result"]])
-        } else {
-          predict_histories[[letters[i]]] <- score_switch_info[["test_sim_result"]]
-        }
-        if (i == active_model) {
-          switch_status <- score_switch_info[["switch_status"]]
-          predict_info <- score_switch_info[["cbd_predict_info"]]
-          test_sim_result <- score_switch_info[["test_sim_result"]]
-        }
-      }
-    }
-    test_idx[active_model] <- test_idx[active_model] + 1
-
-    ## Make scheduling decisions
-    if (is_well_performed(test_sim_result, object@target)) {
-      switch_sig <- FALSE
-    } else {
-      switch_sig <- TRUE
-    }
+    score_switch_info <- predict_model(object, train_models[[letters[i]]], test_x, test_xreg, predict_info, switch_status)
+    switch_status <- score_switch_info[["switch_status"]]
+    predict_info <- score_switch_info[["cbd_predict_info"]]
+    test_sim_result <- score_switch_info[["test_sim_result"]]
 
     ## Update Step
     current <- current + object@update_freq * object@extrap_step * object@window_size + wait_time

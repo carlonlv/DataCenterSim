@@ -27,7 +27,7 @@ check_valid_sim <- function(object) {
     msg <- paste0("target must be a numeric value within 0 and 1, exclusively.")
     errors <- c(errors, msg)
   }
-  if (length(object@cut_off_prob) != 1 | is.na(object@cut_off_prob) | object@cut_off_prob <= 0 | object@cut_off_prob >= 1) {
+  if (is.na(object@cut_off_prob) | object@cut_off_prob <= 0 | object@cut_off_prob >= 1) {
     msg <- paste0("cut_off_prob must be a numeric value within 0 and 1, exclusively.")
     errors <- c(errors, msg)
   }
@@ -114,37 +114,3 @@ sim <- setClass("sim",
                                  react_speed = c(1, 1),
                                  response = "max"),
                 validity = check_valid_sim)
-
-
-#' An S4 Class to Represent A Simulation Result.
-#'
-#' @slot type A character that represents the type of the simulation result, it should be either \code{"test"} for a testing batch, \code{"train"} for training model life time, \code{"trace"} for an entire trace, \code{"param"} for all traces in same parameter setting.
-#' @slot score1.n A numeric value that represents the performance on score 1 consistent with \code{type}.
-#' @slot score1.w A numeric value that represents the weight of \code{score1.n}.
-#' @slot score1_adj.n A numeric value that represents the performance on adjusted score1 consistent with \code{type}.
-#' @slot score1_adj.w A numeric value that represents the weight of \code{score1_adj.n}.
-#' @slot score2.n A numeric value that represents the performance on score 2 consistent with \code{type}.
-#' @slot score2.w A numeric value that represents the weight of \code{score2.w}.
-#' @slot score2_adj.n A numeric value that represents the performance on adjusted score 2 consistent with \code{type}.
-#' @slot score2_adj.w A numeric value that represents the weight of \code{score2_adj.n}.
-#' @name sim_result-class
-#' @rdname sim_result-class
-sim_result <- setClass("sim_result",
-                       slots = list(type = "character",
-                                    score1.n = "numeric",
-                                    score1.w = "numeric",
-                                    score1_adj.n = "numeric",
-                                    score1_adj.w = "numeric",
-                                    score2.n = "numeric",
-                                    score2.w = "numeric",
-                                    score2_adj.n = "numeric",
-                                    score2_adj.w = "numeric"),
-                       prototype = list(type = NA_character_,
-                                        score1.n = 0,
-                                        score1.w = 0,
-                                        score1_adj.n = 0,
-                                        score1_adj.w = 0,
-                                        score2.n = 0,
-                                        score2.w = 0,
-                                        score2_adj.n = 0,
-                                        score2_adj.w = 0))

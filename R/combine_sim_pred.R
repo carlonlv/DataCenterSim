@@ -232,7 +232,6 @@ machines_select <- function(machine_list, signal_machines_idx, prob_vec_lst, job
 compute_summary_performance <- function(predict_info, past_failures, machine_available_resources, sim_end_time, window_multiplier) {
   finished_jobs <- predict_info[predict_info$status == 1,]
   finished_numerator <- sum(finished_jobs$requestedCPU * finished_jobs$scheduled_time / window_multiplier)
-  optimistic_numerator <- sum(predict_info$requestedCPU * predict_info$scheduled_time / window_multiplier)
 
   ongoing_jobs <- predict_info[predict_info$status == 0,]
   ongoing_demoninator <- sum(ongoing_jobs$requestedCPU * (sim_end_time - ongoing_jobs$arrival_time - ongoing_jobs$delayed_time + window_multiplier) / window_multiplier)
@@ -265,7 +264,6 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
   }
 
   result <- list("finished_utilization" = finished_numerator / denominator,
-                 "optimistic_utilization" = optimistic_numerator / denominator,
                  "total_job_count" = nrow(predict_info),
                  "denied_rate" = denied_jobs_num / nrow(predict_info),
                  "total_schedule_attempts" = survived_jobs_num + killed_jobs_num + ongoing_jobs_num,
@@ -278,7 +276,7 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 
 #' Combinations of Predictions of Background Jobs and Foreground Jobs
 #'
-#' Sequantially training and testing by predicting the availability of CPU resource at next windows.
+#' Sequentially training and testing by predicting the availability of CPU resource at next windows.
 #'
 #' @param param_setting_sim A dataframe representing a specific parameter setting for sim object.
 #' @param param_setting_pred A dataframe representing a specific parameter setting for pred object.

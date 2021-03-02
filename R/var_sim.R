@@ -9,6 +9,15 @@ NULL
 #' @keywords internal
 check_valid_var_sim <- function(object) {
   errors <- character()
+  window_type_choices <- c("max", "avg")
+  if (any(is.na(object@window_size_for_reg))) {
+    msg <- paste0("window_size_for_reg must be a positive integer.")
+    errors <- c(errors, msg)
+  }
+  if (any(is.na(object@window_type_for_reg)) | all(object@window_type_for_reg != window_type_choices)) {
+    msg <- paste0("window_type_for_reg must be one of ", paste(window_type_choices, collapse = " "))
+    errors <- c(errors, msg)
+  }
   if (object@p %% 1 != 0 & object@p < 0) {
     msg <- paste0("p must be a non-negative integer.")
     errors <- c(errors, msg)
@@ -25,9 +34,13 @@ check_valid_var_sim <- function(object) {
 #' @param p A numeric value representing the autoregressive order for VAR model. Default value is \code{1}.
 #' @export var_sim
 var_sim <- setClass("var_sim",
-                     slots = list(diff_order = "numeric", p = "numeric"),
+                     slots = list(window_size_for_reg = "numeric",
+                                  window_type_for_reg = "character",
+                                  p = "numeric"),
                      contains = "sim",
-                     prototype = list(name = "VAR",
+                     prototype = list(window_size_for_reg = 12,
+                                      window_type_for_reg = "avg",
+                                      name = "VAR1",
                                       p = 1),
                      validity = check_valid_var_sim)
 
@@ -36,16 +49,26 @@ var_sim <- setClass("var_sim",
 setMethod("train_model",
           signature(object = "var_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            new_train_x <- convert_frequency_dataset(train_x, object@window_size, object@response)
-            new_train_xreg <- convert_frequency_dataset(train_xreg, object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)])
+            new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x)]),
+                                                               object@window_size,
+                                                               object@response,
+                                                               keep.names = TRUE,
+                                                               right.aligned = TRUE))
+            new_train_xreg <- as.matrix(convert_frequency_dataset_overlapping(stats::setNames(train_xreg[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_xreg)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x)]),
+                                                                              object@window_size_for_reg,
+                                                                              object@window_type_for_reg,
+                                                                              keep.names = TRUE,
+                                                                              jump = object@window_size))
 
             uni_data_matrix <- matrix(nrow = length(new_train_x), ncol = 2)
             uni_data_matrix[,1] <- new_train_x
             uni_data_matrix[,2] <- new_train_xreg
-            colnames(uni_data_matrix) <- c("max", "avg")
+            colnames(uni_data_matrix) <- c(object@response, object@window_type_for_reg)
             rownames(uni_data_matrix) <- names(new_train_x)
 
             trained_result <- MTS::VAR(uni_data_matrix, p = object@p, include.mean = TRUE, output = FALSE)
+            trained_result$call$orig_x <- train_x
+            trained_result$call$orig_xreg <- train_xreg
             return(trained_result)
           })
 
@@ -60,13 +83,18 @@ setMethod("do_prediction",
             } else {
               prev_data <- trained_result$data
 
-              new_data <- matrix(nrow = nrow(predict_info) - object@extrap_step, ncol = 2)
+              new_x <- predict_info$actual
+              new_xreg <- c(trained_result$call$orig_xreg[,1], test_xreg[,1])
+              new_xreg <- as.matrix(convert_frequency_dataset_overlapping(new_xreg[(length(new_xreg) - object@window_size * length(predict_info$actual) - max(object@window_size_for_reg - object@window_size, 0) + 1):(length(new_xreg))],
+                                                                          object@window_size_for_reg,
+                                                                          object@window_type_for_reg,
+                                                                          keep.names = TRUE,
+                                                                          jump = object@window_size))
 
-              new_data[,1] <- convert_frequency_dataset(test_x, object@window_size, object@response)
-              new_data[,2] <- convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg))], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)])
+              new_data <- cbind(new_x, new_xreg)
               trained_result$data <- rbind(prev_data, new_data)
             }
-            predict_result <- MTS::VARpred(trained_result, h = object@extrap_step, Out.level = FALSE)
+            predict_result <- suppressMessages(MTS::VARpred(trained_result, h = object@extrap_step, Out.level = FALSE))
 
             if (object@extrap_step > 1) {
               expected <- as.numeric(predict_result$pred[,1])
@@ -74,11 +102,13 @@ setMethod("do_prediction",
               expected <- as.numeric(predict_result$pred[1])
             }
 
-            pi_up <- max(stats::qnorm(level, mean = expected, sd = predict_result$se.err[,1]))
+            pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(level, function(i) {
+              stats::qnorm(i, mean = expected, sd = predict_result$se.err[,1])
+            }))), paste0("Quantile_", sort(1 - object@cut_off_prob)))
+            expected <- data.frame("expected" = expected)
 
-            predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "pi_up"] <- pi_up
-            predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "expected"] <- expected
-            return(predict_info)
+            predicted_params <- data.frame("mu" = expected, "sd" = predict_result$se.err[,1])
+            return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 
 
@@ -112,6 +142,8 @@ setMethod("get_hidden_slots",
           signature(object = "var_sim"),
           function(object) {
             hidden_lst <- methods::callNextMethod(object)
+            hidden_lst[["window_size_for_reg"]] <- methods::slot(object, "window_size_for_reg")
+            hidden_lst[["window_type_for_reg"]] <- methods::slot(object, "window_type_for_reg")
             return(hidden_lst)
           })
 

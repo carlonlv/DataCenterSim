@@ -313,6 +313,8 @@ setMethod("get_hidden_slots",
           signature(object = "markov_sim"),
           function(object) {
             hidden_lst <- methods::callNextMethod(object)
+            hidden_lst[["window_size_for_reg"]] <- methods::slot(object, "window_size_for_reg")
+            hidden_lst[["window_type_for_reg"]] <- methods::slot(object, "window_type_for_reg")
             return(hidden_lst)
           })
 

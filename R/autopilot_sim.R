@@ -9,9 +9,8 @@ NULL
 #' @keywords internal
 check_valid_autopilot_sim <- function(object) {
   errors <- character()
-  statistics_choices <- c("peak", "weighted_avg", "j-quantile")
-  if (length(object@statistics) != 1 | is.na(object@statistics) |  all(object@statistics != statistics_choices)) {
-    msg <- paste0("statistics must be one of ", paste(statistics_choices, collapse = " "), ".")
+  if (object@extrap_step != 1) {
+    msg <- paste0("extrap_step must be 1.")
     errors <- c(errors, msg)
   }
   if (length(object@n) != 1 | object@n <= 0 | object@n %% 1 != 0) {
@@ -39,22 +38,17 @@ check_valid_autopilot_sim <- function(object) {
 
 
 #' @rdname sim-class
-#' @param statistics A character representing the type of statistics used to compute the recommendation at a specific time, can be either \code{"peak"}, \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{"j-quantile"}.
-#' @param n A numeric integer representing the number of windows to find maximum over, used only when \code{"statistics"} is assigned to be \code{"peak"}. Default value is \code{288}.
-#' @param half_life A numerc integer representing the number of windows for the weight to drop to half, used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{144}.
-#' @param breaks A numeric integer or vector representing the number of breaks for each histogram in each window or the break points for \code{x}. Used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}, passed into \code{hist}. Default value is \code{10}.
-#' @param cut_off_weight A numeric value that is close to zero, representing the smallest weight possible, lower which the weight will be considered as zero. Used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{0.001}.
+#' @param half_life A numerc integer representing the number of windows for the weight to drop to half in jth-quantile. Default value is \code{144}.
+#' @param breaks A numeric integer or vector representing the number of breaks for each histogram in each window or the break points for \code{x}. Passed into \code{hist}. Default value is \code{10}.
+#' @param cut_off_weight A numeric value that is close to zero, representing the smallest weight possible, lower which the weight will be considered as zero. Default value is \code{0.001}.
 #' @export autopilot_sim
 autopilot_sim <- setClass("autopilot_sim",
-                           slots = list(statistics = "character",
-                                        n = "numeric",
-                                        half_life = "numeric",
+                           slots = list(half_life = "numeric",
                                         breaks = "numeric",
                                         cut_off_weight = "numeric"),
                            contains = "sim",
                            prototype = list(name = "AUTOPILOT",
-                                            statistics = "j-quantile",
-                                            n = 288,
+                                            extrap_step = 1,
                                             half_life = 144,
                                             breaks = 10,
                                             cut_off_weight = 0.001),
@@ -63,7 +57,7 @@ autopilot_sim <- setClass("autopilot_sim",
 
 #' @describeIn train_model Train model for autopilot recommender.
 setMethod("train_model",
-          signature(object = "autopilot_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
+          signature(object = "autopilot_sim", train_x = "matrix", train_xreg = "NULL", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
             if (length(object@breaks) == 1) {
               breaks <- seq(from = 0, to = 100, length.out = object@breaks + 1)
@@ -93,7 +87,7 @@ setMethod("train_model",
 
 #' @describeIn do_prediction Do prediction based on selected past statistics.
 setMethod("do_prediction",
-          signature(object = "autopilot_sim", trained_result = "list", predict_info = "data.frame", test_x = "matrix", test_xreg = "matrix"),
+          signature(object = "autopilot_sim", trained_result = "list", predict_info = "data.frame", test_x = "NULL", test_xreg = "matrix"),
           function(object, trained_result, predict_info, test_x, test_xreg) {
             if (length(object@breaks) == 1) {
               breaks <- seq(from = 0, to = 100, length.out = object@breaks + 1)
@@ -104,42 +98,35 @@ setMethod("do_prediction",
             ## Histogram Aggregation
             weight <- (1 / 2) ** (seq(from = 0, by = 1, length.out = length(trained_result)) / object@half_life)
 
-            if (object@statistics == "peak") {
-              pi_up <- max(sapply(trained_result[1:object@n], function(h) {
-                max(h$breaks[-1][h$counts > 0])
+            agg_count <- sapply(1:(length(breaks) - 1), function(b_index) {
+              sum(weight * sapply(trained_result, function(h) {
+                h$counts[b_index]
               }))
-            } else if (object@statistics == "weighted_avg") {
-              pi_up <- stats::weighted.mean(sapply(trained_result, function(h) {
-                stats::weighted.mean(h$breaks[-1], h$counts)
-              }), weight)
-            } else {
-              agg_count <- sapply(1:(length(breaks) - 1), function(b_index) {
-                sum(weight * sapply(trained_result, function(h) {
-                  h$counts[b_index]
-                }))
-              })
-              agg_freq <- agg_count / sum(agg_count)
+            })
+            agg_freq <- agg_count / sum(agg_count)
 
-              compute_pi_up <- function(prob, agg_freq, breaks) {
-                current_state <- 1
-                current_prob <- 0
-                while (current_state <= length(agg_freq)) {
-                  current_prob <- current_prob + agg_freq[current_state]
-                  if (current_prob < prob) {
-                    current_state <- current_state + 1
-                  } else {
-                    break
-                  }
+            compute_pi_up <- function(prob, agg_freq, breaks) {
+              current_state <- 1
+              current_prob <- 0
+              while (current_state <= length(agg_freq)) {
+                current_prob <- current_prob + agg_freq[current_state]
+                if (current_prob < prob) {
+                  current_state <- current_state + 1
+                } else {
+                  break
                 }
-                pi_up <- breaks[current_state]
-                return(pi_up)
               }
-              pi_up <- compute_pi_up(1 - object@cut_off_prob, agg_freq, breaks[-1])
+              pi_up <- breaks[current_state]
+              return(pi_up)
             }
-
-            predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "pi_up"] <- pi_up
-            predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "expected"] <- NA
-            return(predict_info)
+            pi_up <- sapply(sort(1 - object@cut_off_prob), function(i) {
+              compute_pi_up(i, agg_freq, breaks[-1])
+            })
+            expected <- data.frame("expected" = NA)
+            pi_up <- stats::setNames(as.data.frame(pi_up), paste0("Quantile_", sort(1 - object@cut_off_prob)))
+            predicted_params <- stats::setNames(as.data.frame(matrix(agg_freq, nrow = 1, ncol = length(agg_freq))),
+                                                paste0("param.interval_", 1:length(agg_freq)))
+            return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 
 
@@ -166,7 +153,6 @@ setMethod("get_characteristic_slots",
           signature(object = "autopilot_sim"),
           function(object) {
             character_lst <- methods::callNextMethod(object)
-            character_lst[["statistics"]] <- methods::slot(object, "statistics")
             return(character_lst)
           })
 

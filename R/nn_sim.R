@@ -9,6 +9,11 @@ NULL
 #' @keywords internal
 check_valid_nn_sim <- function(object) {
   errors <- character()
+  window_type_choices <- c("max", "avg")
+  if (any(is.na(object@window_type_for_reg)) | all(object@window_type_for_reg != window_type_choices)) {
+    msg <- paste0("window_type_for_reg must be one of ", paste(window_type_choices, collapse = " "))
+    errors <- c(errors, msg)
+  }
   if (length(object@p) != 1 | any(object@p %% 1 != 0, na.rm = TRUE) | any(object@p <= 0, na.rm = TRUE)) {
     msg <- paste0("p must be a positive numeric integer or NA_real_.")
     errors <- c(errors, msg)
@@ -54,16 +59,68 @@ nn_sim <- setClass("nn_sim",
 
 #' @describeIn train_model Train NN Model specific to nn_sim object.
 setMethod("train_model",
-          signature(object = "nn_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
+          signature(object = "nn_sim", train_x = "matrix", train_xreg = "NULL", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
             new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
 
-            if (length(train_xreg) == 0) {
-              new_train_xreg <- NULL
+            if (is.na(object@p) & is.na(object@size)) {
+              args.tsmethod <- list()
+            } else if (is.na(object@p)) {
+              args.tsmethod <- list("size" = object@size)
+            } else if (is.na(object@size)) {
+              args.tsmethod <- list("p" = object@p)
             } else {
-              new_train_xreg <- as.matrix(convert_frequency_dataset(train_xreg, object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)], keep.names = TRUE))
-              colnames(new_train_xreg) <- "xreg"
+              args.tsmethod <- list("p" = object@p, "size" = object@size)
             }
+            args.tsmethod <- c(args.tsmethod, object@train_args, list("y" = new_train_x, "P" = object@P))
+            trained_result <- do.call(forecast::nnetar, args.tsmethod)
+
+            trained_result$call$x <- new_train_x
+            trained_result$call$orig_x <- train_x
+
+            return(list(trained_result))
+          })
+
+
+#' @describeIn do_prediction Do prediction based on trained AR1 Model.
+setMethod("do_prediction",
+          signature(object = "nn_sim", trained_result = "list", predict_info = "data.frame", test_x = "matrix", test_xreg = "NULL"),
+          function(object, trained_result, predict_info, test_x, test_xreg) {
+            trained_result <- trained_result[[1]]
+            level <- (1 - object@cut_off_prob * 2) * 100
+
+            if (nrow(predict_info) == object@extrap_step) {
+              target_model <- forecast::nnetar(y = trained_result$call$x, model = trained_result)
+            } else {
+              prev_x <- trained_result$call$x
+              new_x <- predict_info$actual
+              new_x <- c(prev_x, new_x)
+
+              target_model <- forecast::nnetar(y = new_x, model = trained_result)
+            }
+
+            args.tsmethod <- c(object@pred_args, list("object" = target_model, "PI" = TRUE, "h" = object@extrap_step, "level" = level))
+            predict_result <- do.call(forecast::forecast, args.tsmethod)
+
+            expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
+            pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
+            predicted_params <- data.frame("param.mu" = as.numeric(predict_result$mean), "param.sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(level[1] / 100))
+
+            return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
+          })
+
+
+#' @describeIn train_model Train NN Model specific to nn_sim object.
+setMethod("train_model",
+          signature(object = "nn_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
+          function(object, train_x, train_xreg, trained_model) {
+            new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
+            new_train_xreg <- as.matrix(convert_frequency_dataset_overlapping(stats::setNames(train_xreg[1:(nrow(train_xreg) - object@window_size * object@extrap_step),1], rownames(train_xreg)[1:(nrow(train_xreg) - object@window_size * object@extrap_step)]),
+                                                                              object@window_size_for_reg,
+                                                                              object@window_type_for_reg,
+                                                                              keep.names = TRUE,
+                                                                              jump = object@window_size))
+            colnames(new_train_xreg) <- "xreg"
 
             if (is.na(object@p) & is.na(object@size)) {
               args.tsmethod <- list()
@@ -77,12 +134,10 @@ setMethod("train_model",
             args.tsmethod <- c(args.tsmethod, object@train_args, list("y" = new_train_x, "xreg" = new_train_xreg, "P" = object@P))
             trained_result <- do.call(forecast::nnetar, args.tsmethod)
 
-            if (length(new_train_xreg) != 0) {
-              trained_result$call$xreg <- new_train_xreg
-            } else {
-              trained_result$call$xreg <- NULL
-            }
             trained_result$call$x <- new_train_x
+            trained_result$call$xreg <- new_train_xreg
+            trained_result$call$orig_x <- train_x
+            trained_result$call$orig_xreg <- train_xreg
 
             return(list(trained_result))
           })
@@ -96,40 +151,106 @@ setMethod("do_prediction",
             level <- (1 - object@cut_off_prob * 2) * 100
 
             if (nrow(predict_info) == object@extrap_step) {
-              if (is.null(trained_result$call$xreg)) {
-                target_model <- forecast::nnetar(y = trained_result$call$x, model = trained_result)
-              } else {
-                target_model <- forecast::nnetar(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
-              }
+              target_model <- forecast::nnetar(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
             } else {
-              prev_x <- trained_result$call$x
-              new_x <- predict_info$actual[-((nrow(predict_info) - object@extrap_step + 1):nrow(predict_info))]
-              new_x <- c(prev_x, new_x)
-
+              new_x <- c(trained_result$call$x, predict_info$actual)
               prev_xreg <- trained_result$call$xreg
-              if (is.null(prev_xreg)) {
-                target_model <- forecast::nnetar(y = new_x, model = trained_result)
-              } else {
-                new_xreg <- as.matrix(convert_frequency_dataset(test_xreg[-c((nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg)),], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
-                new_xreg <- rbind(prev_xreg, new_xreg)
-                target_model <- forecast::nnetar(y = new_x, xreg = new_xreg, model = trained_result)
-              }
+
+              new_xreg <- c(trained_result$call$orig_xreg[,1], test_xreg[,1])
+              new_xreg <- as.matrix(convert_frequency_dataset_overlapping(new_xreg[(length(new_xreg) - object@window_size * (length(predict_info$actual) + object@extrap_step) - max(object@window_size_for_reg - object@window_size, 0) + 1):(length(new_xreg) - object@window_size * object@extrap_step)],
+                                                                          object@window_size_for_reg,
+                                                                          object@window_type_for_reg,
+                                                                          keep.names = TRUE,
+                                                                          jump = object@window_size))
+              new_xreg <- rbind(prev_xreg, new_xreg)
+              target_model <- forecast::nnetar(y = new_x, xreg = new_xreg, model = trained_result)
             }
 
-            args.tsmethod <- c(object@pred_args, list("object" = target_model, "PI" = TRUE, "h" = object@extrap_step, "level" = level))
-            if (length(test_xreg) != 0) {
-              dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
-              colnames(dxreg) <- colnames(trained_result$call$xreg)
-              args.tsmethod <- c(args.tsmethod, list("xreg" = dxreg))
-            }
+            dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
+            colnames(dxreg) <- colnames(trained_result$call$xreg)
+            args.tsmethod <- c(object@pred_args, list("object" = target_model, "xreg" = dxreg, "PI" = TRUE, "h" = object@extrap_step, "level" = level))
             predict_result <- do.call(forecast::forecast, args.tsmethod)
 
-            expected <- as.numeric(predict_result$mean)
-            pi_up <- max(as.numeric(predict_result$upper))
+            expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
+            pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
+            predicted_params <- data.frame("param.mu" = as.numeric(predict_result$mean), "param.sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(level[1] / 100))
 
-            predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "pi_up"] <- pi_up
-            predict_info[(nrow(predict_info) - object@extrap_step + 1):nrow(predict_info), "expected"] <- expected
-            return(predict_info)
+            return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
+          })
+
+
+#' @describeIn train_model Train NN Model specific to nn_sim object.
+setMethod("train_model",
+          signature(object = "nn_sim", train_x = "matrix", train_xreg = "list", trained_model = "list"),
+          function(object, train_x, train_xreg, trained_model) {
+            new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
+            new_train_xreg <- do.call(cbind, lapply(1:length(train_xreg), function(reg) {
+              temp_reg <- train_xreg[[reg]]
+              as.matrix(convert_frequency_dataset_overlapping(stats::setNames(temp_reg[1:(nrow(temp_reg) - object@window_size * object@extrap_step),1], rownames(temp_reg)[1:(nrow(temp_reg) - object@window_size * object@extrap_step)]),
+                                                              object@window_size_for_reg[reg],
+                                                              object@window_type_for_reg[reg],
+                                                              keep.names = TRUE,
+                                                              jump = object@window_size))
+            }))
+            colnames(new_train_xreg) <- names(train_xreg)
+
+            if (is.na(object@p) & is.na(object@size)) {
+              args.tsmethod <- list()
+            } else if (is.na(object@p)) {
+              args.tsmethod <- list("size" = object@size)
+            } else if (is.na(object@size)) {
+              args.tsmethod <- list("p" = object@p)
+            } else {
+              args.tsmethod <- list("p" = object@p, "size" = object@size)
+            }
+            args.tsmethod <- c(args.tsmethod, object@train_args, list("y" = new_train_x, "xreg" = new_train_xreg, "P" = object@P))
+            trained_result <- do.call(forecast::nnetar, args.tsmethod)
+
+            trained_result$call$x <- new_train_x
+            trained_result$call$xreg <- new_train_xreg
+            trained_result$call$orig_x <- train_x
+            trained_result$call$orig_xreg <- train_xreg
+            return(list(trained_result))
+          })
+
+
+#' @describeIn do_prediction Do prediction based on trained AR1 Model.
+setMethod("do_prediction",
+          signature(object = "nn_sim", trained_result = "list", predict_info = "data.frame", test_x = "matrix", test_xreg = "list"),
+          function(object, trained_result, predict_info, test_x, test_xreg) {
+            trained_result <- trained_result[[1]]
+            level <- (1 - object@cut_off_prob * 2) * 100
+
+            if (nrow(predict_info) == object@extrap_step) {
+              target_model <- forecast::nnetar(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
+            } else {
+              new_x <- c(trained_result$call$x, predict_info$actual)
+
+              prev_xreg <- trained_result$call$xreg
+
+              new_xreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
+                temp_xreg <- rbind(trained_result$call$orig_xreg[[reg]], test_xreg[[reg]])
+                convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * (length(predict_info$actual) + object@extrap_step) - max(object@window_size_for_reg - object@window_size, 0) + 1):(nrow(new_xreg) - object@window_size * object@extrap_step),1],
+                                                      object@window_size_for_reg,
+                                                      object@window_type_for_reg,
+                                                      keep.names = TRUE,
+                                                      jump = object@window_size)
+              }))
+
+              new_xreg <- rbind(prev_xreg, new_xreg)
+              target_model <- forecast::nnetar(y = new_x, xreg = new_xreg, model = trained_result)
+            }
+
+            dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
+            colnames(dxreg) <- colnames(trained_result$call$xreg)
+            args.tsmethod <- c(object@pred_args, list("object" = target_model, "xreg" = dxreg, "PI" = TRUE, "h" = object@extrap_step, "level" = level))
+            predict_result <- do.call(forecast::forecast, args.tsmethod)
+
+            expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
+            pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
+            predicted_params <- data.frame("param.mu" = as.numeric(predict_result$mean), "param.sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(level[1] / 100))
+
+            return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 
 
@@ -166,6 +287,8 @@ setMethod("get_hidden_slots",
             hidden_lst <- methods::callNextMethod(object)
             hidden_lst[["train_args"]] <- methods::slot(object, "train_args")
             hidden_lst[["pred_args"]] <- methods::slot(object, "pred_args")
+            hidden_lst[["window_size_for_reg"]] <- methods::slot(object, "window_size_for_reg")
+            hidden_lst[["window_type_for_reg"]] <- methods::slot(object, "window_type_for_reg")
             return(hidden_lst)
           })
 

@@ -246,7 +246,7 @@ prediction_including_outlier_effect <- function(object, trained_result, pi_up, e
   }))), paste0("param.pro_", ol_type))
   predicted_params <- cbind(mu, sd, pro)
 
-  pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(level, function(i) {
+  pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(sort(level), function(i) {
     sapply(1:object@extrap_step, function(h) {
       suppressWarnings(KScorrect::qmixnorm(i / 100,
                                            mean = predicted_params[h, grep("param.mu_*", colnames(predicted_params), value = TRUE)],
@@ -616,7 +616,7 @@ setMethod("do_prediction",
 
               new_xreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
                 temp_xreg <- rbind(trained_result$call$orig_xreg[[reg]], test_xreg[[reg]])
-                convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * (length(predict_info$actual) + object@extrap_step) - max(object@window_size_for_reg - object@window_size, 0) + 1):(nrow(new_xreg) - object@window_size * object@extrap_step),1],
+                convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * (length(predict_info$actual) + object@extrap_step) - max(object@window_size_for_reg - object@window_size, 0) + 1):(nrow(temp_xreg) - object@window_size * object@extrap_step),1],
                                                       object@window_size_for_reg,
                                                       object@window_type_for_reg,
                                                       keep.names = TRUE,
@@ -635,7 +635,7 @@ setMethod("do_prediction",
 
             dxreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
               temp_xreg <- rbind(trained_result$call$orig_xreg[[reg]], test_xreg[[reg]])
-              convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * object@extrap_step - max(object@window_size_for_reg - object@window_size, 0) + 1):nrow(new_xreg),1],
+              convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * object@extrap_step - max(object@window_size_for_reg - object@window_size, 0) + 1):nrow(temp_xreg),1],
                                                     object@window_size_for_reg,
                                                     object@window_type_for_reg,
                                                     keep.names = TRUE,

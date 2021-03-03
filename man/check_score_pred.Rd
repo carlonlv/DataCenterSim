@@ -4,30 +4,16 @@
 \alias{check_score_pred}
 \title{Check Scores Of A Single Prediction.}
 \usage{
-check_score_pred(
-  train_iter,
-  test_iter,
-  predict_iter,
-  object,
-  predict_info,
-  actual_obs,
-  adjust_switch
-)
+check_score_pred(object, predict_info, actual_obs, adjust_switch)
 }
 \arguments{
-\item{train_iter}{A numeric number representing the number of iteration of training step, used as identifier when evaluating training performance.}
-
-\item{test_iter}{A numeric number representing the number of iteration on testing step of the current training step.}
-
-\item{predict_iter}{A numeric number representing the number of iteration on prediction step of the current testing step.}
-
 \item{object}{An S4 sim object.}
 
 \item{predict_info}{The dataframe storing the prediction info}
 
 \item{actual_obs}{The actual observation corresponding to the predictions.}
 
-\item{adjust_switch}{A logical value representing the status of the adjust_switch.}
+\item{adjust_switch}{A logical vector representing the status of the adjust_switch.}
 }
 \value{
 The updated prediction information dataframe with last row modified.

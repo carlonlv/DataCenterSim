@@ -51,9 +51,9 @@ get_param_slots(object)
 \value{
 A list containing all numeric parameter informations.
 
-A list containing all numeric parameter informations.
+A list containing all numeric parameter information.
 
-A list containing all numeric parameter informations.
+A list containing all numeric parameter information.
 
 A list containing all numeric parameter informations.
 

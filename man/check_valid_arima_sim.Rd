@@ -7,7 +7,7 @@
 check_valid_arima_sim(object)
 }
 \arguments{
-\item{object}{A arima_sim object}
+\item{object}{A arima_sim object.}
 }
 \value{
 \code{TRUE} if the input sim object is valid, vector of error messages otherwise.

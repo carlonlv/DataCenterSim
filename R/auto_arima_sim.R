@@ -432,7 +432,7 @@ setMethod("do_prediction",
 
               new_xreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
                 temp_xreg <- rbind(trained_result$call$orig_xreg[[reg]], test_xreg[[reg]])
-                convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * (length(predict_info$actual) + object@extrap_step) - max(object@window_size_for_reg - object@window_size, 0) + 1):(nrow(new_xreg) - object@window_size * object@extrap_step),1],
+                convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * (length(predict_info$actual) + object@extrap_step) - max(object@window_size_for_reg - object@window_size, 0) + 1):(nrow(temp_xreg) - object@window_size * object@extrap_step),1],
                                                       object@window_size_for_reg,
                                                       object@window_type_for_reg,
                                                       keep.names = TRUE,
@@ -451,7 +451,7 @@ setMethod("do_prediction",
 
             dxreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
               temp_xreg <- rbind(trained_result$call$orig_xreg[[reg]], test_xreg[[reg]])
-              convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * object@extrap_step - max(object@window_size_for_reg - object@window_size, 0) + 1):nrow(new_xreg),1],
+              convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * object@extrap_step - max(object@window_size_for_reg - object@window_size, 0) + 1):nrow(temp_xreg),1],
                                                     object@window_size_for_reg,
                                                     object@window_type_for_reg,
                                                     keep.names = TRUE,

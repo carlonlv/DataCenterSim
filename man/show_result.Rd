@@ -4,12 +4,10 @@
 \alias{show_result}
 \title{Print The Result Of Simulation}
 \usage{
-show_result(param_predict_info, show_msg = TRUE)
+show_result(param_predict_info)
 }
 \arguments{
 \item{param_predict_info}{A S4 sim result object.}
-
-\item{show_msg}{A logical value representing whether messages will printed.}
 }
 \value{
 A list consists of summary of simulation result.

@@ -97,8 +97,6 @@ convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = 
 convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, keep.names = TRUE, right.aligned = TRUE, jump = 1) {
   new_dataset <- c()
   new_names <- c()
-  window_num <- length(dataset) - new_freq + 1
-
   window_num <- floor((length(dataset) - max(new_freq, jump)) / jump) + 1
 
   if (right.aligned) {
@@ -248,7 +246,7 @@ check_score_pred <- function(object, predict_info, actual_obs, adjust_switch) {
   actual <- convert_frequency_dataset(actual_obs, object@window_size, object@response, keep.names = TRUE)
   time <- as.numeric(names(actual))
 
-  pi_up <- predict_info[, grep("Quantile_*", colnames(predicted_params), value = TRUE)]
+  pi_up <- predict_info[, grep("Quantile_*", colnames(predict_info), value = TRUE)]
   expected <- predict_info[, "expected"]
   score1 <- sapply(1:ncol(pi_up), function(quan) {
     min(sapply(1:object@extrap_step, function(pred_step) {
@@ -265,270 +263,165 @@ check_score_pred <- function(object, predict_info, actual_obs, adjust_switch) {
   score_info <- cbind(matrix(rep(score1, each = object@extrap_step), nrow = object@extrap_step, ncol = length(object@cut_off_prob)),
                       matrix(rep(score2, each = object@extrap_step), nrow = object@extrap_step, ncol = length(object@cut_off_prob)),
                       matrix(rep(adjust_switch, each = object@extrap_step), nrow = object@extrap_step, ncol = length(object@cut_off_prob)))
-  colnames(score_info) <- c(paste0("score_pred_1_", 1 - object@cut_off_prob),
-                            paste0("score_pred_2_", 1 - object@cut_off_prob),
-                            paste0("adjustment_", 1 - object@cut_off_prob))
+  colnames(score_info) <- c(paste0("score_pred_1_", sort(1 - object@cut_off_prob)),
+                            paste0("score_pred_2_", sort(1 - object@cut_off_prob)),
+                            paste0("adjustment_", sort(1 - object@cut_off_prob)))
   score_info <- as.data.frame(score_info)
-  score_info[, "time"] <- time
-  score_info[, "actual"] <- actual
-  score_info[, "residuals"] <- res
+  score_info[, "time"] <- as.numeric(time)
+  score_info[, "actual"] <- as.numeric(actual)
+  score_info[, "residuals"] <- as.numeric(res)
   return(score_info)
-}
-
-
-#' Check Score Of A Testing Batch.
-#'
-#' @description Check the score information of a testing batch based on actual observations and predictions.
-#' @param test_predict_info A dataframe representing current prediction information.
-#' @param predict_info A dataframe representing past prediction information.
-#' @return A list containing updated predict_info if applicable and sim_result object.
-#' @keywords internal
-check_score_test <- function(test_predict_info, predict_info) {
-  cbd_predict_info <- rbind(predict_info, test_predict_info)
-  test_predict_info <- dplyr::distinct_at(test_predict_info, c("train_iter", "test_iter", "predict_iter"), .keep_all = TRUE)
-
-
-  score_test_1.n <- stats::weighted.mean(test_predict_info$score_pred_1, rep(1, nrow(test_predict_info)), na.rm = TRUE)
-  score_test_1.w <- length(stats::na.omit(test_predict_info$score_pred_1))
-  score_test_1_adj.n <- stats::weighted.mean(test_predict_info$score_pred_1, ifelse(test_predict_info$adjustment, 0, 1), na.rm = TRUE)
-  score_test_1_adj.w <- length(stats::na.omit(test_predict_info$score_pred_1[which(!test_predict_info$adjustment)]))
-  score_test_2.n <- stats::weighted.mean(test_predict_info$score_pred_2, rep(1, nrow(test_predict_info)), na.rm = TRUE)
-  score_test_2.w <- length(stats::na.omit(test_predict_info$score_pred_2))
-  score_test_2_adj.n <- ifelse(!is.na(test_predict_info$score_pred_2) & test_predict_info$adjustment, 0, test_predict_info$score_pred_2)
-  score_test_2_adj.n <- stats::weighted.mean(score_test_2_adj.n, rep(1, nrow(test_predict_info)), na.rm = TRUE)
-  score_test_2_adj.w <- length(stats::na.omit(test_predict_info$score_pred_2))
-  test_sim_result <- sim_result(type = "test",
-                               score1.n = score_test_1.n,
-                               score1.w = score_test_1.w,
-                               score1_adj.n = score_test_1_adj.n,
-                               score1_adj.w = score_test_1_adj.w,
-                               score2.n = score_test_2.n,
-                               score2.w = score_test_2.w,
-                               score2_adj.n = score_test_2_adj.n,
-                               score2_adj.w = score_test_2_adj.w)
-  return(list("cbd_predict_info" = cbd_predict_info, "test_sim_result" = test_sim_result))
 }
 
 
 #' Check Score Of An Entire Trace.
 #'
 #' @description Check the score information of an entire trace based on actual observations and predictions.
+#' @param object An S4 sim object.
 #' @param predict_info A dataframe representing past prediction information.
 #' @return A sim_result object.
 #' @keywords internal
-check_score_trace <- function(predict_info) {
+check_score_trace <- function(object, predict_info) {
   predict_info <- dplyr::distinct_at(predict_info, c("train_iter", "test_iter", "predict_iter"), .keep_all = TRUE)
-  score_trace_1.n <- stats::weighted.mean(predict_info$score_pred_1, rep(1, nrow(predict_info)), na.rm = TRUE)
-  score_trace_1.w <- length(stats::na.omit(predict_info$score_pred_1))
-  score_trace_1_adj.n <- stats::weighted.mean(predict_info$score_pred_1, ifelse(predict_info$adjustment, 0, 1), na.rm = TRUE)
-  score_trace_1_adj.w <- length(stats::na.omit(predict_info$score_pred_1[which(!predict_info$adjustment)]))
-  score_trace_2.n <- stats::weighted.mean(predict_info$score_pred_2, rep(1, nrow(predict_info)), na.rm = TRUE)
-  score_trace_2.w <- length(stats::na.omit(predict_info$score_pred_2))
-  score_trace_2_adj.n <- ifelse(!is.na(predict_info$score_pred_2) & predict_info$adjustment, 0, predict_info$score_pred_2)
-  score_trace_2_adj.n <- stats::weighted.mean(score_trace_2_adj.n, rep(1, nrow(predict_info)), na.rm = TRUE)
-  score_trace_2_adj.w <- length(stats::na.omit(predict_info$score_pred_2))
-  trace_sim_result <- sim_result(type = "trace",
-                                score1.n = score_trace_1.n,
-                                score1.w = score_trace_1.w,
-                                score1_adj.n = score_trace_1_adj.n,
-                                score1_adj.w = score_trace_1_adj.w,
-                                score2.n = score_trace_2.n,
-                                score2.w = score_trace_2.w,
-                                score2_adj.n = score_trace_2_adj.n,
-                                score2_adj.w = score_trace_2_adj.w)
-  return(trace_sim_result)
+
+  trace_score <- do.call(cbind, lapply(object@cut_off_prob, function(i) {
+    score_trace_1.n <- stats::weighted.mean(predict_info[, paste0("score_pred_1_", 1 - i)], rep(1, nrow(predict_info)), na.rm = TRUE)
+    score_trace_1.w <- length(stats::na.omit(predict_info[, paste0("score_pred_1_", 1 - i)]))
+    score_trace_1_adj.n <- stats::weighted.mean(predict_info[, paste0("score_pred_1_", 1 - i)], ifelse(predict_info[, paste0("adjustment_", 1 - i)], 0, 1), na.rm = TRUE)
+    score_trace_1_adj.w <- length(stats::na.omit(predict_info[, paste0("score_pred_1_", 1 - i)][which(!predict_info[, paste0("adjustment_", 1 - i)])]))
+    score_trace_2.n <- stats::weighted.mean(predict_info[, paste0("score_pred_2_", 1 - i)], rep(1, nrow(predict_info)), na.rm = TRUE)
+    score_trace_2.w <- length(stats::na.omit(predict_info[, paste0("score_pred_2_", 1 - i)]))
+    score_trace_2_adj.n <- ifelse(!is.na(predict_info[, paste0("score_pred_2_", 1 - i)]) & predict_info[, paste0("adjustment_", 1 - i)], 0, predict_info[, paste0("score_pred_2_", 1 - i)])
+    score_trace_2_adj.n <- stats::weighted.mean(score_trace_2_adj.n, rep(1, nrow(predict_info)), na.rm = TRUE)
+    score_trace_2_adj.w <- length(stats::na.omit(predict_info[, paste0("score_pred_2_", 1 - i)]))
+    result <- matrix(c(score_trace_1.n,
+                       score_trace_1.w,
+                       score_trace_1_adj.n,
+                       score_trace_1_adj.w,
+                       score_trace_2.n,
+                       score_trace_2.w,
+                       score_trace_2_adj.n,
+                       score_trace_2_adj.w), nrow = 1)
+    colnames(result) <- c(paste0("score1.n_", 1 - i),
+                          paste0("score1.w_", 1 - i),
+                          paste0("score1_adj.n_", 1 - i),
+                          paste0("score1_adj.w_", 1 - i),
+                          paste0("score2.n_", 1 - i),
+                          paste0("score2.w_", 1 - i),
+                          paste0("score2_adj.n_", 1 - i),
+                          paste0("score2_adj.w_", 1 - i))
+    return(result)
+  }))
+  return(trace_score)
+}
+
+
+#' Normalize Parameter Info
+#'
+#' @description Change quantile information from column features to row features.
+#' @param cut_off_prob A numeric vector representing cut off probability.
+#' @param param_info A dataframe representing prediction information of different traces.
+#' @return A dataframe of normalized scoring information.
+#' @keywords internal
+normalize_predict_info <- function(cut_off_prob, param_info) {
+  rest_feaures <- c()
+  needle1 <- 1 - cut_off_prob
+  needle2 <- cut_off_prob
+
+  stacked_quantile_info <- data.frame()
+  stacked_cut_off_prob_info <- data.frame()
+  for (i in 1:length(cut_off_prob)) {
+    find1 <- grep(paste0("*_", needle1[i], "$"), colnames(param_info))
+    if (length(find1) > 0) {
+      curr_quantile_info <- data.frame("quantile" = rep(needle1[i], times = nrow(param_info)))
+      for (j in 1:length(find1)) {
+        curr_quantile_info[[sub(paste0("_", needle1[i]), "", colnames(param_info)[find1[j]])]] <- param_info[, find1[j]]
+      }
+      stacked_quantile_info <- rbind(stacked_quantile_info, curr_quantile_info)
+    }
+    find2 <- grep(paste0("*_", needle2[i], "$"), colnames(param_info))
+    if (length(find2) > 0) {
+      curr_cut_off_prob_info <- data.frame("cut_off_prob" = rep(needle2[i], times = nrow(param_info)))
+      for (j in 1:length(find2)) {
+        curr_cut_off_prob_info[[sub(paste0("_", needle2[i]), "", colnames(param_info)[find2[j]])]] <- param_info[, find2[j]]
+      }
+      stacked_cut_off_prob_info <- rbind(stacked_cut_off_prob_info, curr_cut_off_prob_info)
+    }
+    rest_feaures <- c(rest_feaures, find1, find2)
+  }
+
+  rest_param_info <- param_info[rep(1:nrow(param_info), times = length(cut_off_prob)), -rest_feaures, drop = FALSE]
+  if (nrow(stacked_quantile_info) > 0) {
+    param_info <- cbind(rest_param_info, stacked_quantile_info)
+  }
+  if (nrow(stacked_cut_off_prob_info) > 0) {
+    param_info <- cbind(param_info, stacked_cut_off_prob_info)
+  }
+  return(param_info)
 }
 
 
 #' Check Score Of An Entire Parameter Setting.
 #'
 #' @description Check the score information of an entire parameter based on actual observations and predictions.
-#' @param trace_predict_info A dataframe representing prediction information of different traces.
+#' @param object An S4 sim object.
+#' @param predict_info A dataframe representing prediction information of different traces.
 #' @return A sim_result object.
 #' @keywords internal
-check_score_param <- function(trace_predict_info) {
-  score_param_1.n <- stats::weighted.mean(trace_predict_info$score1.n, trace_predict_info$score1.w, na.rm = TRUE)
-  score_param_1.w <- sum(trace_predict_info$score1.w)
-  score_param_1_adj.n <- stats::weighted.mean(trace_predict_info$score1_adj.n, trace_predict_info$score1_adj.w, na.rm = TRUE)
-  score_param_1_adj.w <- sum(trace_predict_info$score1_adj.w)
-  score_param_2.n <- stats::weighted.mean(trace_predict_info$score2.n, trace_predict_info$score2.w, na.rm = TRUE)
-  score_param_2.w <- sum(trace_predict_info$score2.w)
-  score_param_2_adj.n <- stats::weighted.mean(trace_predict_info$score2_adj.n, trace_predict_info$score2_adj.w, na.rm = TRUE)
-  score_param_2_adj.w <- sum(trace_predict_info$score2_adj.w)
-  trace_sim_result <- sim_result(type = "param",
-                                 score1.n = score_param_1.n,
-                                 score1.w = score_param_1.w,
-                                 score1_adj.n = score_param_1_adj.n,
-                                 score1_adj.w = score_param_1_adj.w,
-                                 score2.n = score_param_2.n,
-                                 score2.w = score_param_2.w,
-                                 score2_adj.n = score_param_2_adj.n,
-                                 score2_adj.w = score_param_2_adj.w)
-  return(trace_sim_result)
+check_score_param <- function(object, predict_info) {
+  param_score <- do.call(cbind, lapply(object@cut_off_prob, function(i) {
+    temp_predict_info <- predict_info[predict_info$quantile == (1 - i),]
+    score_param_1.n <- stats::weighted.mean(temp_predict_info[, "score1.n"], temp_predict_info[, "score1.w"], na.rm = TRUE)
+    score_param_1.w <- sum(temp_predict_info[, "score1.w"])
+    score_param_1_adj.n <- stats::weighted.mean(temp_predict_info[, "score1_adj.n"], temp_predict_info[, "score1_adj.w"], na.rm = TRUE)
+    score_param_1_adj.w <- sum(temp_predict_info[, "score1_adj.w"])
+    score_param_2.n <- stats::weighted.mean(temp_predict_info[, "score2.n"], temp_predict_info[, "score2.w"], na.rm = TRUE)
+    score_param_2.w <- sum(temp_predict_info[, "score2.w"])
+    score_param_2_adj.n <- stats::weighted.mean(temp_predict_info[, "score2_adj.n"], temp_predict_info[, "score2_adj.w"], na.rm = TRUE)
+    score_param_2_adj.w <- sum(temp_predict_info[, "score2_adj.w"])
+    result <- matrix(c(score_param_1.n,
+                       score_param_1.w,
+                       score_param_1_adj.n,
+                       score_param_1_adj.w,
+                       score_param_2.n,
+                       score_param_2.w,
+                       score_param_2_adj.n,
+                       score_param_2_adj.w), nrow = 1)
+    colnames(result) <- c(paste0("score1.n_", 1 - i),
+                          paste0("score1.w_", 1 - i),
+                          paste0("score1_adj.n_", 1 - i),
+                          paste0("score1_adj.w_", 1 - i),
+                          paste0("score2.n_", 1 - i),
+                          paste0("score2.w_", 1 - i),
+                          paste0("score2_adj.n_", 1 - i),
+                          paste0("score2_adj.w_", 1 - i))
+    return(result)
+  }))
+  return(param_score)
 }
 
 
-#' Check If Performacne is Good Enough
+#' Print The Result Of Simulation
 #'
-#' @description Check if the scheduling performance reaches target on score1.
-#' @param score_result A sim_result object representing testing result on a testing batch.
-#' @param target_score_1 A numeric value representing target of score1.
-#' @return A logical value \code{TRUE} if performance is good enough, \code{FALSE}, otherwise.
+#' @description Show the result of a simulation for one specific parameter setting.
+#' @param param_predict_info A S4 sim result object.
+#' @return A list consists of summary of simulation result.
 #' @keywords internal
-is_well_performed <- function(score_result, target_score_1) {
-  if (is.null(score_result)) {
-    return(FALSE)
-  }
-  if (is.na(score_result@score1.n)) {
-    return(FALSE)
-  } else if (score_result@score1.n >= target_score_1) {
-    return(TRUE)
-  } else {
-    return(FALSE)
-  }
-}
+show_result <- function(param_predict_info) {
+  all_quantiles <- grep("score1.n_*", colnames(param_predict_info), value = TRUE)
+  all_cut_off_probs <- 1 - as.numeric(sub("Quantile_", "", all_quantiles))
 
-
-#' Compare Performance of Two Models On A Test Batch
-#'
-#' @description Check if model 1 outperforms model 2 on a test batch.
-#' @param score_result1 A sim_result object representing testing result on a testing batch for model 1.
-#' @param score_result2 A sim_result object representing testing result on a testing batch for model 2.
-#' @param target_score_1 A numeric value representing target of score1.
-#' @return A logical value \code{TRUE} if model 1 outperforms model 2, \code{FALSE} otherwise.
-#' @keywords internal
-out_performs <- function(score_result1, score_result2, target_score_1) {
-  if (is.null(score_result1)) {
-    return(FALSE)
-  }
-  if (is.null(score_result2)) {
-    return(TRUE)
-  }
-
-  m1_good_enough <- is_well_performed(score_result1, target_score_1)
-  m2_good_enough <- is_well_performed(score_result2, target_score_1)
-  if (m1_good_enough & m2_good_enough) {
-    if (is.nan(score_result1@score2.n)) {
-      return(TRUE)
-    } else if (is.na(score_result1@score2.n)) {
-      return(FALSE)
-    }
-    if (is.nan(score_result2@score2.n)) {
-      return(FALSE)
-    } else if (is.na(score_result2@score2.n)) {
-      return(TRUE)
-    }
-    return(ifelse(score_result1@score2.n > score_result2@score2.n, TRUE, FALSE))
-  } else if (m1_good_enough) {
-    return(TRUE)
-  } else if (m2_good_enough) {
-    return(FALSE)
-  } else {
-    m1_na_result <- is.na(score_result1@score1.n)
-    m2_na_result <- is.na(score_result2@score1.n)
-    if (m1_na_result & m2_na_result) {
-      return(FALSE)
-    } else if (m1_na_result) {
-      return(TRUE)
-    } else if (m2_na_result) {
-      return(FALSE)
-    } else {
-      if (score_result1@score1.n == score_result2@score1.n) {
-        if (is.nan(score_result1@score2.n)) {
-          return(TRUE)
-        } else if (is.na(score_result1@score2.n)) {
-          return(FALSE)
-        }
-        if (is.nan(score_result2@score2.n)) {
-          return(FALSE)
-        } else if (is.na(score_result2@score2.n)) {
-          return(TRUE)
-        }
-        return(ifelse(score_result1@score2.n > score_result2@score2.n, TRUE, FALSE))
-      } else {
-        return(ifelse(score_result1@score1.n > score_result2@score1.n, TRUE, FALSE))
-      }
+  for (i in all_cut_off_probs) {
+    print(paste0("Under Quantile Setting of ", 1 - i))
+    msg1 <- paste("Score 1:", as.numeric(param_predict_info[, paste0("score1.n_", 1 - i)]), "with", as.numeric(param_predict_info[, paste0("score1.w_", 1 - i)]), "predictions.")
+    msg2 <- paste("Adjusted Score 1:", as.numeric(param_predict_info[, paste0("score1_adj.n_", 1 - i)]), "with", as.numeric(param_predict_info[, paste0("score1_adj.w_", 1 - i)]), "predictions.")
+    msg3 <- paste("Score 2:", as.numeric(param_predict_info[, paste0("score2.n_", 1 - i)]), "with", as.numeric(param_predict_info[, paste0("score2.w_", 1 - i)]), "predictions.")
+    msg4 <- paste("Adjusted Score 2:", as.numeric(param_predict_info[, paste0("score2_adj.n_", 1 - i)]), "with", as.numeric(param_predict_info[, paste0("score2_adj.w_", 1 - i)]), "predictions.")
+    for (i in c(msg1, msg2, msg3, msg4)) {
+      print(i)
     }
   }
-}
-
-
-#' Find Best Performed Model In Candidate Models.
-#'
-#' @description Find best performed model based on each model performance history.
-#' @param candidate_model A numeric vector representing the pool from which the best candidate model will be selected.
-#' @param predict_results A list of sim_result objects representing the prediction histories of models.
-#' @param target_score_1 A numeric value representing target of score1.
-#' @return The index of best performance candidate model.
-#' @keywords internal
-find_best_candidate <- function(candidate_model, predict_histories, target_score_1) {
-  best_idx <- candidate_model[1]
-  if (length(candidate_model) == 1) {
-    return(best_idx)
-  } else {
-    for (i in 2:length(candidate_model)) {
-      if (out_performs(predict_histories[[letters[candidate_model[i]]]], predict_histories[[letters[best_idx]]], target_score_1)) {
-        best_idx <- candidate_model[i]
-      }
-    }
-    return(best_idx)
-  }
-}
-
-
-#' Find Worst Performed Model In Candidate Models.
-#'
-#' @description Find worst performed model based on each model performance history to be replaced by new model.
-#' @param model_num A numeric number representing the total number of models to keep and switch within.
-#' @param predict_histories A list of sim_result objects representing the prediction histories of models.
-#' @param target_score_1 A numeric value representing target of score1.
-#' @return The index of worst performance candidate model.
-#' @keywords internal
-find_worst_candidate <- function(model_num, predict_histories, target_score_1) {
-  worst_idx <- 1
-  if (model_num == 1) {
-    return(worst_idx)
-  } else {
-    for (i in 2:model_num) {
-      if (out_performs(predict_histories[[letters[worst_idx]]], predict_histories[[letters[i]]], target_score_1)) {
-        worst_idx <- i
-      }
-    }
-    return(worst_idx)
-  }
-}
-
-
-#' Combine Two Simulation Result.
-#'
-#' @description Combine two sim_result object and return the combined object.
-#' @param object1 A sim_result object to be combined with another.
-#' @param object2 A sim_result object to be combined with another.
-#' @return A sim_result object with type being the higher level of the two objects being combined.
-#' @keywords internal
-combine_result <- function(object1, object2) {
-  ordering <- c("test", "train", "trace", "param")
-  idx_1 <- which(object1@type == ordering)
-  idx_2 <- which(object2@type == ordering)
-  cbd_type <- ordering[max(idx_1, idx_2)]
-  cbd_score1.n <- stats::weighted.mean(x = c(object1@score1.n, object2@score1.n), w = c(object1@score1.w, object2@score1.w), na.rm = TRUE)
-  cbd_score1.w <- sum(object1@score1.w, object2@score1.w)
-  cbd_score1_adj.n <- stats::weighted.mean(x = c(object1@score1_adj.n, object2@score1_adj.n), w = c(object1@score1_adj.w, object2@score1_adj.w), na.rm = TRUE)
-  cbd_score1_adj.w <- sum(object1@score1_adj.w, object2@score1_adj.w)
-  cbd_score2.n <- stats::weighted.mean(x = c(object1@score2.n, object2@score2.n), w = c(object1@score2.w, object2@score2.w), na.rm = TRUE)
-  cbd_score2.w <- sum(object1@score2.w, object2@score2.w)
-  cbd_score2_adj.n <- stats::weighted.mean(x = c(object1@score2_adj.n, object2@score2_adj.n), w = c(object1@score2_adj.w, object2@score2_adj.w), na.rm = TRUE)
-  cbd_score2_adj.w <- sum(object1@score2_adj.w, object2@score2_adj.w)
-  cbd_sim_result <- sim_result(type = cbd_type,
-                               score1.n = cbd_score1.n,
-                               score1.w = cbd_score1.w,
-                               score1_adj.n = cbd_score1_adj.n,
-                               score1_adj.w = cbd_score1_adj.w,
-                               score2.n = cbd_score2.n,
-                               score2.w = cbd_score2.w,
-                               score2_adj.n = cbd_score2_adj.n,
-                               score2_adj.w = cbd_score2_adj.w)
-  return(cbd_sim_result)
+  invisible()
 }
 
 
@@ -572,27 +465,6 @@ write_location_check <- function(file_name, ...) {
     fs::dir_create(parent_dir)
   }
   return(fs::path(parent_dir, file_name))
-}
-
-
-#' Print The Result Of Simulation
-#'
-#' @description Show the result of a simulation for one specific parameter setting.
-#' @param param_predict_info A S4 sim result object.
-#' @param show_msg A logical value representing whether messages will printed.
-#' @return A list consists of summary of simulation result.
-#' @keywords internal
-show_result <- function(param_predict_info, show_msg = TRUE) {
-  msg1 <- paste("Score 1:", param_predict_info@score1.n, "with", param_predict_info@score1.w, "predictions.")
-  msg2 <- paste("Adjusted Score 1:", param_predict_info@score1_adj.n, "with", param_predict_info@score1_adj.w, "predictions.")
-  msg3 <- paste("Score 2:", param_predict_info@score2.n, "with", param_predict_info@score2.w, "predictions.")
-  msg4 <- paste("Adjusted Score 2:", param_predict_info@score2_adj.n, "with", param_predict_info@score2_adj.w, "predictions.")
-  if (show_msg) {
-    for (i in c(msg1, msg2, msg3, msg4)) {
-      print(i)
-    }
-  }
-  return(c(msg1, msg2, msg3, msg4))
 }
 
 
@@ -674,3 +546,50 @@ trace_reconstruct <- function(avg_trace, max_trace=NULL, orig_rate, new_rate, h=
     return(constructed_sample)
   }
 }
+
+
+#' Estimate Parameters of Skew Normal Distribution Using MOM
+#'
+#' @param res A numeric vector of residuals of fitted model.
+#' @return A list containing the xi, omega and alpha.
+#' @keywords internal
+skew_norm_param_estimation <- function(res) {
+  skew_res <- sample_moment_lag(res, k = 0, r = 3, s = 0) / (sample_moment_lag(res, k = 0, r = 2, s = 0) ^ (3/2))
+  abs_skew_res <- min(abs(skew_res), 0.99)
+
+  # alpha
+  delta <- sign(skew_res) * sqrt((pi / 2) * (abs_skew_res^(2/3)) / ((abs_skew_res ^ (2/3)) + (2 - 0.5 * pi) ^ (2/3)))
+  alpha <- delta / sqrt(1 - delta ^ 2)
+
+  # omega
+  omega2 <- sample_moment_lag(res, k = 0, r = 2, s = 0) / (1 - 2 / pi * delta ^ (2))
+  omega <- sqrt(omega2)
+
+  # xi
+  xi <- 0 - sqrt(pi / 2) * omega * delta
+
+  return(list("xi" = xi, "omega" = omega, "alpha" = alpha))
+}
+
+
+#' Predict Parameters of Skew Normal Distribution Using MOM
+#'
+#' @param object A numeric vector of residuals of fitted model.
+#' @param trained_result A tso or Arima object containing trained parameters.
+#' @param predicted_mean A numeric vector representing predicted mean under normal distribution assumption.
+#' @param level A numeric vector representing the confidence level.
+#' @return A list containing the xi, omega and alpha.
+#' @keywords internal
+skew_norm_param_prediction <- function(object, trained_result, predicted_mean, level) {
+  xi <- trained_result$xi + predicted_mean
+  omega <- trained_result$omega
+  alpha <- trained_result$alpha
+
+  expected <- stats::setNames(as.data.frame(xi + sqrt(2 / pi) * omega * (alpha / sqrt(1 + alpha ^ 2))), "expected")
+  pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(level, function(i) {
+    max(sn::qsn(i / 100, xi = xi, omega = omega, alpha = alpha))
+  }))), paste0("Quantile_", sort(1 - object@cut_off_prob)))
+  predicted_params <- data.frame("param.xi" = xi, "param.omega" = omega, "param.alpha" = alpha)
+  return(list("expected" = expected, "pi_up" = pi_up, "predicted_params" = predicted_params))
+}
+

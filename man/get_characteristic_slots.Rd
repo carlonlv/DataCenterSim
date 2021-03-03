@@ -51,9 +51,9 @@ get_characteristic_slots(object)
 \value{
 A list containing all character parameter informations.
 
-A list containing all character parameter informations.
+A list containing all character parameter information.
 
-A list containing all character parameter informations.
+A list containing all character parameter information.
 
 A list containing all character parameter informations.
 

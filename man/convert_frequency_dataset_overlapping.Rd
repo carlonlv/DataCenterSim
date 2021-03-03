@@ -9,6 +9,7 @@ convert_frequency_dataset_overlapping(
   new_freq,
   response,
   keep.names = TRUE,
+  right.aligned = TRUE,
   jump = 1
 )
 }
@@ -19,6 +20,10 @@ convert_frequency_dataset_overlapping(
 
 \item{response}{If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.}
 
+\item{keep.names}{If this argument is \code{TRUE}, then if \code{dataset} has names representing the time stamp of each observation, then the output vector also keep names as aggretated time stamp of each observation.}
+
+\item{right.aligned}{If this argument is \code{TRUE}, then the converted frequency will be aligned from the right side instead of the left side.}
+
 \item{jump}{A numeric value representing the number of steps to jump after each windowing operations. Default value is \code{1}.}
 }
 \value{
@@ -27,4 +32,3 @@ The vector of same size of input vector.
 \description{
 Convert \code{dataset} to bigger frequency provided by \code{new_freq} using max/avg operators, the rest will be truncated off.
 }
-\keyword{internal}

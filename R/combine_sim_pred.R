@@ -240,11 +240,9 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 
   denominator <- machine_available_resources - ongoing_demoninator
 
-  finished_jobs_num <- nrow(finished_jobs)
   ongoing_jobs_num <- nrow(ongoing_jobs)
   killed_jobs_num <- nrow(past_failures)
   survived_jobs_num <- nrow(finished_jobs) - sum(finished_jobs$emp_job_id %in% past_failures$emp_job_id)
-  unscheduled_jobs_num <- nrow(unscheduled_jobs)
   denied_jobs_num <- nrow(unscheduled_jobs) - sum(unscheduled_jobs$emp_job_id %in% past_failures$emp_job_id)
 
   past_failures <- past_failures %>%
@@ -317,7 +315,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
       machine_bin_offs <- machine_bin_offs[machine_bin_offs$bin > machine_bin_offs$offs,]
       machine_bin_offs <- dplyr::arrange_at(machine_bin_offs, .vars = c("bin", "offs"))
       pbapply::pboptions(type = "txt")
-      fg_predict_info_lst <- pbapply::pblapply(1:nrow(machine_bin_offs), function(ts_num){
+      fg_predict_info_lst <- pbapply::pblapply(1:ncol(foreground_x), function(ts_num){
         lapply(1:nrow(machine_bin_offs), function(row_num) {
           bin <- machine_bin_offs[row_num, "bin"]
           offs <- machine_bin_offs[row_num, "offs"]

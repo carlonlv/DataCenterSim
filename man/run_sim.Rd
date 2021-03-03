@@ -6,6 +6,7 @@
 \usage{
 run_sim(
   epoch_setting,
+  additional_setting = list(),
   x,
   xreg,
   start_point = 1,
@@ -19,9 +20,11 @@ run_sim(
 \arguments{
 \item{epoch_setting}{A dataframe representing a specific parameter setting.}
 
+\item{additional_setting}{A list containing additional vector-like parameter settings.}
+
 \item{x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
-\item{xreg}{A matrix of length n by m representing the dataset that target dataset depends on for scheduling and evaluations, or \code{NULL}.}
+\item{xreg}{A matrix or a list of matrices of length n by m representing the dataset that target dataset depends on for scheduling and evaluations, or \code{NULL}.}
 
 \item{start_point}{A numeric number that represents the starting point of the simulation. Default value is \code{1}.}
 

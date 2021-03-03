@@ -43,10 +43,6 @@ check_valid_sim <- function(object) {
     msg <- paste0("train_size must be a positive integer.")
     errors <- c(errors, msg)
   }
-  if (length(object@model_num) != 1 | is.na(object@model_num) | object@model_num %% 1 != 0 | object@model_num <= 0 | object@model_num > 26) {
-    msg <- paste0("model_num must be a positive integer smaller than 26.")
-    errors <- c(errors, msg)
-  }
   if (length(object@extrap_step) != 1 | is.na(object@extrap_step) | object@extrap_step %% 1 != 0 | object@extrap_step <= 0) {
     msg <- paste0("extrap_step must be a positive integer.")
     errors <- c(errors, msg)
@@ -80,7 +76,6 @@ check_valid_sim <- function(object) {
 #' @slot granularity A numeric number that specify the amount of CPU usage can be scheduled by one core, if \code{0} is provided, then granularity is not considered. Default values is \code{0}.
 #' @slot train_policy A character that represents the type of training policy that can either be \code{"offline"}, \code{"fixed"} or \code{"dynamic"}. Default value is \code{"dynamic"}.
 #' @slot train_size A numeric number that specify the training size used for simulations. Default values is \code{3000}.
-#' @slot model_num A numeric number that specify the maximum number of models for switching. Default value is \code{1}.
 #' @slot extrap_step A numeric number that specify the number of steps after aggregated by \code{window_size} to predict into the future. Default value is \code{1}.
 #' @slot update_freq A numeric number that specify the number of times to predict into the future after each training step after aggregated by \code{window_size}. Default values is \code{3}.
 #' @slot react_speed A numeric number of length two that specify the number of failed/successfull predictions needed to activate/deactive backing off strategy. Default value is \code{c(1, 1)}.
@@ -96,7 +91,6 @@ sim <- setClass("sim",
                              granularity = "numeric",
                              train_policy = "character",
                              train_size = "numeric",
-                             model_num = "numeric",
                              extrap_step = "numeric",
                              update_freq = "numeric",
                              react_speed = "numeric",
@@ -108,7 +102,6 @@ sim <- setClass("sim",
                                  granularity = 0,
                                  train_policy = "dynamic",
                                  train_size = 3000,
-                                 model_num = 1,
                                  extrap_step = 1,
                                  update_freq = 3,
                                  react_speed = c(1, 1),

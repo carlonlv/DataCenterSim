@@ -21,25 +21,21 @@
 \alias{var_sim}
 \title{An S4 Class to Represent A Simulation.}
 \arguments{
+\item{outlier_type}{A character representing the type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.}
+
+\item{outlier_cval}{A numeric value representing the critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50). Default value is \code{NA_real_}.}
+
 \item{outlier_prediction}{A character representing the distribution of occurences of outliers, and the prior distribution for probability of occurences. Current choices are "None", "Categorical" for predictions based on MLE, "Categorical-Dirichlet" for Bayesian prediction and prior distribution.}
 
 \item{outlier_prediction_prior}{A numeric vector representing the starting value of the hyperparameters of prior distirbution.}
 
 \item{outlier_prediction_update_param}{A logical value representing whether to update the value of the hyperparameters of prior distribution or MLE estimations of parameters depending on \code{outlier_prediction}.}
 
-\item{outlier_type}{A character value representing the type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.}
+\item{half_life}{A numerc integer representing the number of windows for the weight to drop to half in jth-quantile. Default value is \code{144}.}
 
-\item{outlier_cval}{A numeric value representing the critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50).}
+\item{breaks}{A numeric integer or vector representing the number of breaks for each histogram in each window or the break points for \code{x}. Passed into \code{hist}. Default value is \code{10}.}
 
-\item{statistics}{A character representing the type of statistics used to compute the recommendation at a specific time, can be either \code{"peak"}, \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{"j-quantile"}.}
-
-\item{n}{A numeric integer representing the number of windows to find maximum over, used only when \code{"statistics"} is assigned to be \code{"peak"}. Default value is \code{288}.}
-
-\item{half_life}{A numerc integer representing the number of windows for the weight to drop to half, used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{144}.}
-
-\item{breaks}{A numeric integer or vector representing the number of breaks for each histogram in each window or the break points for \code{x}. Used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}, passed into \code{hist}. Default value is \code{10}.}
-
-\item{cut_off_weight}{A numeric value that is close to zero, representing the smallest weight possible, lower which the weight will be considered as zero. Used when \code{"statistics"} is assigned to be \code{"weighted_avg"} or \code{"j-quantile"}. Default value is \code{0.001}.}
+\item{cut_off_weight}{A numeric value that is close to zero, representing the smallest weight possible, lower which the weight will be considered as zero. Default value is \code{0.001}.}
 
 \item{res_dist}{A character representing the distribution of residual, \code{"normal"} for normal distribution, \code{"skew_norm"} for skewed normal distribution, or \code{"empirical"} for empirical distribution. Default value is \code{"normal"}.}
 
@@ -80,8 +76,6 @@ An S4 Class to Represent A Simulation.
 \item{\code{train_policy}}{A character that represents the type of training policy that can either be \code{"offline"}, \code{"fixed"} or \code{"dynamic"}. Default value is \code{"dynamic"}.}
 
 \item{\code{train_size}}{A numeric number that specify the training size used for simulations. Default values is \code{3000}.}
-
-\item{\code{model_num}}{A numeric number that specify the maximum number of models for switching. Default value is \code{1}.}
 
 \item{\code{extrap_step}}{A numeric number that specify the number of steps after aggregated by \code{window_size} to predict into the future. Default value is \code{1}.}
 

@@ -4,10 +4,12 @@
 \alias{check_score_param}
 \title{Check Score Of An Entire Parameter Setting.}
 \usage{
-check_score_param(trace_predict_info)
+check_score_param(object, predict_info)
 }
 \arguments{
-\item{trace_predict_info}{A dataframe representing prediction information of different traces.}
+\item{object}{An S4 sim object.}
+
+\item{predict_info}{A dataframe representing prediction information of different traces.}
 }
 \value{
 A sim_result object.

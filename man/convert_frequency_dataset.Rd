@@ -29,4 +29,3 @@ The vector of smaller size than input vector if \code{new_freq} is greater than 
 \description{
 Convert \code{dataset} to bigger frequency provided by \code{new_freq} using max/avg operators, the rest will be truncated off.
 }
-\keyword{internal}

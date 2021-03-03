@@ -69,5 +69,5 @@ run_sim_pred(
 A dataframe containing the decisions made by scheduler.
 }
 \description{
-Sequantially training and testing by predicting the availability of CPU resource at next windows.
+Sequentially training and testing by predicting the availability of CPU resource at next windows.
 }

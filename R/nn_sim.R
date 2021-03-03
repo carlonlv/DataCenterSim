@@ -230,7 +230,7 @@ setMethod("do_prediction",
 
               new_xreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
                 temp_xreg <- rbind(trained_result$call$orig_xreg[[reg]], test_xreg[[reg]])
-                convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * (length(predict_info$actual) + object@extrap_step) - max(object@window_size_for_reg - object@window_size, 0) + 1):(nrow(new_xreg) - object@window_size * object@extrap_step),1],
+                convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * (length(predict_info$actual) + object@extrap_step) - max(object@window_size_for_reg - object@window_size, 0) + 1):(nrow(temp_xreg) - object@window_size * object@extrap_step),1],
                                                       object@window_size_for_reg,
                                                       object@window_type_for_reg,
                                                       keep.names = TRUE,
@@ -241,8 +241,16 @@ setMethod("do_prediction",
               target_model <- forecast::nnetar(y = new_x, xreg = new_xreg, model = trained_result)
             }
 
-            dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
+            dxreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
+              temp_xreg <- rbind(trained_result$call$orig_xreg[[reg]], test_xreg[[reg]])
+              convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * object@extrap_step - max(object@window_size_for_reg - object@window_size, 0) + 1):nrow(temp_xreg),1],
+                                                    object@window_size_for_reg,
+                                                    object@window_type_for_reg,
+                                                    keep.names = TRUE,
+                                                    jump = object@window_size)
+            }))
             colnames(dxreg) <- colnames(trained_result$call$xreg)
+
             args.tsmethod <- c(object@pred_args, list("object" = target_model, "xreg" = dxreg, "PI" = TRUE, "h" = object@extrap_step, "level" = level))
             predict_result <- do.call(forecast::forecast, args.tsmethod)
 

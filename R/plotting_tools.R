@@ -31,7 +31,7 @@ plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size",
 
   charwise_summ <- charwise_summ %>%
     dplyr::group_by_at(.vars = as.character(mapping)) %>%
-    dplyr::arrange_at(.vars = "cut_off_prob")
+    dplyr::arrange_at(.vars = "Quantile")
 
   plt <- ggplot2::ggplot(charwise_summ, do.call(ggplot2::aes_string, mapping))
   if (!adjusted) {
@@ -61,6 +61,7 @@ plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size",
   }
 
   plt <- plt +
+    ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = length(unique(charwise_summ[, "Quantile"]))), hjust = 0, label = paste0("Quantile settings:", paste(sort(unique(charwise_summ[, "Quantile"])), sep = ","))) +
     ggplot2::ylab("Utilization Rate") +
     ggplot2::xlab("Survival Rate") +
     ggplot2::scale_color_brewer(name = ifelse(is.null(mapping[["color"]]), "empty", mapping[["color"]]), palette = "Set1", guide = ggplot2::guide_legend(ncol = 1)) +
@@ -88,81 +89,70 @@ plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size",
 #' @rdname plot_sim_paramwise
 #' @export
 plot_sim_paramwise <- function(param_score, target, name, ...) {
-  msg <- show_result(check_score_param(param_score), show_msg = FALSE)
+  for (i in unique(param_score$quantile)) {
+    current_param_score <- param_score[param_score$quantile == i,]
+    under_performed_score1 <- sum(current_param_score$score1.n < target, na.rm = TRUE) / length(stats::na.omit(current_param_score$score1.n))
+    under_performed_score1_adj <- sum(current_param_score$score1_adj.n < target, na.rm = TRUE) / length(stats::na.omit(current_param_score$score1_adj.n))
+    msg1 <- paste(under_performed_score1, "of traces underperformed on Score 1.")
+    msg2 <- paste(under_performed_score1_adj, "of traces underperformed on Score 1 Adjusted.")
 
-  under_performed_score1 <- sum(param_score$score1.n < target, na.rm = TRUE) / length(stats::na.omit(param_score$score1.n))
-  under_performed_score1_adj <- sum(param_score$score1_adj.n < target, na.rm = TRUE) / length(stats::na.omit(param_score$score1_adj.n))
-  msg1 <- paste(under_performed_score1, "of traces underperformed on Score 1.")
-  msg2 <- paste(under_performed_score1_adj, "of traces underperformed on Score 1 Adjusted.")
+    sorted_by_score1 <- current_param_score[order(current_param_score$score1.n),]
+    sorted_by_score1_adj <- current_param_score[order(current_param_score$score1_adj.n),]
 
-  sorted_by_score1 <- param_score[order(param_score$score1.n),]
-  sorted_by_score1_adj <- param_score[order(param_score$score1_adj.n),]
+    under_performed_traces_score1 <- sorted_by_score1[which(sorted_by_score1$score1.n < target),]
+    if (nrow(under_performed_traces_score1) > 0) {
+      msg3 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_score1$trace_name, 3), collapse = ","), "for underperforming on score1.")
+    } else {
+      msg3 <- paste("No underperformed traces detected for Score 1.")
+    }
 
-  under_performed_traces_score1 <- sorted_by_score1[which(sorted_by_score1$score1.n < target),]
-  if (nrow(under_performed_traces_score1) > 0) {
-    msg3 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_score1$trace_name, 3), collapse = ","), "for underperforming on score1.")
-  } else {
-    msg3 <- paste("No underperformed traces detected for Score 1.")
+    under_performed_traces_score1_adj <- sorted_by_score1_adj[which(sorted_by_score1_adj$score1_adj.n < target),]
+    if (nrow(under_performed_traces_score1_adj) > 0) {
+      msg4 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_score1_adj$trace_name, 3), collapse = ","), "for underperforming on score1_adj.")
+    } else {
+      msg4 <- paste("No underperformed traces detected for Score 1 adjusted.")
+    }
+
+    plt1 <- ggplot2::ggplot(current_param_score) +
+      ggplot2::geom_histogram(ggplot2::aes_string(x = "score1.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
+      ggplot2::geom_histogram(ggplot2::aes_string(x = "score1_adj.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
+      ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = 4), hjust = 0, label = c(msg1, msg2, msg3, msg4)) +
+      ggplot2::geom_vline(xintercept = target, linetype = "dashed", color = "purple") +
+      ggplot2::xlab("Score 1") +
+      ggplot2::theme_bw() +
+      ggplot2::theme(legend.position = "none") +
+      ggsci::scale_color_ucscgb()
+
+
+    plt2 <- ggplot2::ggplot(current_param_score) +
+      ggplot2::geom_histogram(ggplot2::aes_string(x = "score2.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
+      ggplot2::geom_histogram(ggplot2::aes_string(x = "score2_adj.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
+      ggplot2::xlab("Score 2") +
+      ggplot2::theme_bw() +
+      ggplot2::theme(legend.position = "none") +
+      ggsci::scale_color_ucscgb()
+
+    plt <- gridExtra::arrangeGrob(plt1, plt2, ncol = 2, nrow = 1)
+    file_name <- paste("Performance Plot 1D of Param Under Quantile", i, name, collapse = ",")
+    save_path <- write_location_check(file_name = file_name, ...)
+    ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 7, height = 5)
+
+    result3 <- data.frame("score1.n" = c(current_param_score$score1.n, current_param_score$score1_adj.n), "score1.w" = c(current_param_score$score1.w, current_param_score$score1_adj.w), "adjusted" = c(rep(FALSE, length(current_param_score$score1.n)), rep(TRUE, length(current_param_score$score1_adj.n))))
+    plt3 <- ggplot2::ggplot(result3) +
+      ggplot2::stat_density2d(ggplot2::aes_string(x = "score1.n", y = "score1.w", color = "..level..", linetype = "adjusted"), na.rm = TRUE) +
+      ggplot2::scale_color_distiller(type = "div", palette = 9, direction = 1) +
+      ggplot2::geom_point(ggplot2::aes_string(x = "score1.n", y = "score1.w", fill = "adjusted"), alpha = 0.8, na.rm = TRUE, shape = 21) +
+      ggplot2::scale_fill_brewer(name = "adjusted", type = "div", palette = 2) +
+      ggplot2::scale_linetype(name = "adjusted") +
+      ggplot2::xlab("Score 1 Value") +
+      ggplot2::ylab("Score 1 Weight") +
+      ggplot2::theme_bw()
+
+    file_name <- paste("Performance Plot 2D of Param under Quantile", i, name, collapse = ",")
+    save_path <- write_location_check(file_name = file_name, ...)
+    ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt3, width = 7, height = 5)
+
   }
-
-  under_performed_traces_score1_adj <- sorted_by_score1_adj[which(sorted_by_score1_adj$score1_adj.n < target),]
-  if (nrow(under_performed_traces_score1_adj) > 0) {
-    msg4 <- paste("Maybe checkout", paste0(utils::head(under_performed_traces_score1_adj$trace_name, 3), collapse = ","), "for underperforming on score1_adj.")
-  } else {
-    msg4 <- paste("No underperformed traces detected for Score 1 adjusted.")
-  }
-
-  plt1 <- ggplot2::ggplot(param_score) +
-    ggplot2::geom_histogram(ggplot2::aes_string(x = "score1.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
-    ggplot2::geom_histogram(ggplot2::aes_string(x = "score1_adj.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
-    ggplot2::theme(legend.position = "none") +
-    ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = 6), hjust = 0, label = c(msg[1], msg[2], msg1, msg2, msg3, msg4)) +
-    ggplot2::geom_vline(xintercept = target, linetype = "dashed", color = "purple") +
-    ggplot2::xlab("Score 1") +
-    ggplot2::theme_bw() +
-    ggsci::scale_color_ucscgb()
-
-
-  plt2 <- ggplot2::ggplot(param_score) +
-    ggplot2::geom_histogram(ggplot2::aes_string(x = "score2.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "red") +
-    ggplot2::geom_histogram(ggplot2::aes_string(x = "score2_adj.n"), fill = "white", binwidth = 0.005, na.rm = TRUE, color = "blue") +
-    ggplot2::theme(legend.position = "none") +
-    ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = 2), hjust = 0, label = c(msg[3], msg[4])) +
-    ggplot2::xlab("Score 2") +
-    ggplot2::theme_bw() +
-    ggsci::scale_color_ucscgb()
-
-  plt <- gridExtra::arrangeGrob(plt1, plt2, ncol = 2, nrow = 1)
-  file_name <- paste("Performance Plot 1D of Param", name, collapse = ",")
-  save_path <- write_location_check(file_name = file_name, ...)
-  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 7, height = 5)
-
-  result3 <- data.frame("score1.n" = c(param_score$score1.n, param_score$score1_adj.n), "score1.w" = c(param_score$score1.w, param_score$score1_adj.w), "adjusted" = c(rep(FALSE, length(param_score$score1.n)), rep(TRUE, length(param_score$score1_adj.n))))
-  plt3 <- ggplot2::ggplot(result3) +
-    ggplot2::stat_density2d(ggplot2::aes_string(x = "score1.n", y = "score1.w", color = "..level..", linetype = "adjusted"), na.rm = TRUE, bins = c(30, 2000)) +
-    ggplot2::scale_color_distiller(type = "div", palette = 9, direction = 1) +
-    ggplot2::geom_point(ggplot2::aes_string(x = "score1.n", y = "score1.w", fill = "adjusted"), alpha = 0.8, na.rm = TRUE, shape = 21) +
-    ggplot2::scale_fill_brewer(name = "adjusted", type = "div", palette = 2) +
-    ggplot2::scale_linetype(name = "adjusted") +
-    ggplot2::xlab("Score 1 Value") +
-    ggplot2::ylab("Score 1 Weight") +
-    ggplot2::theme_bw()
-
-  result3 <- data.frame("score2.n" = c(param_score$score2.n, param_score$score2_adj.n), "score2.w" = c(param_score$score2.w, param_score$score2_adj.w), "adjusted" = c(rep(FALSE, length(param_score$score2.n)), rep(TRUE, length(param_score$score2_adj.n))))
-  plt4 <- ggplot2::ggplot(result3) +
-    ggplot2::stat_density2d(ggplot2::aes_string(x = "score2.n", y = "score2.w", color = "..level..", linetype = "adjusted"), na.rm = TRUE) +
-    ggplot2::scale_color_distiller(type = "div", palette = 7, direction = 1) +
-    ggplot2::geom_point(ggplot2::aes_string(x = "score2.n", y = "score2.w", fill = "adjusted"), alpha = 0.8, na.rm = TRUE, shape = 21) +
-    ggplot2::scale_fill_brewer(name = "adjusted", type = "div", palette = 3) +
-    ggplot2::scale_linetype(name = "adjusted") +
-    ggplot2::xlab("Score 2 Value") +
-    ggplot2::ylab("Score 2 Weight") +
-    ggplot2::theme_bw()
-
-  plt <- gridExtra::arrangeGrob(plt3, plt4, ncol = 2, nrow = 1)
-  file_name <- paste("Performance Plot 2D of Param", name, collapse = ",")
-  save_path <- write_location_check(file_name = file_name, ...)
-  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 7, height = 5)
   invisible()
 }
 
@@ -195,22 +185,32 @@ plot_sim_tracewise <- function(predict_info, name, ...) {
 
   training_iter <- train_regions$training_iter
 
-  ts_plt <- ggplot2::ggplot(data = predict_info, ggplot2::aes_string(x = "time")) +
-    ggplot2::geom_rect(data = train_regions, inherit.aes = FALSE, aes(xmin = train_start, xmax = train_end, fill = as.factor(training_iter)), ymin = -Inf, ymax = Inf, alpha = 0.5) +
-    ggplot2::geom_line(ggplot2::aes_string(y = "actual"), color = "black") +
-    ggplot2::geom_point(ggplot2::aes_string(y = "pi_up", color = "adjustment", group = 1), na.rm = TRUE) +
-    ggplot2::geom_hline(yintercept = 100, linetype = "dashed", color = "yellow") +
-    ggplot2::xlab("Time (5 minutes)") +
-    ggplot2::ylab("Cpu (percent)") +
-    ggplot2::theme(legend.position = "none") +
-    ggplot2::scale_fill_manual(values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(nrow(train_regions))) +
-    ggplot2::theme_bw() +
-    ggsci::scale_color_ucscgb()
+  actual_info <- predict_info[, c("time", "actual")]
+  all_quantiles <- grep("Quantile_*", colnames(predict_info), value = TRUE)
+  all_cut_off_probs <- 1 - as.numeric(sub("Quantile_", "", all_quantiles))
 
-  file_name <- paste("Tracewise Plot of", name)
-  save_path <- write_location_check(file_name = file_name, ...)
-  ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = ts_plt, width = 7, height = 5)
-  invisible()
+  predict_info <- normalize_predict_info(all_cut_off_probs, predict_info)
+
+  for (i in (1 - all_cut_off_probs)) {
+    curr_predict_info <- predict_info[predict_info$quantile == i,]
+    curr_predict_info$adjustment <- as.factor(curr_predict_info$adjustment)
+
+    ts_plt <- ggplot2::ggplot(data = curr_predict_info, ggplot2::aes_string(x = "time")) +
+      ggplot2::geom_rect(data = train_regions, inherit.aes = FALSE, aes(xmin = train_start, xmax = train_end, fill = as.factor(training_iter)), ymin = -Inf, ymax = Inf, alpha = 0.5) +
+      ggplot2::geom_line(ggplot2::aes_string(y = "actual", x = "time"), data = actual_info, color = "black") +
+      ggplot2::geom_point(ggplot2::aes_string(y = "Quantile", color = "adjustment", group = 1), na.rm = TRUE) +
+      ggplot2::geom_hline(yintercept = 100, linetype = "dashed", color = "yellow") +
+      ggplot2::xlab("Time (5 minutes)") +
+      ggplot2::ylab("Cpu (percent)") +
+      ggplot2::theme_bw() +
+      ggplot2::theme(legend.position = "none") +
+      ggplot2::scale_fill_manual(values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(nrow(train_regions)))
+
+    file_name <- paste("Tracewise Plot of", name, "Under Quantile", i)
+    save_path <- write_location_check(file_name = file_name, ...)
+    ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = ts_plt, width = 7, height = 5)
+    invisible()
+  }
 }
 
 

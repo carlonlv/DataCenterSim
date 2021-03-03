@@ -8,7 +8,7 @@ NULL
 setMethod("get_param_slots",
           signature(object = "sim"),
           function(object) {
-            numeric_slots <- c("cut_off_prob", "granularity", "train_size", "model_num", "update_freq", "react_speed")
+            numeric_slots <- c("granularity", "train_size", "update_freq", "react_speed")
             numeric_lst <- list()
             for (i in numeric_slots) {
               numeric_lst[[i]] <- methods::slot(object, i)
@@ -38,7 +38,7 @@ setMethod("get_characteristic_slots",
 setMethod("get_hidden_slots",
           signature(object = "sim"),
           function(object) {
-            return(list())
+            return(list("cut_off_prob" = methods::slot(object, "cut_off_prob")))
           })
 
 
@@ -46,7 +46,7 @@ setMethod("get_hidden_slots",
 setAs("data.frame", "sim",
       function(from) {
         if (nrow(from) == 1) {
-          return(list(methods::as(from, paste0(tolower(from[, "name"]), "_sim"))))
+          return(list(methods::as(from, paste0(tolower(from[, "class"]), "_sim"))))
         } else {
           return(lapply(1:nrow(from), function(rownum) {methods::as(from[rownum,], "sim")[[1]]}))
         }
@@ -76,20 +76,6 @@ setAs("sim", "data.frame",
         }
         return(cbind(char_df, param_df))
         })
-
-
-#' @export
-setAs("sim_result", "data.frame",
-      function(from) {
-        return(data.frame("score1.n" = from@score1.n,
-                          "score1.w" = from@score1.w,
-                          "score1_adj.n" = from@score1_adj.n,
-                          "score1_adj.w" = from@score1_adj.w,
-                          "score2.n" = from@score2.n,
-                          "score2.w" = from@score2.w,
-                          "score2_adj.n" = from@score2_adj.n,
-                          "score2_adj.w" = from@score2_adj.w))
-      })
 
 
 #' @rdname get_representation

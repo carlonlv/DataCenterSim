@@ -262,52 +262,6 @@ prediction_including_outlier_effect <- function(object, trained_result, pi_up, e
 }
 
 
-#' Estimate Parameters of Skew Normal Distribution Using MOM
-#'
-#' @param res A numeric vector of residuals of fitted model.
-#' @return A list containing the xi, omega and alpha.
-#' @keywords internal
-skew_norm_param_estimation <- function(res) {
-  skew_res <- sample_moment_lag(res, k = 0, r = 3, s = 0) / (sample_moment_lag(res, k = 0, r = 2, s = 0) ^ (3/2))
-  abs_skew_res <- min(abs(skew_res), 0.99)
-
-  # alpha
-  delta <- sign(skew_res) * sqrt((pi / 2) * (abs_skew_res^(2/3)) / ((abs_skew_res ^ (2/3)) + (2 - 0.5 * pi) ^ (2/3)))
-  alpha <- delta / sqrt(1 - delta ^ 2)
-
-  # omega
-  omega2 <- sample_moment_lag(res, k = 0, r = 2, s = 0) / (1 - 2 / pi * delta ^ (2))
-  omega <- sqrt(omega2)
-
-  # xi
-  xi <- 0 - sqrt(pi / 2) * omega * delta
-
-  return(list("xi" = xi, "omega" = omega, "alpha" = alpha))
-}
-
-
-#' Predict Parameters of Skew Normal Distribution Using MOM
-#'
-#' @param object A numeric vector of residuals of fitted model.
-#' @param trained_result A tso or Arima object containing trained parameters.
-#' @param predicted_mean A numeric vector representing predicted mean under normal distribution assumption.
-#' @param level A numeric vector representing the confidence level.
-#' @return A list containing the xi, omega and alpha.
-#' @keywords internal
-skew_norm_param_prediction <- function(object, trained_result, predicted_mean, level) {
-  xi <- trained_result$xi + predicted_mean
-  omega <- trained_result$omega
-  alpha <- trained_result$alpha
-
-  expected <- stats::setNames(as.data.frame(xi + sqrt(2 / pi) * omega * (alpha / sqrt(1 + alpha ^ 2))), "expected")
-  pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(level, function(i) {
-    max(sn::qsn(i / 100, xi = xi, omega = omega, alpha = alpha))
-  }))), paste0("Quantile_", sort(1 - object@cut_off_prob)))
-  predicted_params <- data.frame("param.xi" = xi, "param.omega" = omega, "param.alpha" = alpha)
-  return(list("expected" = expected, "pi_up" = pi_up, "predicted_params" = predicted_params))
-}
-
-
 #' @describeIn train_model Train ARMA Model specific to auto_arima_sim object.
 setMethod("train_model",
           signature(object = "auto_arima_sim", train_x = "matrix", train_xreg = "NULL", trained_model = "list"),

@@ -110,7 +110,7 @@ setMethod("do_prediction",
             if (nrow(predict_info) == object@extrap_step) {
               from <- find_state_num(trained_result$train_x[length(trained_result$train_x)], object@cluster_type, object@state_num, trained_result$quantiles_x)
             } else {
-              from <- find_state_num(predict_info$actual[nrow(predict_info) - object@extrap_step], object@cluster_type, object@state_num, trained_result$quantiles_x)
+              from <- find_state_num(predict_info$actual[length(predict_info$actual)], object@cluster_type, object@state_num, trained_result$quantiles_x)
             }
 
             final_transition <- trained_result$transition_x_x
@@ -203,7 +203,7 @@ setMethod("train_model",
               }
             }
 
-            trained_result <- list("transition_x_x" = transition_x_x, "transition_xreg_x" = transition_xreg_x, "quantiles_x" = from_quantiles_x, "quantiles_xreg" = from_quantiles_xreg, "train_x" = new_train_x, "train_xreg" = new_train_xreg)
+            trained_result <- list("transition_x_x" = transition_x_x, "transition_xreg_x" = transition_xreg_x, "quantiles_x" = from_quantiles_x, "quantiles_xreg" = from_quantiles_xreg, "train_x" = new_train_x, "train_xreg" = new_train_xreg, "orig_x" = train_x, "orig_xreg" = train_xreg)
             return(trained_result)
           })
 
@@ -232,9 +232,15 @@ setMethod("do_prediction",
             }
 
             if (nrow(predict_info) == object@extrap_step) {
-              from <- find_state_num(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size + 1):nrow(test_xreg)], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), object@cluster_type, object@state_num, trained_result$quantiles_xreg)
+              from <- find_state_num(convert_frequency_dataset(
+                trained_result$orig_xreg[(length(trained_result$orig_xreg) - object@window_size_for_reg + 1):length(trained_result$orig_xreg),1],
+                object@window_size_for_reg,
+                object@window_type_for_reg
+              ), object@cluster_type, object@state_num, trained_result$quantiles_xreg)
             } else {
-              from <- find_state_num(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size + 1):nrow(test_xreg)], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]), object@cluster_type, object@state_num, trained_result$quantiles_xreg)
+              new_xreg <- rbind(trained_result$orig_xreg, test_xreg)
+              new_xreg <- new_xreg[(length(trained_result$orig_xreg) - object@window_size_for_reg + 1):length(trained_result$orig_xreg),1]
+              from <- find_state_num(convert_frequency_dataset(new_xreg, object@window_size, object@window_type_for_reg), object@cluster_type, object@state_num, trained_result$quantiles_xreg)
             }
 
             final_transition <- trained_result$transition_xreg_x

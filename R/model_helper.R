@@ -423,7 +423,7 @@ check_score_param <- function(object, predict_info) {
 #' @keywords internal
 show_result <- function(param_predict_info) {
   all_quantiles <- grep("score1.n_*", colnames(param_predict_info), value = TRUE)
-  all_cut_off_probs <- 1 - as.numeric(sub("Quantile_", "", all_quantiles))
+  all_cut_off_probs <- 1 - as.numeric(sub("score1.n_", "", all_quantiles))
 
   for (i in all_cut_off_probs) {
     print(paste0("Under Quantile Setting of ", 1 - i))

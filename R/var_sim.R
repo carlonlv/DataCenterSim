@@ -54,11 +54,13 @@ setMethod("train_model",
                                                                object@response,
                                                                keep.names = TRUE,
                                                                right.aligned = TRUE))
-            new_train_xreg <- as.matrix(convert_frequency_dataset_overlapping(stats::setNames(train_xreg[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_xreg)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x)]),
+            new_train_xreg <- as.matrix(convert_frequency_dataset_overlapping(stats::setNames(train_xreg[,1], rownames(train_xreg)),
                                                                               object@window_size_for_reg,
                                                                               object@window_type_for_reg,
                                                                               keep.names = TRUE,
-                                                                              jump = object@window_size))
+                                                                              jump = object@window_size,
+                                                                              right.aligned = TRUE,
+                                                                              length.out = length(new_train_x)))
 
             uni_data_matrix <- matrix(nrow = length(new_train_x), ncol = 2)
             uni_data_matrix[,1] <- new_train_x
@@ -78,18 +80,20 @@ setMethod("do_prediction",
           signature(object = "var_sim", trained_result = "list", predict_info = "data.frame", test_x = "matrix", test_xreg = "matrix"),
           function(object, trained_result, predict_info, test_x, test_xreg) {
             level <- 1 - object@cut_off_prob * 2
-            if (nrow(predict_info) == object@extrap_step) {
+            if (nrow(predict_info) == 0) {
               trained_result <- trained_result
             } else {
               prev_data <- trained_result$data
 
               new_x <- predict_info$actual
               new_xreg <- c(trained_result$call$orig_xreg[,1], test_xreg[,1])
-              new_xreg <- as.matrix(convert_frequency_dataset_overlapping(new_xreg[(length(new_xreg) - object@window_size * length(predict_info$actual) - max(object@window_size_for_reg - object@window_size, 0) + 1):(length(new_xreg))],
+              new_xreg <- as.matrix(convert_frequency_dataset_overlapping(new_xreg,
                                                                           object@window_size_for_reg,
                                                                           object@window_type_for_reg,
                                                                           keep.names = TRUE,
-                                                                          jump = object@window_size))
+                                                                          jump = object@window_size,
+                                                                          right.aligned = TRUE,
+                                                                          length.out = length(predict_info$actual)))
 
               new_data <- cbind(new_x, new_xreg)
               trained_result$data <- rbind(prev_data, new_data)

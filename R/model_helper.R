@@ -41,19 +41,26 @@ sample_moment_lag <- function(dataset, k, r, s) {
 #' @param response If \code{"max"} is provided, then take max for each \code{new_freq} observations, if \code{"avg"} is provided, take avg for each \code{new_freq} observations.
 #' @param keep.names If this argument is \code{TRUE}, then if \code{dataset} has names representing the time stamp of each observation, then the output vector also keep names as aggretated time stamp of each observation.
 #' @param right.aligned If this argument is \code{TRUE}, then the converted frequency will be aligned from the right side instead of the left side.
+#' @param length.out A numeric value or \code{NULL} controlling the length of the output sequence.
 #' @return The vector of smaller size than input vector if \code{new_freq} is greater than 1.
 #' @export
-convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = TRUE, right.aligned = TRUE) {
+convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = TRUE, right.aligned = TRUE, length.out = NULL) {
   new_dataset <- c()
   new_names <- c()
   window_num <- floor(length(dataset) / new_freq)
-  for (i in 1:window_num) {
+  if (right.aligned) {
+    indices <- seq(to = length(dataset), by = new_freq, length.out = ifelse(is.null(length.out), window_num, length.out))
+  } else {
+    indices <- seq(from = 1, by = new_freq, length.out = ifelse(is.null(length.out), window_num, length.out))
+  }
+
+  for (i in indices) {
     if (right.aligned) {
-      from <- length(dataset) - i * new_freq + 1
-      to <- length(dataset) - (i - 1) * new_freq
+      to = i
+      from = i - new_freq + 1
     } else {
-      from <- 1 + (i - 1) * new_freq
-      to <- i * new_freq
+      from <- i
+      to <- i + new_freq - 1
     }
 
     if (response == "max") {
@@ -92,21 +99,28 @@ convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = 
 #' @param keep.names If this argument is \code{TRUE}, then if \code{dataset} has names representing the time stamp of each observation, then the output vector also keep names as aggretated time stamp of each observation.
 #' @param right.aligned If this argument is \code{TRUE}, then the converted frequency will be aligned from the right side instead of the left side.
 #' @param jump A numeric value representing the number of steps to jump after each windowing operations. Default value is \code{1}.
+#' @param length.out A numeric value or \code{NULL} controlling the length of the output sequence.
 #' @return The vector of same size of input vector.
 #' @export
-convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, keep.names = TRUE, right.aligned = TRUE, jump = 1) {
+convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, keep.names = TRUE, right.aligned = TRUE, jump = 1, length.out = NULL) {
   new_dataset <- c()
   new_names <- c()
   window_num <- floor((length(dataset) - max(new_freq, jump)) / jump) + 1
 
   if (right.aligned) {
-    indices <- seq(to = length(dataset), by = jump, length.out = window_num)
+    indices <- seq(to = length(dataset), by = jump, length.out = ifelse(is.null(length.out), window_num, length.out))
   } else {
-    indices <- seq(from = 1, by = jump, length.out = window_num)
+    indices <- seq(from = 1, by = jump, length.out = ifelse(is.null(length.out), window_num, length.out))
   }
+
   for (i in indices) {
-    to <- i
-    from <- i - new_freq + 1
+    if (right.aligned) {
+      to = i
+      from = i - new_freq + 1
+    } else {
+      from <- i
+      to <- i + new_freq - 1
+    }
 
     if (response == "max") {
       new_val <- max(dataset[from:to], na.rm = TRUE)

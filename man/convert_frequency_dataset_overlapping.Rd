@@ -10,7 +10,8 @@ convert_frequency_dataset_overlapping(
   response,
   keep.names = TRUE,
   right.aligned = TRUE,
-  jump = 1
+  jump = 1,
+  length.out = NULL
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ convert_frequency_dataset_overlapping(
 \item{right.aligned}{If this argument is \code{TRUE}, then the converted frequency will be aligned from the right side instead of the left side.}
 
 \item{jump}{A numeric value representing the number of steps to jump after each windowing operations. Default value is \code{1}.}
+
+\item{length.out}{A numeric value or \code{NULL} controlling the length of the output sequence.}
 }
 \value{
 The vector of same size of input vector.

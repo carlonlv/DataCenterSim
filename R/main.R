@@ -103,7 +103,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
         train_xreg <- matrix(xreg[train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[train_start:train_end], colnames(xreg)[ts_num]))
       } else if (!is.null(xreg) & is.list(xreg)) {
         train_xreg <- lapply(1:length(xreg), function(reg) {
-          matrix(xreg[[reg]][train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[train_start:train_end], colnames(xreg)[ts_num]))
+          matrix(xreg[[reg]][train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg[[reg]])[train_start:train_end], colnames(xreg[[reg]])[ts_num]))
         })
       } else {
         train_xreg <- NULL
@@ -220,6 +220,7 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
   }
 
   param_score <- check_score_param(object, trace_score_info)
+  show_result(param_score)
   return(param_score)
 }
 
@@ -250,13 +251,17 @@ run_sim <- function(epoch_setting, additional_setting = list(), x, xreg, start_p
                    function(other, class) {
                      defau <- methods::new(paste0(tolower(as.character(class)), "_sim"))
                      char_defau <- names(get_representation(defau, "char_raw"))
-                     char_epoch_setting <- dplyr::group_by_at(epoch_setting, c("name", colnames(other)[which(colnames(other) %in% char_defau)]))
+                     char_epoch_setting <- dplyr::group_by_at(epoch_setting, c("class", colnames(other)[which(colnames(other) %in% char_defau)]))
                      score_char_lst <- dplyr::group_map(char_epoch_setting,
                                                       function(other, char) {
                                                         param_uni_lst <- methods::as(cbind(char, other), "sim")
                                                         param_uni_lst <- lapply(param_uni_lst, function(param_uni) {
                                                           for (i in names(additional_setting)) {
-                                                            methods::slot(param_uni, i) <- additional_setting[[i]]
+                                                            if ((i %in% colnames(char)) | (i %in% colnames(other))) {
+                                                              methods::slot(param_uni, i) <- c(methods::slot(param_uni, i), additional_setting[[i]])
+                                                            } else {
+                                                              methods::slot(param_uni, i) <- additional_setting[[i]]
+                                                            }
                                                           }
                                                           return(param_uni)
                                                         })

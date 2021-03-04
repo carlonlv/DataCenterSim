@@ -89,7 +89,7 @@ setMethod("do_prediction",
             trained_result <- trained_result[[1]]
             level <- (1 - object@cut_off_prob * 2) * 100
 
-            if (nrow(predict_info) == object@extrap_step) {
+            if (nrow(predict_info) == 0) {
               target_model <- forecast::nnetar(y = trained_result$call$x, model = trained_result)
             } else {
               prev_x <- trained_result$call$x
@@ -114,12 +114,18 @@ setMethod("do_prediction",
 setMethod("train_model",
           signature(object = "nn_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
+            new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)]),
+                                                               object@window_size,
+                                                               object@response,
+                                                               keep.names = TRUE,
+                                                               right.aligned = TRUE))
             new_train_xreg <- as.matrix(convert_frequency_dataset_overlapping(stats::setNames(train_xreg[1:(nrow(train_xreg) - object@window_size * object@extrap_step),1], rownames(train_xreg)[1:(nrow(train_xreg) - object@window_size * object@extrap_step)]),
                                                                               object@window_size_for_reg,
                                                                               object@window_type_for_reg,
                                                                               keep.names = TRUE,
-                                                                              jump = object@window_size))
+                                                                              jump = object@window_size,
+                                                                              right.aligned = TRUE,
+                                                                              length.out = length(new_train_x)))
             colnames(new_train_xreg) <- "xreg"
 
             if (is.na(object@p) & is.na(object@size)) {
@@ -150,24 +156,34 @@ setMethod("do_prediction",
             trained_result <- trained_result[[1]]
             level <- (1 - object@cut_off_prob * 2) * 100
 
-            if (nrow(predict_info) == object@extrap_step) {
+            if (nrow(predict_info) == 0) {
               target_model <- forecast::nnetar(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
             } else {
               new_x <- c(trained_result$call$x, predict_info$actual)
               prev_xreg <- trained_result$call$xreg
 
               new_xreg <- c(trained_result$call$orig_xreg[,1], test_xreg[,1])
-              new_xreg <- as.matrix(convert_frequency_dataset_overlapping(new_xreg[(length(new_xreg) - object@window_size * (length(predict_info$actual) + object@extrap_step) - max(object@window_size_for_reg - object@window_size, 0) + 1):(length(new_xreg) - object@window_size * object@extrap_step)],
+              new_xreg <- as.matrix(convert_frequency_dataset_overlapping(new_xreg[1:(length(new_xreg) - object@window_size * object@extrap_step)],
                                                                           object@window_size_for_reg,
                                                                           object@window_type_for_reg,
                                                                           keep.names = TRUE,
-                                                                          jump = object@window_size))
+                                                                          jump = object@window_size,
+                                                                          right.aligned = TRUE,
+                                                                          length.out = length(predict_info$actual)))
               new_xreg <- rbind(prev_xreg, new_xreg)
               target_model <- forecast::nnetar(y = new_x, xreg = new_xreg, model = trained_result)
             }
 
-            dxreg <- as.matrix(convert_frequency_dataset(test_xreg[(nrow(test_xreg) - object@window_size * object@extrap_step + 1):nrow(test_xreg), 1], object@window_size, c("max", "avg")[-which(c("max", "avg") == object@response)]))
+            dxreg <- c(trained_result$call$orig_xreg[,1], test_xreg[,1])
+            dxreg <- as.matrix(convert_frequency_dataset_overlapping(dxreg,
+                                                                     object@window_size_for_reg,
+                                                                     object@window_type_for_reg,
+                                                                     keep.names = TRUE,
+                                                                     jump = object@window_size,
+                                                                     right.aligned = TRUE,
+                                                                     length.out = object@extrap_step))
             colnames(dxreg) <- colnames(trained_result$call$xreg)
+
             args.tsmethod <- c(object@pred_args, list("object" = target_model, "xreg" = dxreg, "PI" = TRUE, "h" = object@extrap_step, "level" = level))
             predict_result <- do.call(forecast::forecast, args.tsmethod)
 
@@ -183,14 +199,20 @@ setMethod("do_prediction",
 setMethod("train_model",
           signature(object = "nn_sim", train_x = "matrix", train_xreg = "list", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
+            new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x)]),
+                                                               object@window_size,
+                                                               object@response,
+                                                               keep.names = TRUE,
+                                                               right.aligned = TRUE))
             new_train_xreg <- do.call(cbind, lapply(1:length(train_xreg), function(reg) {
               temp_reg <- train_xreg[[reg]]
-              as.matrix(convert_frequency_dataset_overlapping(stats::setNames(temp_reg[1:(nrow(temp_reg) - object@window_size * object@extrap_step),1], rownames(temp_reg)[1:(nrow(temp_reg) - object@window_size * object@extrap_step)]),
-                                                              object@window_size_for_reg[reg],
-                                                              object@window_type_for_reg[reg],
-                                                              keep.names = TRUE,
-                                                              jump = object@window_size))
+              convert_frequency_dataset_overlapping(stats::setNames(temp_reg[1:(nrow(temp_reg) - object@window_size * object@extrap_step),1], rownames(temp_reg)[1:(nrow(temp_reg) - object@window_size * object@extrap_step)]),
+                                                    object@window_size_for_reg[reg],
+                                                    object@window_type_for_reg[reg],
+                                                    keep.names = TRUE,
+                                                    jump = object@window_size,
+                                                    right.aligned = TRUE,
+                                                    length.out = length(new_train_x))
             }))
             colnames(new_train_xreg) <- names(train_xreg)
 
@@ -221,20 +243,21 @@ setMethod("do_prediction",
             trained_result <- trained_result[[1]]
             level <- (1 - object@cut_off_prob * 2) * 100
 
-            if (nrow(predict_info) == object@extrap_step) {
+            if (nrow(predict_info) == 0) {
               target_model <- forecast::nnetar(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
             } else {
               new_x <- c(trained_result$call$x, predict_info$actual)
 
               prev_xreg <- trained_result$call$xreg
-
               new_xreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
-                temp_xreg <- rbind(trained_result$call$orig_xreg[[reg]], test_xreg[[reg]])
-                convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * (length(predict_info$actual) + object@extrap_step) - max(object@window_size_for_reg - object@window_size, 0) + 1):(nrow(temp_xreg) - object@window_size * object@extrap_step),1],
-                                                      object@window_size_for_reg,
-                                                      object@window_type_for_reg,
+                temp_xreg <- c(trained_result$call$orig_xreg[[reg]][,1], test_xreg[[reg]][,1])
+                convert_frequency_dataset_overlapping(temp_xreg[1:(nrow(temp_xreg) - object@window_size * object@extrap_step),1],
+                                                      object@window_size_for_reg[reg],
+                                                      object@window_type_for_reg[reg],
                                                       keep.names = TRUE,
-                                                      jump = object@window_size)
+                                                      jump = object@window_size,
+                                                      right.aligned = TRUE,
+                                                      length.out = length(predict_info$actual))
               }))
 
               new_xreg <- rbind(prev_xreg, new_xreg)
@@ -242,12 +265,14 @@ setMethod("do_prediction",
             }
 
             dxreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
-              temp_xreg <- rbind(trained_result$call$orig_xreg[[reg]], test_xreg[[reg]])
-              convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * object@extrap_step - max(object@window_size_for_reg - object@window_size, 0) + 1):nrow(temp_xreg),1],
-                                                    object@window_size_for_reg,
-                                                    object@window_type_for_reg,
+              temp_xreg <- c(trained_result$call$orig_xreg[[reg]][,1], test_xreg[[reg]][,1])
+              convert_frequency_dataset_overlapping(temp_xreg,
+                                                    object@window_size_for_reg[reg],
+                                                    object@window_type_for_reg[reg],
                                                     keep.names = TRUE,
-                                                    jump = object@window_size)
+                                                    jump = object@window_size,
+                                                    right.aligned = TRUE,
+                                                    length.out = object@extrap_step)
             }))
             colnames(dxreg) <- colnames(trained_result$call$xreg)
 

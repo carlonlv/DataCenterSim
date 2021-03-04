@@ -9,7 +9,8 @@ convert_frequency_dataset(
   new_freq,
   response,
   keep.names = TRUE,
-  right.aligned = TRUE
+  right.aligned = TRUE,
+  length.out = NULL
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ convert_frequency_dataset(
 \item{keep.names}{If this argument is \code{TRUE}, then if \code{dataset} has names representing the time stamp of each observation, then the output vector also keep names as aggretated time stamp of each observation.}
 
 \item{right.aligned}{If this argument is \code{TRUE}, then the converted frequency will be aligned from the right side instead of the left side.}
+
+\item{length.out}{A numeric value or \code{NULL} controlling the length of the output sequence.}
 }
 \value{
 The vector of smaller size than input vector if \code{new_freq} is greater than 1.

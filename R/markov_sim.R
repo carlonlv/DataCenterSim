@@ -107,7 +107,7 @@ setMethod("do_prediction",
               return(pi_up)
             }
 
-            if (nrow(predict_info) == object@extrap_step) {
+            if (nrow(predict_info) == 0) {
               from <- find_state_num(trained_result$train_x[length(trained_result$train_x)], object@cluster_type, object@state_num, trained_result$quantiles_x)
             } else {
               from <- find_state_num(predict_info$actual[length(predict_info$actual)], object@cluster_type, object@state_num, trained_result$quantiles_x)
@@ -231,7 +231,7 @@ setMethod("do_prediction",
               return(pi_up)
             }
 
-            if (nrow(predict_info) == object@extrap_step) {
+            if (nrow(predict_info) == 0) {
               from <- find_state_num(convert_frequency_dataset(
                 trained_result$orig_xreg[(length(trained_result$orig_xreg) - object@window_size_for_reg + 1):length(trained_result$orig_xreg),1],
                 object@window_size_for_reg,

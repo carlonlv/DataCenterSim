@@ -396,7 +396,9 @@ setMethod("train_model",
                                                                               object@window_size_for_reg,
                                                                               object@window_type_for_reg,
                                                                               keep.names = TRUE,
-                                                                              jump = object@window_size))
+                                                                              jump = object@window_size,
+                                                                              right.aligned = TRUE,
+                                                                              length.out = length(new_train_x)))
             colnames(new_train_xreg) <- "xreg"
 
             args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
@@ -472,11 +474,13 @@ setMethod("do_prediction",
               prev_xreg <- trained_result$call$xreg
 
               new_xreg <- c(trained_result$call$orig_xreg[,1], test_xreg[,1])
-              new_xreg <- as.matrix(convert_frequency_dataset_overlapping(new_xreg[(length(new_xreg) - object@window_size * (length(predict_info$actual) + object@extrap_step) - max(object@window_size_for_reg - object@window_size, 0) + 1):(length(new_xreg) - object@window_size * object@extrap_step)],
+              new_xreg <- as.matrix(convert_frequency_dataset_overlapping(new_xreg[1:(length(new_xreg) - object@window_size * object@extrap_step)],
                                                                           object@window_size_for_reg,
                                                                           object@window_type_for_reg,
                                                                           keep.names = TRUE,
-                                                                          jump = object@window_size))
+                                                                          jump = object@window_size,
+                                                                          right.aligned = TRUE,
+                                                                          length.out = length(predict_info$actual)))
               if (ncol(prev_xreg) > 1) {
                 # Outliers are considered and found.
                 new_ol <- matrix(0, nrow = nrow(new_xreg), ncol = ncol(prev_xreg) - 1)
@@ -488,11 +492,13 @@ setMethod("do_prediction",
             }
 
             dxreg <- c(trained_result$call$orig_xreg[,1], test_xreg[,1])
-            dxreg <- as.matrix(convert_frequency_dataset_overlapping(dxreg[(length(dxreg) - object@window_size * object@extrap_step - max(object@window_size_for_reg - object@window_size, 0) + 1):length(dxreg)],
+            dxreg <- as.matrix(convert_frequency_dataset_overlapping(dxreg,
                                                                      object@window_size_for_reg,
                                                                      object@window_type_for_reg,
                                                                      keep.names = TRUE,
-                                                                     jump = object@window_size))
+                                                                     jump = object@window_size,
+                                                                     right.aligned = TRUE,
+                                                                     length.out = object@extrap_step))
             if (ncol(dxreg) < ncol(trained_result$call$xreg)) {
               dxreg <- cbind(dxreg, matrix(0, nrow = object@extrap_step, ncol = (ncol(trained_result$call$xreg) - ncol(dxreg))))
             }
@@ -534,11 +540,13 @@ setMethod("train_model",
                                                                right.aligned = TRUE))
             new_train_xreg <- do.call(cbind, lapply(1:length(train_xreg), function(reg) {
               temp_reg <- train_xreg[[reg]]
-              as.matrix(convert_frequency_dataset_overlapping(stats::setNames(temp_reg[1:(nrow(temp_reg) - object@window_size * object@extrap_step),1], rownames(temp_reg)[1:(nrow(temp_reg) - object@window_size * object@extrap_step)]),
-                                                              object@window_size_for_reg[reg],
-                                                              object@window_type_for_reg[reg],
-                                                              keep.names = TRUE,
-                                                              jump = object@window_size))
+              convert_frequency_dataset_overlapping(stats::setNames(temp_reg[1:(nrow(temp_reg) - object@window_size * object@extrap_step),1], rownames(temp_reg)[1:(nrow(temp_reg) - object@window_size * object@extrap_step)]),
+                                                    object@window_size_for_reg[reg],
+                                                    object@window_type_for_reg[reg],
+                                                    keep.names = TRUE,
+                                                    jump = object@window_size,
+                                                    right.aligned = TRUE,
+                                                    length.out = length(new_train_x))
             }))
             colnames(new_train_xreg) <- names(train_xreg)
 
@@ -615,12 +623,14 @@ setMethod("do_prediction",
               prev_xreg <- trained_result$call$xreg
 
               new_xreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
-                temp_xreg <- rbind(trained_result$call$orig_xreg[[reg]], test_xreg[[reg]])
-                convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * (length(predict_info$actual) + object@extrap_step) - max(object@window_size_for_reg - object@window_size, 0) + 1):(nrow(temp_xreg) - object@window_size * object@extrap_step),1],
-                                                      object@window_size_for_reg,
-                                                      object@window_type_for_reg,
+                temp_xreg <- c(trained_result$call$orig_xreg[[reg]][,1], test_xreg[[reg]][,1])
+                convert_frequency_dataset_overlapping(temp_xreg[1:(nrow(temp_xreg) - object@window_size * object@extrap_step),1],
+                                                      object@window_size_for_reg[reg],
+                                                      object@window_type_for_reg[reg],
                                                       keep.names = TRUE,
-                                                      jump = object@window_size)
+                                                      jump = object@window_size,
+                                                      right.aligned = TRUE,
+                                                      length.out = length(predict_info$actual))
               }))
 
               if (ncol(prev_xreg) > ncol(new_xreg)) {
@@ -634,12 +644,14 @@ setMethod("do_prediction",
             }
 
             dxreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
-              temp_xreg <- rbind(trained_result$call$orig_xreg[[reg]], test_xreg[[reg]])
-              convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * object@extrap_step - max(object@window_size_for_reg - object@window_size, 0) + 1):nrow(temp_xreg),1],
-                                                    object@window_size_for_reg,
-                                                    object@window_type_for_reg,
+              temp_xreg <- c(trained_result$call$orig_xreg[[reg]][,1], test_xreg[[reg]][,1])
+              convert_frequency_dataset_overlapping(temp_xreg,
+                                                    object@window_size_for_reg[reg],
+                                                    object@window_type_for_reg[reg],
                                                     keep.names = TRUE,
-                                                    jump = object@window_size)
+                                                    jump = object@window_size,
+                                                    right.aligned = TRUE,
+                                                    length.out = object@extrap_step)
             }))
             if (ncol(dxreg) < ncol(trained_result$call$xreg)) {
               dxreg <- cbind(dxreg, matrix(0, nrow = object@extrap_step, ncol = (ncol(trained_result$call$xreg) - ncol(test_xreg))))

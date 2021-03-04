@@ -64,7 +64,9 @@ setMethod("train_model",
                                                                     object@window_size_for_reg,
                                                                     object@window_type_for_reg,
                                                                     keep.names = TRUE,
-                                                                    jump = object@window_size)
+                                                                    jump = object@window_size,
+                                                                    right.aligned = TRUE,
+                                                                    length.out = length(new_train_x))
 
 
             args.method <- list("data" = data.frame("new_train_x" = new_train_x, "new_train_xreg" = new_train_xreg))
@@ -92,13 +94,14 @@ setMethod("do_prediction",
             trained_result <- trained_result[[1]]
             level <- 1 - object@cut_off_prob * 2
 
-            new_test_xreg <- c(trained_result$call$orig_xreg, test_xreg[,1])
-
-            new_test_xreg <- convert_frequency_dataset_overlapping(new_test_xreg[(length(new_test_xreg) - object@window_size * object@extrap_step - max(object@window_size_for_reg - object@window_size, 0) + 1):length(new_test_xreg)],
+            new_test_xreg <- c(trained_result$call$orig_xreg[,1], test_xreg[,1])
+            new_test_xreg <- convert_frequency_dataset_overlapping(new_test_xreg,
                                                                    object@window_size_for_reg,
                                                                    object@window_type_for_reg,
                                                                    keep.names = TRUE,
-                                                                   jump = object@window_size)
+                                                                   jump = object@window_size,
+                                                                   right.aligned = TRUE,
+                                                                   length.out = object@extrap_step)
 
             pi_up <- matrix(nrow = object@extrap_step, ncol = 0)
             for (i in level) {
@@ -136,7 +139,9 @@ setMethod("train_model",
                                                               object@window_size_for_reg[reg],
                                                               object@window_type_for_reg[reg],
                                                               keep.names = TRUE,
-                                                              jump = object@window_size))
+                                                              jump = object@window_size,
+                                                              right.aligned = TRUE,
+                                                              length.out = length(new_train_x)))
             }))
             colnames(new_train_xreg) <- names(train_xreg)
 
@@ -166,12 +171,14 @@ setMethod("do_prediction",
             level <- 1 - object@cut_off_prob * 2
 
             new_test_xreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
-              temp_xreg <- rbind(trained_result$call$orig_xreg[[reg]], test_xreg[[reg]])
-              convert_frequency_dataset_overlapping(temp_xreg[(nrow(temp_xreg) - object@window_size * object@extrap_step - max(object@window_size_for_reg - object@window_size, 0) + 1):nrow(temp_xreg),1],
-                                                    object@window_size_for_reg,
-                                                    object@window_type_for_reg,
+              temp_xreg <- c(trained_result$call$orig_xreg[[reg]][,1], test_xreg[[reg]][,1])
+              convert_frequency_dataset_overlapping(temp_xreg,
+                                                    object@window_size_for_reg[reg],
+                                                    object@window_type_for_reg[reg],
                                                     keep.names = TRUE,
-                                                    jump = object@window_size)
+                                                    jump = object@window_size,
+                                                    right.aligned = TRUE,
+                                                    length.out = object@extrap_step)
             }))
             colnames(new_test_xreg) <- colnames(trained_result$call$xreg)
 

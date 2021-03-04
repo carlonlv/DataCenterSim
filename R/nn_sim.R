@@ -251,7 +251,7 @@ setMethod("do_prediction",
               prev_xreg <- trained_result$call$xreg
               new_xreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {
                 temp_xreg <- c(trained_result$call$orig_xreg[[reg]][,1], test_xreg[[reg]][,1])
-                convert_frequency_dataset_overlapping(temp_xreg[1:(length(temp_xreg) - object@window_size * object@extrap_step),1],
+                convert_frequency_dataset_overlapping(temp_xreg[1:(length(temp_xreg) - object@window_size * object@extrap_step)],
                                                       object@window_size_for_reg[reg],
                                                       object@window_type_for_reg[reg],
                                                       keep.names = TRUE,

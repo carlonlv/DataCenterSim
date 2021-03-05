@@ -240,7 +240,10 @@ setMethod("do_prediction",
             } else {
               new_xreg <- rbind(trained_result$orig_xreg, test_xreg)
               new_xreg <- new_xreg[(length(trained_result$orig_xreg) - object@window_size_for_reg + 1):length(trained_result$orig_xreg),1]
-              from <- find_state_num(convert_frequency_dataset(new_xreg, object@window_size, object@window_type_for_reg), object@cluster_type, object@state_num, trained_result$quantiles_xreg)
+              from <- find_state_num(convert_frequency_dataset(new_xreg, object@window_size_for_reg, object@window_type_for_reg),
+                                     object@cluster_type,
+                                     object@state_num,
+                                     trained_result$quantiles_xreg)
             }
 
             final_transition <- trained_result$transition_xreg_x

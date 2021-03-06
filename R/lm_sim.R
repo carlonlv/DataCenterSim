@@ -146,7 +146,9 @@ setMethod("train_model",
             }))
             colnames(new_train_xreg) <- names(train_xreg)
 
-            args.method <- list("data" = data.frame("new_train_x" = new_train_x, "new_train_xreg" = new_train_xreg))
+            args.method <- list("data" = utils::setNames(as.data.frame(cbind(new_train_x, new_train_xreg)),
+                                                         c("new_train_x", colnames(new_train_xreg))))
+            args.method$data <- c
             for (i in names(object@train_args)) {
               args.method[[i]] <- object@train_args[[i]]
             }
@@ -185,7 +187,7 @@ setMethod("do_prediction",
 
             pi_up <- matrix(nrow = object@extrap_step, ncol = 0)
             for (i in sort(level)) {
-              predict_result <- stats::predict(trained_result, newdata = data.frame("new_train_xreg" = new_test_xreg), interval = "prediction", level = i, se.fit = TRUE)
+              predict_result <- stats::predict(trained_result, newdata = as.data.frame(new_test_xreg), interval = "prediction", level = i, se.fit = TRUE)
               pi_up <- cbind(pi_up, as.matrix(predict_result$fit[,"upr"]))
             }
             colnames(pi_up) <- paste0("Quantile_", sort(1 - object@cut_off_prob))

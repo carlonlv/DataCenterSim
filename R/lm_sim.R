@@ -146,7 +146,7 @@ setMethod("train_model",
             }))
             colnames(new_train_xreg) <- names(train_xreg)
 
-            args.method <- list("data" = utils::setNames(as.data.frame(cbind(new_train_x, new_train_xreg)),
+            args.method <- list("data" = stats::setNames(as.data.frame(cbind(new_train_x, new_train_xreg)),
                                                          c("new_train_x", colnames(new_train_xreg))))
             args.method$data <- c
             for (i in names(object@train_args)) {

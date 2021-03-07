@@ -48,7 +48,10 @@ markov_sim <- setClass("markov_sim",
                                         window_type_for_reg = "avg",
                                         name = "MARKOV",
                                         state_num = 8,
-                                        cluster_type = "fixed"),
+                                        cluster_type = "fixed",
+                                        probability_function = find_state_based_cdf,
+                                        probability_function_additional_argument = list(),
+                                        probability_expectation = find_expectation_state_based_dist),
                        contains = "sim",
                        validity = check_valid_markov_sim)
 
@@ -122,14 +125,14 @@ setMethod("do_prediction",
               }), nrow = 1, ncol = length(object@cut_off_prob)))
               colnames(pi_up) <- paste0("Quantile_", sort(1 - object@cut_off_prob))
               predicted_params <- as.data.frame(matrix(to_states, nrow = 1, ncol = object@state_num))
-              colnames(predicted_params) <- paste0("param.state_", 1:length(to_states))
+              colnames(predicted_params) <- paste0("prob_dist.", 1:length(to_states))
             } else {
               pi_up <- as.data.frame(matrix(sapply(sort(1 - object@cut_off_prob), function(i) {
                 compute_pi_up(i, to_states, trained_result$quantiles_x)
               }), nrow = 1, ncol = length(object@cut_off_prob)))
               colnames(pi_up) <- paste0("Quantile_", sort(1 - object@cut_off_prob))
               predicted_params <- as.data.frame(matrix(c(to_states, trained_result$quantiles_x), nrow = 1, ncol = 2 * object@state_num))
-              colnames(predicted_params) <- c(paste0("param.state_", 1:length(to_states)), paste0("param.quantiles_", 1:length(trained_result$quantiles_x)))
+              colnames(predicted_params) <- c(paste0("prob_dist.", 1:length(to_states)), paste0("quantiles.", 1:length(trained_result$quantiles_x)))
             }
 
             if (object@extrap_step > 1) {
@@ -151,6 +154,8 @@ setMethod("do_prediction",
                 }
               }
             }
+            predicted_params[,"type"] <- object@cluster_type
+
             expected <- data.frame("expected" = NA)
             expected <- expected[rep(1, object@extrap_step),]
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
@@ -255,14 +260,14 @@ setMethod("do_prediction",
               }), nrow = 1, ncol = length(object@cut_off_prob)))
               colnames(pi_up) <- paste0("Quantile_", sort(1 - object@cut_off_prob))
               predicted_params <- as.data.frame(matrix(to_states, nrow = 1, ncol = object@state_num))
-              colnames(predicted_params) <- paste0("param.state_", 1:length(to_states))
+              colnames(predicted_params) <- paste0("prob_dist.", 1:length(to_states))
             } else {
               pi_up <- as.data.frame(matrix(sapply(sort(1 - object@cut_off_prob), function(i) {
                 compute_pi_up(i, to_states, trained_result$quantiles_x)
               }), nrow = 1, ncol = length(object@cut_off_prob)))
               colnames(pi_up) <- paste0("Quantile_", sort(1 - object@cut_off_prob))
               predicted_params <- as.data.frame(matrix(c(to_states, trained_result$quantiles_x), nrow = 1, ncol = 2 * object@state_num))
-              colnames(predicted_params) <- c(paste0("param.state_", 1:length(to_states)), paste0("param.quantiles_", 1:length(trained_result$quantiles_x)))
+              colnames(predicted_params) <- c(paste0("prob_dist.", 1:length(to_states)), paste0("quantiles.", 1:length(trained_result$quantiles_x)))
             }
 
 
@@ -285,6 +290,8 @@ setMethod("do_prediction",
                 }
               }
             }
+            predicted_params[,"type"] <- object@cluster_type
+
             expected <- data.frame("expected" = NA)
             expected <- expected[rep(1, object@extrap_step),]
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))

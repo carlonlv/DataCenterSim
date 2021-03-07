@@ -21,6 +21,10 @@
 \alias{var_sim}
 \title{An S4 Class to Represent A Simulation.}
 \arguments{
+\item{probability_function}{A function pointer to the function to compute the cdf, used in \code{combin_sim_pred} function. Default value is \code{stats::qnorm}}
+
+\item{probability_function_additional_argument}{A list containing additional arguments supplied to \code{probability_function}. Default value is \code{list()}.}
+
 \item{outlier_type}{A character representing the type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.}
 
 \item{outlier_cval}{A numeric value representing the critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50). Default value is \code{NA_real_}.}

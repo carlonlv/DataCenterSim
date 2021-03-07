@@ -111,7 +111,7 @@ setMethod("do_prediction",
             }))), paste0("Quantile_", sort(1 - object@cut_off_prob)))
             expected <- data.frame("expected" = expected)
 
-            predicted_params <- data.frame("mu" = expected, "sd" = predict_result$se.err[,1])
+            predicted_params <- data.frame("mean" = expected, "sd" = predict_result$se.err[,1])
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 

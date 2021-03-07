@@ -237,21 +237,21 @@ prediction_including_outlier_effect <- function(object, trained_result, pi_up, e
 
   mu <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
     expected[h,1] + trained_result$param_mle$effect_mean
-  }))), paste0("param.mu_", ol_type))
+  }))), paste0("mean.", ol_type))
   sd <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
     sqrt(predict_var[h] + trained_result$param_mle$effect_var)
-  }))), paste0("param.sd_", ol_type))
+  }))), paste0("sd.", ol_type))
   pro <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
     ol_occurence[h,]
-  }))), paste0("param.pro_", ol_type))
+  }))), paste0("pro.", ol_type))
   predicted_params <- cbind(mu, sd, pro)
 
   pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(sort(level), function(i) {
     sapply(1:object@extrap_step, function(h) {
       suppressWarnings(KScorrect::qmixnorm(i / 100,
-                                           mean = predicted_params[h, grep("param.mu_*", colnames(predicted_params), value = TRUE)],
-                                           sd = predicted_params[h, grep("param.sd_*", colnames(predicted_params), value = TRUE)],
-                                           pro = predicted_params[h, grep("param.pro_*", colnames(predicted_params), value = TRUE)]))
+                                           mean = predicted_params[h, grep("mean.*", colnames(predicted_params), value = TRUE)],
+                                           sd = predicted_params[h, grep("sd.*", colnames(predicted_params), value = TRUE)],
+                                           pro = predicted_params[h, grep("pro.*", colnames(predicted_params), value = TRUE)]))
     })
   }))), paste0("Quantile_", sort(1 - object@cut_off_prob)))
   expected <- stats::setNames(as.data.frame(sapply(1:object@extrap_step, function(h) {
@@ -361,7 +361,7 @@ setMethod("do_prediction",
 
             expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
             pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
-            predicted_params <- data.frame("param.mu" = as.numeric(predict_result$mean), "param.sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
+            predicted_params <- data.frame("mean" = as.numeric(predict_result$mean), "sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
             if (object@res_dist == "skew_norm") {
               skewnorm_prediction_result <- skew_norm_param_prediction(object, trained_result, as.numeric(predict_result$mean), level)
@@ -507,7 +507,7 @@ setMethod("do_prediction",
 
             expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
             pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
-            predicted_params <- data.frame("param.mu" = as.numeric(predict_result$mean), "param.sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
+            predicted_params <- data.frame("mean" = as.numeric(predict_result$mean), "sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
             if (object@res_dist == "skew_norm") {
               skewnorm_prediction_result <- skew_norm_param_prediction(object, trained_result, as.numeric(predict_result$mean), level)
@@ -661,7 +661,7 @@ setMethod("do_prediction",
 
             expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
             pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
-            predicted_params <- data.frame("param.mu" = as.numeric(predict_result$mean), "param.sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
+            predicted_params <- data.frame("mean" = as.numeric(predict_result$mean), "sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
             if (object@res_dist == "skew_norm") {
               skewnorm_prediction_result <- skew_norm_param_prediction(object, trained_result, as.numeric(predict_result$mean), level)

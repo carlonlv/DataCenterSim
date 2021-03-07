@@ -468,6 +468,76 @@ find_state_num <- function(obs, type, state_num=NULL, quantiles=NULL) {
 }
 
 
+#' Find CDF of Discrete Random Variable
+#'
+#' @description Find the CDF of state based random variable.
+#' @param q A numeric quantile.
+#' @param prob_dist A numeric vector representing the probability distribution at result time.
+#' @param quantiles A numeric vector representing quantile of partitioning training set.
+#' @param type A character that can either be \code{"fixed"} or \code{"quantile"}.
+#' @return The corresponding probability.
+#' @keywords internal
+find_state_based_cdf <- function(q, prob_dist, quantiles=NULL, type = "fixed") {
+  state <- find_state_num(q * 100, type, length(prob_dist), quantiles)
+  if (state == 1) {
+    return(0)
+  } else {
+    return(sum(prob_dist[1:(state - 1)]))
+  }
+}
+
+
+#' Find Expected Value of Discrete Random variable
+#'
+#' @description Find the expectation of state based random variable.
+#' @param q A numeric quantile.
+#' @param prob_dist A numeric vector representing the probability distribution at result time.
+#' @param quantiles A numeric vector representing quantile of partitioning training set.
+#' @return The corresponding expectation.
+#' @export
+find_expectation_state_based_dist <- function(prob_dist, quantiles=NULL) {
+  if (is.null(quantiles)) {
+    val <- seq(by = 100 / length(prob_dist), length.out = length(prob_dist), to = 100)
+  } else {
+    val <- quantiles
+  }
+  mid_points <- sapply(1:length(val), function(i) {
+    if (i == 1) {
+      return(val[i] / 2)
+    } else {
+      return(val[i - 1] + (val[i] - val[i - 1]) / 2)
+    }
+  })
+  return(sum(mid_points * prob_dist))
+}
+
+
+#' Find Expected Value of Skew Normal Random Variable
+#'
+#' @description Find the expectation of state based random variable.
+#' @param xi A numeric value of parameter xi.
+#' @param omega A numeric value of parameter omega.
+#' @param alpha A numeric value of parameter alpha.
+#' @return The corresponding expectation.
+#' @export
+find_expectation_skewnorm <- function(xi, omega, alpha) {
+  return(xi + sqrt(2 / pi) * omega * (alpha / sqrt(1 + alpha ^ 2)))
+}
+
+
+#' Find Expected Value of Gaussian Mixture Random Variable
+#'
+#' @description Find the expectation mixture of gaussians.
+#' @param mean A numeric vector of means.
+#' @param sd A numeric vector of standard deviations.
+#' @param pro A numeric vector of probabilities.
+#' @return The corresponding expectation.
+#' @export
+find_expectation_gaussian_mixture <- function(mean, sd, pro) {
+  return(sum(mean * pro))
+}
+
+
 #' Check Write Location
 #'
 #' @param file_name The name of file.
@@ -599,11 +669,11 @@ skew_norm_param_prediction <- function(object, trained_result, predicted_mean, l
   omega <- trained_result$omega
   alpha <- trained_result$alpha
 
-  expected <- stats::setNames(as.data.frame(xi + sqrt(2 / pi) * omega * (alpha / sqrt(1 + alpha ^ 2))), "expected")
+  expected <- stats::setNames(as.data.frame(find_expectation_skewnorm(xi, omega, alpha))), "expected")
   pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(level, function(i) {
     max(sn::qsn(i / 100, xi = xi, omega = omega, alpha = alpha))
   }))), paste0("Quantile_", sort(1 - object@cut_off_prob)))
-  predicted_params <- data.frame("param.xi" = xi, "param.omega" = omega, "param.alpha" = alpha)
+  predicted_params <- data.frame("xi" = xi, "omega" = omega, "alpha" = alpha)
   return(list("expected" = expected, "pi_up" = pi_up, "predicted_params" = predicted_params))
 }
 

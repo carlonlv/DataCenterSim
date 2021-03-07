@@ -51,7 +51,10 @@ autopilot_sim <- setClass("autopilot_sim",
                                             extrap_step = 1,
                                             half_life = 144,
                                             breaks = 10,
-                                            cut_off_weight = 0.001),
+                                            cut_off_weight = 0.001,
+                                            probability_function = find_state_based_cdf,
+                                            probability_function_additional_argument = list(),
+                                            probability_expectation = find_expectation_state_based_dist),
                            validity = check_valid_autopilot_sim)
 
 
@@ -125,7 +128,7 @@ setMethod("do_prediction",
             expected <- data.frame("expected" = NA)
             pi_up <- stats::setNames(as.data.frame(pi_up), paste0("Quantile_", sort(1 - object@cut_off_prob)))
             predicted_params <- stats::setNames(as.data.frame(matrix(agg_freq, nrow = 1, ncol = length(agg_freq))),
-                                                paste0("param.interval_", 1:length(agg_freq)))
+                                                paste0("prob_dist.", 1:length(agg_freq)))
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 

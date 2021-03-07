@@ -104,7 +104,7 @@ setMethod("do_prediction",
 
             expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
             pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
-            predicted_params <- data.frame("param.mu" = as.numeric(predict_result$mean), "param.sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
+            predicted_params <- data.frame("mean" = as.numeric(predict_result$mean), "sd." = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
@@ -189,7 +189,7 @@ setMethod("do_prediction",
 
             expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
             pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
-            predicted_params <- data.frame("param.mu" = as.numeric(predict_result$mean), "param.sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
+            predicted_params <- data.frame("mean." = as.numeric(predict_result$mean), "sd." = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
@@ -281,7 +281,7 @@ setMethod("do_prediction",
 
             expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
             pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
-            predicted_params <- data.frame("param.mu" = as.numeric(predict_result$mean), "param.sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
+            predicted_params <- data.frame("mean" = as.numeric(predict_result$mean), "sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })

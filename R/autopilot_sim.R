@@ -51,7 +51,10 @@ autopilot_sim <- setClass("autopilot_sim",
                                             extrap_step = 1,
                                             half_life = 144,
                                             breaks = 10,
-                                            cut_off_weight = 0.001),
+                                            cut_off_weight = 0.001,
+                                            probability_function = find_state_based_cdf,
+                                            probability_function_additional_argument = list(),
+                                            probability_expectation = find_expectation_state_based_dist),
                            validity = check_valid_autopilot_sim)
 
 

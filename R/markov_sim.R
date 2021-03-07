@@ -48,7 +48,10 @@ markov_sim <- setClass("markov_sim",
                                         window_type_for_reg = "avg",
                                         name = "MARKOV",
                                         state_num = 8,
-                                        cluster_type = "fixed"),
+                                        cluster_type = "fixed",
+                                        probability_function = find_state_based_cdf,
+                                        probability_function_additional_argument = list(),
+                                        probability_expectation = find_expectation_state_based_dist),
                        contains = "sim",
                        validity = check_valid_markov_sim)
 

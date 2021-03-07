@@ -102,9 +102,9 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
       if (!is.null(xreg) & (is.matrix(xreg) | is.data.frame(xreg))) {
         train_xreg <- matrix(xreg[train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[train_start:train_end], colnames(xreg)[ts_num]))
       } else if (!is.null(xreg) & is.list(xreg)) {
-        train_xreg <- lapply(1:length(xreg), function(reg) {
+        train_xreg <- stats::setNames(lapply(1:length(xreg), function(reg) {
           matrix(xreg[[reg]][train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg[[reg]])[train_start:train_end], colnames(xreg[[reg]])[ts_num]))
-        })
+        }), names(xreg))
       } else {
         train_xreg <- NULL
       }
@@ -125,9 +125,9 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
     if (!is.null(xreg) & (is.matrix(xreg) | is.data.frame(xreg))) {
       test_xreg <- matrix(xreg[test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)[ts_num]))
     } else if (!is.null(xreg) & is.list(xreg)) {
-      test_xreg <- lapply(1:length(xreg), function(reg) {
+      test_xreg <- stats::setNames(lapply(1:length(xreg), function(reg) {
         matrix(xreg[[reg]][test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)[ts_num]))
-      })
+      }), names(xreg))
     } else {
       test_xreg <- NULL
     }

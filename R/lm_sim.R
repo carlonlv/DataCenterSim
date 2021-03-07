@@ -148,12 +148,11 @@ setMethod("train_model",
 
             args.method <- list("data" = stats::setNames(as.data.frame(cbind(new_train_x, new_train_xreg)),
                                                          c("new_train_x", colnames(new_train_xreg))))
-            args.method$data <- c
             for (i in names(object@train_args)) {
               args.method[[i]] <- object@train_args[[i]]
             }
 
-            trained_result <- do.call(stats::lm, c(list("formula" = stats::as.formula("new_train_x~new_train_xreg")), args.method))
+            trained_result <- do.call(stats::lm, c(list("formula" = stats::as.formula(paste0("new_train_x~", paste(colnames(new_train_xreg), collapse = " + ")))), args.method))
             trained_result$call$x <- new_train_x
             trained_result$call$xreg <- new_train_xreg
             trained_result$call$orig_x <- train_x
@@ -183,7 +182,7 @@ setMethod("do_prediction",
                                                     right.aligned = TRUE,
                                                     length.out = object@extrap_step)
             }))
-            colnames(new_test_xreg) <- colnames(trained_result$call$xreg)
+            colnames(new_test_xreg) <- names(trained_result$call$orig_xreg)
 
             pi_up <- matrix(nrow = object@extrap_step, ncol = 0)
             for (i in sort(level)) {

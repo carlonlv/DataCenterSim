@@ -5,21 +5,21 @@
 \title{Combinations of Predictions of Background Jobs and Foreground Jobs}
 \usage{
 run_sim_pred(
-  param_setting_sim,
-  param_setting_pred,
-  foreground_x,
-  foreground_xreg,
-  lag_xreg = TRUE,
-  sim_length,
-  use_adjustment = FALSE,
   load_foreground_result = NULL,
-  background_x,
-  background_xreg,
   load_background_result = NULL,
-  num_jobs,
-  machines_full_indicator = 10,
+  param_setting_sim = NULL,
+  additional_param_sim = list(),
+  param_setting_pred = NULL,
+  additional_param_pred = list(),
+  foreground_x = NULL,
+  foreground_xreg = NULL,
+  background_x = NULL,
+  background_xreg = NULL,
+  sim_length = 200,
+  constraint_prob = 0.99,
+  use_quantile = FALSE,
+  machines_full_indicator = 100,
   heartbeats_percent = 1,
-  constraint_prob = sqrt(0.99),
   bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205),
   cores = parallel::detectCores(),
   write_type = "none",
@@ -27,35 +27,35 @@ run_sim_pred(
 )
 }
 \arguments{
+\item{load_foreground_result}{A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.}
+
+\item{load_background_result}{A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.}
+
 \item{param_setting_sim}{A dataframe representing a specific parameter setting for sim object.}
 
+\item{additional_param_sim}{A list containing additional arguments to be passed into param_sim.}
+
 \item{param_setting_pred}{A dataframe representing a specific parameter setting for pred object.}
+
+\item{additional_param_pred}{A list containing additional arguments to be passed into param_pred.}
 
 \item{foreground_x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
 \item{foreground_xreg}{A matrix of size n by m representing the target dataset for scheduling and evaluations, or \code{NULL}.}
 
-\item{lag_xreg}{A logical value representing whether the reggressor for foreground jobs needs to be lagged before applying the foreground model. Default value is \code{TRUE}.}
-
-\item{sim_length}{A numeric integer representing the length of time for simulation, training size excluded.}
-
-\item{use_adjustment}{A logical value controlling whether adjustment plicy will be used based on the previous foreground predictions, parameter setting \code{react_speed} will be used.}
-
-\item{load_foreground_result}{A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.}
-
 \item{background_x}{A matrix of size n by m representing the target dataset for scheduling and evaluations.}
 
 \item{background_xreg}{A matrix of size n by m representing the dataset that target dataset depends on for predicting.}
 
-\item{load_background_result}{A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.}
+\item{sim_length}{A numeric integer representing the length of time for simulation, training size excluded.}
 
-\item{num_jobs}{A numeric value represents the length of queue at each timestamp.}
+\item{constraint_prob}{A numeric value representing the cut off for survival probability of a job to be scheduled.}
+
+\item{use_quantile}{A logical value representing whether to use quantile of predicted foreground workload to make placement decision. If set to be \code{FALSE}, actual probability of survival would be computed.}
 
 \item{machines_full_indicator}{An numeric value that is used to identify whether all machines are full. The scheduler believes the machines are full after \code{machines_full_indicator} successive failures in scheduling.}
 
 \item{heartbeats_percent}{A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.}
-
-\item{constraint_prob}{A numeric value representing the cut off for survival probability of a job to be scheduled.}
 
 \item{bins}{A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.}
 

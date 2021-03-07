@@ -476,7 +476,7 @@ find_state_num <- function(obs, type, state_num=NULL, quantiles=NULL) {
 #' @param quantiles A numeric vector representing quantile of partitioning training set.
 #' @param type A character that can either be \code{"fixed"} or \code{"quantile"}.
 #' @return The corresponding probability.
-#' @keywords internal
+#' @export
 find_state_based_cdf <- function(q, prob_dist, quantiles=NULL, type = "fixed") {
   state <- find_state_num(q * 100, type, length(prob_dist), quantiles)
   if (state == 1) {
@@ -490,7 +490,6 @@ find_state_based_cdf <- function(q, prob_dist, quantiles=NULL, type = "fixed") {
 #' Find Expected Value of Discrete Random variable
 #'
 #' @description Find the expectation of state based random variable.
-#' @param q A numeric quantile.
 #' @param prob_dist A numeric vector representing the probability distribution at result time.
 #' @param quantiles A numeric vector representing quantile of partitioning training set.
 #' @return The corresponding expectation.
@@ -669,7 +668,7 @@ skew_norm_param_prediction <- function(object, trained_result, predicted_mean, l
   omega <- trained_result$omega
   alpha <- trained_result$alpha
 
-  expected <- stats::setNames(as.data.frame(find_expectation_skewnorm(xi, omega, alpha))), "expected")
+  expected <- stats::setNames(as.data.frame(find_expectation_skewnorm(xi, omega, alpha)), "expected")
   pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(level, function(i) {
     max(sn::qsn(i / 100, xi = xi, omega = omega, alpha = alpha))
   }))), paste0("Quantile_", sort(1 - object@cut_off_prob)))

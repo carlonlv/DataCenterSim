@@ -80,8 +80,9 @@ check_valid_sim <- function(object) {
 #' @slot update_freq A numeric number that specify the number of times to predict into the future after each training step after aggregated by \code{window_size}. Default values is \code{3}.
 #' @slot react_speed A numeric number of length two that specify the number of failed/successfull predictions needed to activate/deactive backing off strategy. Default value is \code{c(1, 1)}.
 #' @slot response A character that specify the targeting trace to be tested on, this can either be \code{"max"} or \code{"avg"} for max traces and average traces respectively. Default value is \code{"max"}.
-#' @param probability_function A function pointer to the function to compute the cdf, used in \code{combin_sim_pred} function. Default value is \code{stats::qnorm}
+#' @param probability_function A function pointer to the function to compute the cdf, used in \code{combin_sim_pred} function. Default value is \code{stats::qnorm}.
 #' @param probability_function_additional_argument A list containing additional arguments supplied to \code{probability_function}. Default value is \code{list()}.
+#' @param probability_expectation A function pointer to the function to compute the expectation, used in \code{combin_sim_pred} function.
 #' @name sim-class
 #' @rdname sim-class
 #' @exportClass sim
@@ -98,7 +99,8 @@ sim <- setClass("sim",
                              react_speed = "numeric",
                              response = "character",
                              probability_function = "function",
-                             probability_function_additional_argument = "list"),
+                             probability_function_additional_argument = "list",
+                             probability_expectation = "function"),
                 prototype = list(name = NA_character_,
                                  window_size = 12,
                                  target = 0.99,

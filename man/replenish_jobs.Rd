@@ -4,7 +4,7 @@
 \alias{replenish_jobs}
 \title{Replenish the Background Queue by Using Bg_predict_info}
 \usage{
-replenish_jobs(bg_predict_info, arrival_jobs, pin, num_jobs, emp_job_idx)
+replenish_jobs(bg_predict_info, arrival_jobs, pin, emp_job_idx)
 }
 \arguments{
 \item{bg_predict_info}{A dataframe to be regenerated from.}
@@ -12,8 +12,6 @@ replenish_jobs(bg_predict_info, arrival_jobs, pin, num_jobs, emp_job_idx)
 \item{arrival_jobs}{A dataframe to be replenished.}
 
 \item{pin}{A numeric value representing the current position to pick from bg_predict_info.}
-
-\item{num_jobs}{A numeric value representing the resulting rows of arrival_jobs.}
 
 \item{emp_job_idx}{A numeric value from which the empirical job indices are assigned.}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/model_helper.R
 \name{find_state_based_cdf}
 \alias{find_state_based_cdf}
-\title{Find Corresponding State}
+\title{Find CDF of Discrete Random Variable}
 \usage{
 find_state_based_cdf(q, prob_dist, quantiles = NULL, type = "fixed")
 }
@@ -19,6 +19,5 @@ find_state_based_cdf(q, prob_dist, quantiles = NULL, type = "fixed")
 The corresponding probability.
 }
 \description{
-Find the corresponding state for a specific observation with fixed partitioning method.
+Find the CDF of state based random variable.
 }
-\keyword{internal}

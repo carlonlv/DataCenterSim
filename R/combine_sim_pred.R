@@ -173,6 +173,7 @@ machine_update <- function(machine_pi_up, job_requestedCPU) {
 #'
 #' @param predicted_param_df A dataframe of 1 row containing predicted parameters at specific timestamp.
 parameter_parser <- function(predicted_param_df) {
+  predicted_param_df <- predicted_param_df[, -c("train_iter", "test_iter", "predict_iter")]
   params <- colnames(predicted_param_df)
   unique_params <- unique(gsub("\\.(\\d)*", "", params))
   result <- list()
@@ -323,7 +324,6 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 #' @param background_xreg A matrix of size n by m representing the dataset that target dataset depends on for predicting.
 #' @param sim_length A numeric integer representing the length of time for simulation, training size excluded.
 #' @param constraint_prob A numeric value representing the cut off for survival probability of a job to be scheduled.
-#' @param use_quantile A logical value representing whether to use quantile of predicted foreground workload to make placement decision. If set to be \code{FALSE}, actual probability of survival would be computed.
 #' @param heartbeats_percent A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.
 #' @param machines_full_indicator An numeric value that is used to identify whether all machines are full. The scheduler believes the machines are full after \code{machines_full_indicator} successive failures in scheduling.
 #' @param bins A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.
@@ -332,7 +332,7 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @return A dataframe containing the decisions made by scheduler.
 #' @export
-run_sim_pred <- function(load_foreground_result = NULL, load_background_result = NULL, param_setting_sim = NULL, additional_param_sim = list(), param_setting_pred = NULL, additional_param_pred = list(), foreground_x = NULL, foreground_xreg = NULL, background_x = NULL, background_xreg = NULL, sim_length = 200, constraint_prob = 0.99, use_quantile = FALSE, machines_full_indicator = 100, heartbeats_percent = 1, bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
+run_sim_pred <- function(load_foreground_result = NULL, load_background_result = NULL, param_setting_sim = NULL, additional_param_sim = list(), param_setting_pred = NULL, additional_param_pred = list(), foreground_x = NULL, foreground_xreg = NULL, background_x = NULL, background_xreg = NULL, sim_length = 200, constraint_prob = 0.99, machines_full_indicator = 100, heartbeats_percent = 1, bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
   ## Foreground
   print("Foreground model fitting...")
   if (ifelse(is.null(load_foreground_result), FALSE, file.exists(load_foreground_result))) {
@@ -358,7 +358,26 @@ run_sim_pred <- function(load_foreground_result = NULL, load_background_result =
           trace_length <- (max(bins[-1]) + sim_object@train_size + sim_length) * window_multiplier
           sim_object@window_size <- bin * window_multiplier
           sim_object@train_size <- sim_object@train_size * window_multiplier
-          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+          processed_foreground_x <- foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,]
+          if (!is.null(foreground_xreg) & (is.matrix(foreground_xreg) | is.data.frame(foreground_xreg))) {
+            if (length(additional_param_sim[["window_size_for_reg"]]) == 0) {
+              sim_object@window_size_for_reg <- sim_object@window_size
+            } else {
+              sim_object@window_size_for_reg <- additional_param_sim[["window_size_for_reg"]] * window_multiplier
+            }
+            processed_foreground_xreg <- matrix(foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,], ncol = 1, dimnames = list(rownames(foreground_xreg)[(max(bins[-1]) * window_multiplier + 1):trace_length,]))
+          } else if (!is.null(foreground_xreg) & is.list(foreground_xreg)) {
+            if (length(additional_param_sim[["window_size_for_reg"]]) < length(foreground_xreg)) {
+              sim_object@window_size_for_reg <- sim_object@window_size
+            }
+            sim_object@window_size_for_reg <- c(sim_object@window_size, additional_param_sim[["window_size_for_reg"]] * window_multiplier)
+            processed_foreground_xreg <- lapply(1:length(foreground_xreg), function(reg) {
+              matrix(foreground_xreg[[reg]][(max(bins[-1]) * window_multiplier + 1):trace_length,], ncol = 1, dimnames = list(rownames(foreground_xreg)[(max(bins[-1]) * window_multiplier + 1):trace_length,]))
+            })
+          } else {
+            processed_foreground_xreg <- NULL
+          }
+          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = processed_foreground_x, xreg = processed_foreground_xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
           return(predict_info$predicted_params)
         })
       })
@@ -373,7 +392,17 @@ run_sim_pred <- function(load_foreground_result = NULL, load_background_result =
           trace_length <- (max(bins[-1]) + sim_object@train_size + sim_length) * window_multiplier
           sim_object@window_size <- bin * window_multiplier
           sim_object@train_size <- sim_object@train_size * window_multiplier
-          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+          processed_foreground_x <- foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,]
+          if (!is.null(foreground_xreg) & (is.matrix(foreground_xreg) | is.data.frame(foreground_xreg))) {
+            processed_foreground_xreg <- matrix(foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,], ncol = 1, dimnames = list(rownames(foreground_xreg)[(max(bins[-1]) * window_multiplier + 1):trace_length,]))
+          } else if (!is.null(foreground_xreg) & is.list(foreground_xreg)) {
+            processed_foreground_xreg <- lapply(1:length(foreground_xreg), function(reg) {
+              matrix(foreground_xreg[[reg]][(max(bins[-1]) * window_multiplier + 1):trace_length,], ncol = 1, dimnames = list(rownames(foreground_xreg)[(max(bins[-1]) * window_multiplier + 1):trace_length,]))
+            })
+          } else {
+            processed_foreground_xreg <- NULL
+          }
+          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = processed_foreground_x, xreg = processed_foreground_xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
           return(predict_info$predicted_params)
         })
       }, mc.cores = cores, ignore.interactive = TRUE)

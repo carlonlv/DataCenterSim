@@ -260,7 +260,7 @@ check_score_pred <- function(object, predict_info, actual_obs, adjust_switch) {
   actual <- convert_frequency_dataset(actual_obs, object@window_size, object@response, keep.names = TRUE)
   time <- as.numeric(names(actual))
 
-  pi_up <- predict_info[, grep("Quantile_*", colnames(predict_info), value = TRUE)]
+  pi_up <- predict_info[, grep("Quantile_*", colnames(predict_info), value = TRUE), drop = FALSE]
   expected <- predict_info[, "expected"]
   score1 <- sapply(1:ncol(pi_up), function(quan) {
     min(sapply(1:object@extrap_step, function(pred_step) {

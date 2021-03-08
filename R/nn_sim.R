@@ -1,4 +1,4 @@
-#' @include sim_class.R generics.R
+#' @include sim_class.R generics.R model_helper.R
 NULL
 
 

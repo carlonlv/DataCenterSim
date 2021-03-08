@@ -6,15 +6,17 @@
 \usage{
 machines_select(
   machine_list,
+  distribution_info = NULL,
   signal_machines_idx,
   prob_vec_lst,
   job_info,
-  cores,
   constraint_prob
 )
 }
 \arguments{
 \item{machine_list}{A list representing the prediction upper bounds at different bins of machines.}
+
+\item{distribution_info}{A}
 
 \item{signal_machines_idx}{A vector of indices of machines that update their heartbeats.}
 
@@ -22,9 +24,9 @@ machines_select(
 
 \item{job_info}{A list containing requested CPU and clustering info of background job.}
 
-\item{cores}{A numeric value representing number of cores to compute scores for each machine.}
-
 \item{constraint_prob}{A numeric value representing the cut off for survival probability of a job to be scheduled.}
+
+\item{machine_param_list}{A list representing the parameters at different bins of machines,}
 }
 \value{
 A list containing best background machine and the score corresponding to the choice.

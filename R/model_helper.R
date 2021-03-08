@@ -476,7 +476,6 @@ find_state_num <- function(obs, type, state_num=NULL, quantiles=NULL) {
 #' @param quantiles A numeric vector representing quantile of partitioning training set.
 #' @param type A character that can either be \code{"fixed"} or \code{"quantile"}.
 #' @return The corresponding probability.
-#' @export
 find_state_based_cdf <- function(q, prob_dist, quantiles=NULL, type = "fixed") {
   state <- find_state_num(q * 100, type, length(prob_dist), quantiles)
   if (state == 1) {
@@ -493,21 +492,33 @@ find_state_based_cdf <- function(q, prob_dist, quantiles=NULL, type = "fixed") {
 #' @param prob_dist A numeric vector representing the probability distribution at result time.
 #' @param quantiles A numeric vector representing quantile of partitioning training set.
 #' @return The corresponding expectation.
-#' @export
 find_expectation_state_based_dist <- function(prob_dist, quantiles=NULL) {
   if (is.null(quantiles)) {
-    val <- seq(by = 100 / length(prob_dist), length.out = length(prob_dist), to = 100)
+    val <- seq(by = 100 / length(prob_dist), length.out = length(prob_dist) + 1, to = 100)
   } else {
     val <- quantiles
   }
-  mid_points <- sapply(1:length(val), function(i) {
-    if (i == 1) {
-      return(val[i] / 2)
-    } else {
-      return(val[i - 1] + (val[i] - val[i - 1]) / 2)
-    }
+  mid_points <- sapply(2:length(val), function(i) {
+    return(val[i - 1] + (val[i] - val[i - 1]) / 2)
   })
   return(sum(mid_points * prob_dist))
+}
+
+
+#' Find Discrete Random Variable Distribution After Mean Shift
+#'
+#' @description Find resulting distribution after a mean shift for discrete random variable.
+#' @param shift A numeric value representing the constant mean shift.
+#' @param prob_dist A numeric vector representing the probability distribution at result time.
+#' @param quantiles A numeric vector representing quantile of partitioning training set.
+#' @return The corresponding expectation.
+find_shifted_state_based_dist <- function(shift, prob_dist, quantiles=NULL) {
+  if (is.null(quantiles)) {
+    val <- seq(by = 100 / length(prob_dist), length.out = length(prob_dist) + 1, to = 100)
+  } else {
+    val <- quantiles
+  }
+  return(list("prob_dist" = prob_dist, "quantiles" = val + shift))
 }
 
 
@@ -518,9 +529,21 @@ find_expectation_state_based_dist <- function(prob_dist, quantiles=NULL) {
 #' @param omega A numeric value of parameter omega.
 #' @param alpha A numeric value of parameter alpha.
 #' @return The corresponding expectation.
-#' @export
 find_expectation_skewnorm <- function(xi, omega, alpha) {
   return(xi + sqrt(2 / pi) * omega * (alpha / sqrt(1 + alpha ^ 2)))
+}
+
+
+#' Find Updated Parameters For Skew Normal Distribution
+#'
+#' @description Find the updated parameters for skew normal distribution after a mean shift.
+#' @param shift A numeric value representing the constant mean shift.
+#' @param xi A numeric value of parameter xi.
+#' @param omega A numeric value of parameter omega.
+#' @param alpha A numeric value of parameter alpha.
+#' @return The corresponding expectation.
+find_shifted_skewnorm <- function(shift, xi, omega, alpha) {
+  return(list("xi" = xi + shift, "omega" = omega, "alpha" = alpha))
 }
 
 
@@ -572,6 +595,7 @@ write_sim_result <- function(summ_df, result_type, name, ...) {
   fp <- write_location_check(file_name = file_name, ...)
   utils::write.csv(summ_df, file = fs::path(fp, ext = "csv"))
 }
+
 
 #' Discretize A Vector of Duration Time.
 #'

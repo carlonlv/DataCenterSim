@@ -1,4 +1,4 @@
-#' @include sim_class.R generics.R
+#' @include sim_class.R generics.R model_helper.R
 NULL
 
 
@@ -51,7 +51,10 @@ autopilot_sim <- setClass("autopilot_sim",
                                             extrap_step = 1,
                                             half_life = 144,
                                             breaks = 10,
-                                            cut_off_weight = 0.001),
+                                            cut_off_weight = 0.001,
+                                            probability_function = find_state_based_cdf,
+                                            probability_expectation = find_expectation_state_based_dist,
+                                            probability_mean_shift = find_shifted_state_based_dist),
                            validity = check_valid_autopilot_sim)
 
 

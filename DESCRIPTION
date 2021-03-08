@@ -39,6 +39,7 @@ LazyData: true
 RoxygenNote: 7.1.1
 Collate: 
     'DataCenterSim.R'
+    'model_helper.R'
     'sim_class.R'
     'generics.R'
     'pred_class.R'
@@ -51,7 +52,6 @@ Collate:
     'gmm_pred.R'
     'lm_sim.R'
     'plotting_tools.R'
-    'model_helper.R'
     'main.R'
     'main_pred.R'
     'markov_sim.R'

@@ -24,11 +24,11 @@
 \alias{var_sim}
 \title{An S4 Class to Represent A Simulation.}
 \arguments{
-\item{probability_function}{A function pointer to the function to compute the cdf, used in \code{combin_sim_pred} function. Default value is \code{stats::qnorm}.}
+\item{probability_function}{A function pointer to the function to compute the cdf, used in \code{combine_sim_pred} function. Default value is \code{stats::qnorm}.}
 
-\item{probability_function_additional_argument}{A list containing additional arguments supplied to \code{probability_function}. Default value is \code{list()}.}
+\item{probability_expectation}{A function pointer to the function to compute the expectation, used in \code{combine_sim_pred} function.}
 
-\item{probability_expectation}{A function pointer to the function to compute the expectation, used in \code{combin_sim_pred} function.}
+\item{probability_mean_shift}{A function pointer to the update rule of shifting the probability distribution by a constant, used in \code{combine_sim_pred} function.}
 
 \item{outlier_type}{A character representing the type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.}
 

@@ -1,4 +1,4 @@
-#' @include sim_class.R generics.R
+#' @include sim_class.R generics.R model_helper.R
 NULL
 
 
@@ -38,10 +38,10 @@ multinom_sim <- setClass("multinom_sim",
                                         window_type_for_reg = "avg",
                                         name = "MULTINOM",
                                         granularity = 3.125,
+                                        train_args = list(),
                                         probability_function = find_state_based_cdf,
-                                        probability_function_additional_argument = list(),
                                         probability_expectation = find_expectation_state_based_dist,
-                                        train_args = list()),
+                                        probability_mean_shift = find_shifted_state_based_dist),
                        contains = "sim",
                        validity = check_valid_multinom_sim)
 

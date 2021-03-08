@@ -3,11 +3,11 @@
 #' @param bg_predict_info A dataframe to be regenerated from.
 #' @param arrival_jobs A dataframe to be replenished.
 #' @param pin A numeric value representing the current position to pick from bg_predict_info.
-#' @param num_jobs A numeric value representing the resulting rows of arrival_jobs.
 #' @param emp_job_idx A numeric value from which the empirical job indices are assigned.
 #' @return A numeric vector representing the updated machine_pi_up after job scheduling.
 #' @keywords internal
-replenish_jobs <- function(bg_predict_info, arrival_jobs, pin, num_jobs, emp_job_idx) {
+replenish_jobs <- function(bg_predict_info, arrival_jobs, pin, emp_job_idx) {
+  num_jobs <- nrow(bg_predict_info)
   if (nrow(arrival_jobs) > num_jobs) {
     pin <- max(pin - (nrow(arrival_jobs) - num_jobs) + 1, 1)
     arrival_jobs <- arrival_jobs[1:num_jobs,]
@@ -169,20 +169,51 @@ machine_update <- function(machine_pi_up, job_requestedCPU) {
 }
 
 
+#' Convert Predicted Paraemeters into Lists
+#'
+#' @param predicted_param_df A dataframe of 1 row containing predicted parameters at specific timestamp.
+parameter_parser <- function(predicted_param_df) {
+  params <- colnames(predicted_param_df)
+  unique_params <- unique(gsub("\\.(\\d)*", "", params))
+  result <- list()
+  for (i in unique_params) {
+    target <- grep(i, params, value = TRUE)
+    result[[i]] <- predicted_param_df[,target]
+  }
+  return(result)
+}
+
+
 #' Select the Best Machine for A Foreground Job
 #'
 #' @param machine_list A list representing the prediction upper bounds at different bins of machines.
+#' @param machine_param_list A list representing the parameters at different bins of machines,
+#' @param distribution_info A
 #' @param signal_machines_idx A vector of indices of machines that update their heartbeats.
 #' @param prob_vec_lst A list representing probability vector at different bins.
 #' @param job_info A list containing requested CPU and clustering info of background job.
 #' @param constraint_prob A numeric value representing the cut off for survival probability of a job to be scheduled.
-#' @param cores A numeric value representing number of cores to compute scores for each machine.
 #' @return A list containing best background machine and the score corresponding to the choice.
 #' @keywords internal
-machines_select <- function(machine_list, signal_machines_idx, prob_vec_lst, job_info, cores, constraint_prob){
-  compute_scheduler_score <- function(vec_pi_up, prob_vec_lst, job_info) {
-    vec_pi_up <- ifelse(vec_pi_up > 100, 100, vec_pi_up)
-    predicted_resourse <- 100 - vec_pi_up
+machines_select <- function(machine_list, distribution_info = NULL, signal_machines_idx, prob_vec_lst, job_info, constraint_prob){
+  #compute_scheduler_score <- function(vec_pi_up, prob_vec_lst, job_info) {
+    #vec_pi_up <- ifelse(vec_pi_up > 100, 100, vec_pi_up)
+    #predicted_resourse <- 100 - vec_pi_up
+    #prob_vec <- prob_vec_lst[[job_info$cluster_info]]
+    #if (length(job_info$past_survived_time_bin) != 0) {
+      #if (job_info$past_survived_time_bin > 1) {
+        #prob_vec[1:(job_info$past_survived_time_bin - 1)] <- 0
+        #prob_vec <- prob_vec / sum(prob_vec)
+      #}
+    #}
+    #Ui <- sum(predicted_resourse * prob_vec, na.rm = TRUE)
+    ##score <- ifelse(Ui < job_info$requested_CPU, -Inf, job_info$requested_CPU / Ui)
+    #FinishProb <- sum(prob_vec[predicted_resourse >= job_info$requested_CPU], na.rm = TRUE)
+    #score <- ifelse(FinishProb < constraint_prob, -Inf, job_info$requested_CPU / Ui)
+    #return(score)
+  #}
+
+  compute_scheduler_score_quantile <- function(parameter, prob_vec_lst, job_info, probability_func, probability_expect_func) {
     prob_vec <- prob_vec_lst[[job_info$cluster_info]]
     if (length(job_info$past_survived_time_bin) != 0) {
       if (job_info$past_survived_time_bin > 1) {
@@ -190,22 +221,25 @@ machines_select <- function(machine_list, signal_machines_idx, prob_vec_lst, job
         prob_vec <- prob_vec / sum(prob_vec)
       }
     }
-    Ui <- sum(predicted_resourse * prob_vec, na.rm = TRUE)
-    #score <- ifelse(Ui < job_info$requested_CPU, -Inf, job_info$requested_CPU / Ui)
-    FinishProb <- sum(prob_vec[predicted_resourse >= job_info$requested_CPU], na.rm = TRUE)
+    prob_surv <- sapply(1:length(prob_vec), function(i) {
+      do.call(probability_func, c(list(100 - job_info$requested_CPU / 100) , parameter[[i]]))
+    })
+    FinishProb <- sum(prob_vec * prob_surv)
+    Ui <- 100 - sum(prob_vec * sapply(list, function(i) {
+      do.call(probability_expect_func, parameter[[i]])
+    }))
     score <- ifelse(FinishProb < constraint_prob, -Inf, job_info$requested_CPU / Ui)
     return(score)
   }
 
-  if (cores == 1) {
-    D <- sapply(signal_machines_idx, function(machine_idx) {
-      compute_scheduler_score(machine_list[[machine_idx]], prob_vec_lst, job_info)
-    })
-  } else {
-    D <- parallel::mcmapply(function(machine_idx) {
-      compute_scheduler_score(machine_list[[machine_idx]], prob_vec_lst, job_info)
-    }, signal_machines_idx, mc.cores = cores)
-  }
+  #if (use_quantile) {
+    #D <- sapply(signal_machines_idx, function(machine_idx) {
+      #compute_scheduler_score(machine_list[[machine_idx]], prob_vec_lst, job_info)
+   #})
+  #}
+  D <- sapply(signal_machines_idx, function(machine_idx) {
+    compute_scheduler_score_quantile(machine_list[[machine_idx]], prob_vec_lst, job_info, distribution_info$probability_func, distribution_info$probability_expect_func)
+  })
 
   if (all(is.na(D))) {
     machine_id <- NA
@@ -276,21 +310,21 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 #'
 #' Sequentially training and testing by predicting the availability of CPU resource at next windows.
 #'
+#' @param load_foreground_result A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.
+#' @param load_background_result A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.
 #' @param param_setting_sim A dataframe representing a specific parameter setting for sim object.
+#' @param additional_param_sim A list containing additional arguments to be passed into param_sim.
 #' @param param_setting_pred A dataframe representing a specific parameter setting for pred object.
+#' @param additional_param_pred A list containing additional arguments to be passed into param_pred.
 #' @param bins A numeric vector representing a specific partioning of time
 #' @param foreground_x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param foreground_xreg A matrix of size n by m representing the target dataset for scheduling and evaluations, or \code{NULL}.
-#' @param lag_xreg A logical value representing whether the reggressor for foreground jobs needs to be lagged before applying the foreground model. Default value is \code{TRUE}.
-#' @param sim_length A numeric integer representing the length of time for simulation, training size excluded.
-#' @param use_adjustment A logical value controlling whether adjustment plicy will be used based on the previous foreground predictions, parameter setting \code{react_speed} will be used.
-#' @param load_foreground_result A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.
 #' @param background_x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param background_xreg A matrix of size n by m representing the dataset that target dataset depends on for predicting.
-#' @param heartbeats_percent A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.
-#' @param load_background_result A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.
-#' @param num_jobs A numeric value represents the length of queue at each timestamp.
+#' @param sim_length A numeric integer representing the length of time for simulation, training size excluded.
 #' @param constraint_prob A numeric value representing the cut off for survival probability of a job to be scheduled.
+#' @param use_quantile A logical value representing whether to use quantile of predicted foreground workload to make placement decision. If set to be \code{FALSE}, actual probability of survival would be computed.
+#' @param heartbeats_percent A numeric value representing the percentage of sampled machines will periodically send "heat beats", which is the availability information to the scheduler. Default value is \code{1}.
 #' @param machines_full_indicator An numeric value that is used to identify whether all machines are full. The scheduler believes the machines are full after \code{machines_full_indicator} successive failures in scheduling.
 #' @param bins A numeric vector representing the discretization will be used on background job length, the first value representing the lower bound such as \code{0}, last value representing the upper bound such as \code{205}.
 #' @param cores A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.
@@ -298,18 +332,20 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 #' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
 #' @return A dataframe containing the decisions made by scheduler.
 #' @export
-run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, foreground_xreg, lag_xreg = TRUE, sim_length, use_adjustment = FALSE, load_foreground_result = NULL, background_x, background_xreg, load_background_result = NULL, num_jobs, machines_full_indicator = 10, heartbeats_percent = 1, constraint_prob = sqrt(0.99), bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
-  sim_object <- methods::as(param_setting_sim, "sim")[[1]]
-  window_multiplier <- sim_object@window_size
-
-  pred_object <- methods::as(param_setting_pred, "pred")[[1]]
-  pred_object@bins <- bins
-
+run_sim_pred <- function(load_foreground_result = NULL, load_background_result = NULL, param_setting_sim = NULL, additional_param_sim = list(), param_setting_pred = NULL, additional_param_pred = list(), foreground_x = NULL, foreground_xreg = NULL, background_x = NULL, background_xreg = NULL, sim_length = 200, constraint_prob = 0.99, use_quantile = FALSE, machines_full_indicator = 100, heartbeats_percent = 1, bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
   ## Foreground
   print("Foreground model fitting...")
   if (ifelse(is.null(load_foreground_result), FALSE, file.exists(load_foreground_result))) {
     load(load_foreground_result)
   } else {
+    if (is.null(param_setting_sim) | is.null(foreground_x)) {
+      stop("foreground_x cannot be NULL when load_foreground_result is NULL.")
+    }
+    sim_object <- methods::as(param_setting_sim, "sim")[[1]]
+    for (i in names(additional_param_sim)) {
+      methods::slot(sim_object, i) <- additional_param_sim[[i]]
+    }
+    window_multiplier <- sim_object@window_size
     if (cores == 1) {
       machine_bin_offs <- expand.grid(bin = bins[-1], offs = 0:(max(bins[-1]) - 1))
       machine_bin_offs <- machine_bin_offs[machine_bin_offs$bin > machine_bin_offs$offs,]
@@ -322,20 +358,8 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           trace_length <- (max(bins[-1]) + sim_object@train_size + sim_length) * window_multiplier
           sim_object@window_size <- bin * window_multiplier
           sim_object@train_size <- sim_object@train_size * window_multiplier
-          if (is.null(foreground_xreg)) {
-            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
-          } else {
-            if (lag_xreg) {
-              xreg <- as.matrix(dplyr::mutate_all(as.data.frame(foreground_xreg), dplyr::lag, bin)[(max(bins[-1]) * window_multiplier + 1):trace_length,])
-            } else {
-              xreg <- foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,]
-            }
-            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
-          }
-          if (use_adjustment) {
-            predict_info[predict_info$adjustment, "pi_up"] <- 100
-          }
-          return(predict_info)
+          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+          return(predict_info$predicted_params)
         })
       })
     } else {
@@ -349,25 +373,13 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           trace_length <- (max(bins[-1]) + sim_object@train_size + sim_length) * window_multiplier
           sim_object@window_size <- bin * window_multiplier
           sim_object@train_size <- sim_object@train_size * window_multiplier
-          if (is.null(foreground_xreg)) {
-            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = NULL, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
-          } else {
-            if (lag_xreg) {
-              xreg <- as.matrix(dplyr::mutate_all(as.data.frame(foreground_xreg), dplyr::lag, bin)[(max(bins[-1]) * window_multiplier + 1):trace_length,])
-            } else {
-              xreg <- foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,]
-            }
-            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
-          }
-          if (use_adjustment) {
-            predict_info[predict_info$adjustment, "pi_up"] <- 100
-          }
-          return(predict_info)
+          predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,], xreg = foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,], start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+          return(predict_info$predicted_params)
         })
       }, mc.cores = cores, ignore.interactive = TRUE)
     }
     if (!is.null(load_foreground_result)) {
-      save(machine_bin_offs, fg_predict_info_lst, file = load_foreground_result)
+      save(param_setting_sim, foreground_x, foreground_xreg, machine_bin_offs, fg_predict_info_lst, file = load_foreground_result)
     }
   }
 
@@ -376,14 +388,24 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
   if (ifelse(is.null(load_background_result), FALSE, file.exists(load_background_result))) {
     load(load_background_result)
   } else {
+    if (is.null(param_setting_pred) | is.null(background_x) | is.null(background_xreg)) {
+      stop("param_setting_pred, background_x, background_xreg cannot be NULL when load_background_result is NULL.")
+    }
+    pred_object <- methods::as(param_setting_pred, "pred")[[1]]
+    for (i in names(additional_param_pred)) {
+      methods::slot(sim_object, i) <- additional_param_pred[[i]]
+    }
+    pred_object@bins <- bins
     pred_object@update_freq <- length(background_x) - pred_object@train_size
     bg_predict_info_lst <- predicting_pred(pred_object, background_x, background_xreg)
     prob_vec_lst <- bg_predict_info_lst$trained_model$prob
     bg_predict_info <- bg_predict_info_lst$predict_info
     if (!is.null(load_background_result)) {
-      save(bg_predict_info_lst, prob_vec_lst, bg_predict_info, file = load_background_result)
+      save(param_setting_pred, background_x, background_xreg, bg_predict_info_lst, prob_vec_lst, bg_predict_info, file = load_background_result)
     }
   }
+
+  stop("Temp here.")
 
   ## Combined Simulation
   print("Combined simulating...")
@@ -409,7 +431,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
       tp_arrival_jobs <- dplyr::inner_join(tp_arrival_jobs, delayed_jobs[, c("job_id", "emp_job_id")], by = "job_id")
       arrival_jobs <- rbind(tp_arrival_jobs[, colnames(arrival_jobs)], arrival_jobs)
     }
-    replenish_result <- replenish_jobs(bg_predict_info, arrival_jobs, pin, num_jobs, emp_job_idx)
+    replenish_result <- replenish_jobs(bg_predict_info, arrival_jobs, pin, emp_job_idx)
     arrival_jobs <- replenish_result$arrival_jobs
     pin <- replenish_result$pin
     emp_job_idx <- replenish_result$emp_job_idx
@@ -492,7 +514,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
       ctr <- 0
       while (ctr < ifelse(machines_full_indicator > 0, machines_full_indicator, Inf)) {
         ## Replenish the queue of the jobs
-        replenish_result <- replenish_jobs(bg_predict_info, arrival_jobs, pin, num_jobs, emp_job_idx)
+        replenish_result <- replenish_jobs(bg_predict_info, arrival_jobs, pin, emp_job_idx)
         arrival_jobs <- replenish_result$arrival_jobs
         pin <- replenish_result$pin
         emp_job_idx <- replenish_result$emp_job_idx
@@ -503,17 +525,16 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
           utils::setTxtProgressBar(pb, job_idx)
           cluster_info <- arrival_jobs[job_idx, "cluster_info"]
           actual_runtime <- arrival_jobs[job_idx, "actual"]
-          actual_runtime_bin <- which(actual_runtime == bins[-1])
           requested_CPU <- arrival_jobs[job_idx, "requestCPU"]
           emp_job_id <- arrival_jobs[job_idx, "emp_job_id"]
           job_id <- arrival_jobs[job_idx, "job_id"]
           past_survived_time <- ifelse(emp_job_id %in% past_failures$emp_job_id, max(past_failures[past_failures$emp_job_id == emp_job_id, "run_time"]), 0)
           past_survived_time_bin <- which(past_survived_time == bins[-1])
           scheduler_score <- machines_select(machine_list = machine_info_pi_up,
+                                             distribution_info = list("probability_func" = sim_object@probability_function, "probability_func_additional_arguments" = sim_object@probability_function_additional_argument, "probability_expect_func" = sim_object@probability_expectation),
                                              signal_machines_idx = randomized_machine_idx,
                                              prob_vec_lst = prob_vec_lst,
                                              job_info = list("requested_CPU" = requested_CPU, "cluster_info" = cluster_info, "past_scheduled_time" = past_survived_time_bin),
-                                             cores = cores,
                                              constraint_prob = constraint_prob)
 
           if (is.na(scheduler_score$machine_id)) {
@@ -547,7 +568,7 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
         print(paste("ctr", ctr, sep = ":"))
 
-        if (machines_full_indicator == 0){
+        if (machines_full_indicator == 0) {
           if (job_idx < nrow(arrival_jobs)) {
             arrival_jobs <- arrival_jobs[(job_idx + 1):nrow(arrival_jobs),]
           } else {
@@ -626,8 +647,6 @@ run_sim_pred <- function(param_setting_sim, param_setting_pred, foreground_x, fo
 
   summ <- compute_summary_performance(predict_info, past_failures, machine_total_resource, current_time - window_multiplier, window_multiplier)
   meta_setting <- data.frame("sim_length" = sim_length,
-                             "use_adjustment" = use_adjustment,
-                             "num_jobs" = num_jobs,
                              "machines_full_indicator" = machines_full_indicator,
                              "heartbeats_percent" = heartbeats_percent,
                              "constraint_prob" = constraint_prob)

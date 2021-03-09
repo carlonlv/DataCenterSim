@@ -297,7 +297,7 @@ check_score_pred <- function(object, predict_info, actual_obs, adjust_switch) {
 #' @keywords internal
 check_score_trace <- function(object, predict_info) {
   if (nrow(predict_info) == 0) {
-    trace_score <- do.call(cbind, lapply(object@cut_off_prob), function(i) {
+    trace_score <- do.call(cbind, lapply(object@cut_off_prob, function(i) {
       result <- matrix(0, nrow = 1, ncol = 8)
       colnames(result) <- c(paste0("score1.n_", 1 - i),
                             paste0("score1.w_", 1 - i),
@@ -308,7 +308,7 @@ check_score_trace <- function(object, predict_info) {
                             paste0("score2_adj.n_", 1 - i),
                             paste0("score2_adj.w_", 1 - i))
       return(result)
-    })
+    }))
 
     return(trace_score)
   }

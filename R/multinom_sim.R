@@ -70,12 +70,13 @@ setMethod("train_model",
             num_cores_usage <- sapply(new_train_x, find_state_num, "fixed", 100 / object@granularity)
 
             args.method <- list("data" = cbind(data.frame("num_cores_usage" = as.factor(num_cores_usage)), as.data.frame(new_train_xreg)),
-                                "model" = TRUE)
+                                "model" = TRUE,
+                                "trace" = FALSE)
             for (i in names(object@train_args)) {
               args.method[[i]] <- object@train_args[[i]]
             }
 
-            trained_result <- suppressMessages(do.call(nnet::multinom, c(list("formula" = stats::as.formula(paste0("num_cores_usage~", paste(colnames(new_train_xreg), collapse = " + ")))), args.method)))
+            trained_result <- do.call(nnet::multinom, c(list("formula" = stats::as.formula(paste0("num_cores_usage~", paste(colnames(new_train_xreg), collapse = " + ")))), args.method))
             trained_result$call$x <- new_train_x
             trained_result$call$xreg <- new_train_xreg
             trained_result$call$orig_x <- train_x

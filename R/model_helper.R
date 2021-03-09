@@ -67,8 +67,14 @@ convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = 
       new_val <- max(dataset[from:to], na.rm = TRUE)
     } else if (response == "avg") {
       new_val <- mean(dataset[from:to], na.rm = TRUE)
+    } else if (response == "min") {
+      new_val <- min(dataset[from:to], na.rm = TRUE)
+    } else if (response == "sd") {
+      new_val <- stats::sd(dataset[from:to], na.rm = TRUE)
+    } else if (response == "median") {
+      new_val <- stats::median(dataset[from:to], na.rm = TRUE)
     } else {
-      stop("response must be one of max or avg.")
+      stop("response must be one of max, avg, min, sd, median")
     }
 
     if (keep.names & !is.null(names(dataset))) {
@@ -126,8 +132,14 @@ convert_frequency_dataset_overlapping <- function(dataset, new_freq, response, k
       new_val <- max(dataset[from:to], na.rm = TRUE)
     } else if (response == "avg") {
       new_val <- mean(dataset[from:to], na.rm = TRUE)
+    } else if (response == "min") {
+      new_val <- min(dataset[from:to], na.rm = TRUE)
+    } else if (response == "sd") {
+      new_val <- stats::sd(dataset[from:to], na.rm = TRUE)
+    } else if (response == "median") {
+      new_val <- stats::median(dataset[from:to], na.rm = TRUE)
     } else {
-      stop("response must be one of max or avg.")
+      stop("response must be one of max, avg, min, sd, median")
     }
 
     if (keep.names & !is.null(names(dataset))) {

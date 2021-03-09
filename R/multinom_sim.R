@@ -9,7 +9,7 @@ NULL
 #' @keywords internal
 check_valid_multinom_sim <- function(object) {
   errors <- character()
-  window_type_choices <- c("max", "avg")
+  window_type_choices <- c("max", "avg", "min", "sd", "median")
   if (length(object@window_size_for_reg) != 1) {
     msg <- paste0("window_size_for_reg must be one of ", paste(window_type_choices, collapse = " "))
     errors <- c(errors, msg)

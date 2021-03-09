@@ -131,8 +131,8 @@ setMethod("do_prediction",
 
             predicted_params <- stats::predict(trained_result, newdata = as.data.frame(new_test_xreg), type = "probs")
             result_predicted_params <- data.frame()
-            for (i in 1:nrow(predicted_params)) {
-              if (is.data.frame(predicted_params)) {
+            if (is.data.frame(predicted_params)) {
+              for (i in 1:nrow(predicted_params)) {
                 if (sum(predicted_params[i,]) != 1) {
                   result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
                 } else if (ncol(predicted_params) < 100 / object@granularity) {
@@ -145,20 +145,20 @@ setMethod("do_prediction",
                 } else {
                   result_predicted_params <- rbind(result_predicted_params, predicted_params[i,])
                 }
+              }
+            } else {
+              if (sum(predicted_params) != 1) {
+                result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
+              } else if (length(predicted_params) < 100 / object@granularity) {
+                missing_states <- which(!(1:(100 / object@granularity) %in% as.numeric(names(predicted_params))))
+                temp_predicted_params <- cbind(stats::setNames(as.data.frame(matrix(predicted_params, nrow = 1)),
+                                                               names(predicted_params)),
+                                               stats::setNames(as.data.frame(matrix(0, nrow = 1, ncol = length(missing_states))),
+                                                               as.character(missing_states)))
+                temp_predicted_params <- temp_predicted_params[,sort.int(as.numeric(names(predicted_params)), index.return = TRUE)$ix]
+                result_predicted_params <- rbind(result_predicted_params, temp_predicted_params)
               } else {
-                if (sum(predicted_params) != 1) {
-                  result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
-                } else if (length(predicted_params) < 100 / object@granularity) {
-                  missing_states <- which(!(1:(100 / object@granularity) %in% as.numeric(names(predicted_params))))
-                  temp_predicted_params <- cbind(stats::setNames(as.data.frame(matrix(predicted_params, nrow = 1)),
-                                                                 names(predicted_params)),
-                                                 stats::setNames(as.data.frame(matrix(0, nrow = 1, ncol = length(missing_states))),
-                                                                 as.character(missing_states)))
-                  temp_predicted_params <- temp_predicted_params[,sort.int(as.numeric(names(predicted_params)), index.return = TRUE)$ix]
-                  result_predicted_params <- rbind(result_predicted_params, temp_predicted_params)
-                } else {
-                  result_predicted_params <- rbind(result_predicted_params, predicted_params)
-                }
+                result_predicted_params <- rbind(result_predicted_params, predicted_params)
               }
             }
             colnames(predicted_params) <- paste0("prob_dist.", 1:(100 / object@granularity))

@@ -70,9 +70,10 @@ setMethod("train_model",
             num_cores_usage <- sapply(new_train_x, find_state_num, "fixed", 100 / object@granularity)
 
             naive_dist <- sapply(1:(100 / object@granularity), function(i) {
-
+              sum(num_cores_usage == i) / length(num_cores_usage)
             })
-            naive_dist <- paste0("prob_dist.", 1:(100 / object@granularity))
+            naive_dist <- stats::setNames(as.data.frame(matrix(naive_dist, nrow = 1)),
+                                   paste0("prob_dist.", 1:(100 / object@granularity)))
 
             args.method <- list("data" = cbind(data.frame("num_cores_usage" = as.factor(num_cores_usage)), as.data.frame(new_train_xreg)),
                                 "model" = TRUE,
@@ -86,6 +87,7 @@ setMethod("train_model",
             trained_result$call$xreg <- new_train_xreg
             trained_result$call$orig_x <- train_x
             trained_result$call$orig_xreg <- train_xreg
+            trained_result$naive_dist <- naive_dist
             return(list(trained_result))
           })
 

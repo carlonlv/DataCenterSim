@@ -140,7 +140,7 @@ setMethod("do_prediction",
                   temp_predicted_params <- cbind(predicted_params[i,],
                                                  stats::setNames(as.data.frame(matrix(0, nrow = 1, ncol = length(missing_states))),
                                                                  as.character(missing_states)))
-                  temp_predicted_params <- temp_predicted_params[,sort.int(as.numeric(colnames(predicted_params)), index.return = TRUE)$ix]
+                  temp_predicted_params <- temp_predicted_params[,sort.int(as.numeric(colnames(temp_predicted_params)), index.return = TRUE)$ix]
                   result_predicted_params <- rbind(result_predicted_params, temp_predicted_params)
                 } else {
                   result_predicted_params <- rbind(result_predicted_params, predicted_params[i,])
@@ -155,7 +155,7 @@ setMethod("do_prediction",
                                                                names(predicted_params)),
                                                stats::setNames(as.data.frame(matrix(0, nrow = 1, ncol = length(missing_states))),
                                                                as.character(missing_states)))
-                temp_predicted_params <- temp_predicted_params[,sort.int(as.numeric(names(predicted_params)), index.return = TRUE)$ix]
+                temp_predicted_params <- temp_predicted_params[,sort.int(as.numeric(names(temp_predicted_params)), index.return = TRUE)$ix]
                 result_predicted_params <- rbind(result_predicted_params, temp_predicted_params)
               } else {
                 result_predicted_params <- rbind(result_predicted_params, stats::setNames(as.data.frame(matrix(predicted_params, nrow = 1)),

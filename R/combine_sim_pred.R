@@ -365,7 +365,7 @@ run_sim_pred <- function(load_foreground_result = NULL, load_background_result =
             } else {
               sim_object@window_size_for_reg <- additional_param_sim[["window_size_for_reg"]] * window_multiplier
             }
-            processed_foreground_xreg <- matrix(foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,], ncol = 1, dimnames = list(rownames(foreground_xreg)[(max(bins[-1]) * window_multiplier + 1):trace_length,]))
+            processed_foreground_xreg <- matrix(foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,], ncol = 1, dimnames = list(rownames(foreground_xreg)[(max(bins[-1]) * window_multiplier + 1):trace_length]))
           } else if (!is.null(foreground_xreg) & is.list(foreground_xreg)) {
             if (length(additional_param_sim[["window_size_for_reg"]]) < length(foreground_xreg)) {
               sim_object@window_size_for_reg <- sim_object@window_size
@@ -394,7 +394,7 @@ run_sim_pred <- function(load_foreground_result = NULL, load_background_result =
           sim_object@train_size <- sim_object@train_size * window_multiplier
           processed_foreground_x <- foreground_x[(max(bins[-1]) * window_multiplier + 1):trace_length,]
           if (!is.null(foreground_xreg) & (is.matrix(foreground_xreg) | is.data.frame(foreground_xreg))) {
-            processed_foreground_xreg <- matrix(foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,], ncol = 1, dimnames = list(rownames(foreground_xreg)[(max(bins[-1]) * window_multiplier + 1):trace_length,]))
+            processed_foreground_xreg <- matrix(foreground_xreg[(max(bins[-1]) * window_multiplier + 1):trace_length,], ncol = 1, dimnames = list(rownames(foreground_xreg)[(max(bins[-1]) * window_multiplier + 1):trace_length]))
           } else if (!is.null(foreground_xreg) & is.list(foreground_xreg)) {
             processed_foreground_xreg <- lapply(1:length(foreground_xreg), function(reg) {
               matrix(foreground_xreg[[reg]][(max(bins[-1]) * window_multiplier + 1):trace_length,], ncol = 1, dimnames = list(rownames(foreground_xreg)[(max(bins[-1]) * window_multiplier + 1):trace_length,]))

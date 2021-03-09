@@ -158,11 +158,12 @@ setMethod("do_prediction",
                 temp_predicted_params <- temp_predicted_params[,sort.int(as.numeric(names(predicted_params)), index.return = TRUE)$ix]
                 result_predicted_params <- rbind(result_predicted_params, temp_predicted_params)
               } else {
-                result_predicted_params <- rbind(result_predicted_params, predicted_params)
+                result_predicted_params <- rbind(result_predicted_params, stats::setNames(as.data.frame(matrix(predicted_params, nrow = 1)),
+                                                                                          names(predicted_params)))
               }
             }
-            colnames(predicted_params) <- paste0("prob_dist.", 1:(100 / object@granularity))
-
+            colnames(result_predicted_params) <- paste0("prob_dist.", 1:(100 / object@granularity))
+            predicted_params <- result_predicted_params
 
             pi_up <- matrix(nrow = 0, ncol = length(object@cut_off_prob))
             for (i in 1:object@extrap_step) {

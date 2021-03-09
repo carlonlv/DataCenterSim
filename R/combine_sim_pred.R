@@ -434,7 +434,7 @@ run_sim_pred <- function(load_foreground_result = NULL, load_background_result =
     }
   }
 
-  stop("Temp here.")
+  return("Temp here.")
 
   ## Combined Simulation
   print("Combined simulating...")

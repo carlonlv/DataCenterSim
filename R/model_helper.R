@@ -83,13 +83,8 @@ convert_frequency_dataset <- function(dataset, new_freq, response, keep.names = 
       name <- NULL
     }
 
-    if (right.aligned) {
-      new_dataset <- c(new_val, new_dataset)
-      new_names <- c(name, new_names)
-    } else {
-      new_dataset <- c(new_dataset, new_val)
-      new_names <- c(new_names, name)
-    }
+    new_dataset <- c(new_dataset, new_val)
+    new_names <- c(new_names, name)
   }
   names(new_dataset) <- new_names
   return(new_dataset)

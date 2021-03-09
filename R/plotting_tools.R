@@ -31,7 +31,7 @@ plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size",
 
   charwise_summ <- charwise_summ %>%
     dplyr::group_by_at(.vars = as.character(mapping)) %>%
-    dplyr::arrange_at(.vars = "Quantile")
+    dplyr::arrange_at(.vars = "quantile")
 
   plt <- ggplot2::ggplot(charwise_summ, do.call(ggplot2::aes_string, mapping))
   if (!adjusted) {
@@ -61,7 +61,7 @@ plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size",
   }
 
   plt <- plt +
-    ggplot2::annotate("text", x = -Inf, y = Inf, vjust = seq(from = 2, by = 1.25, length.out = length(unique(charwise_summ[, "Quantile"]))), hjust = 0, label = paste0("Quantile settings:", paste(sort(unique(charwise_summ[, "Quantile"])), sep = ","))) +
+    ggplot2::annotate("text", x = -Inf, y = Inf, vjust = 2, hjust = 0, label = paste0("quantile settings:", paste(sort(unique(charwise_summ[, "quantile", drop = TRUE])), collapse = ","))) +
     ggplot2::ylab("Utilization Rate") +
     ggplot2::xlab("Survival Rate") +
     ggplot2::scale_color_brewer(name = ifelse(is.null(mapping[["color"]]), "empty", mapping[["color"]]), palette = "Set1", guide = ggplot2::guide_legend(ncol = 1)) +
@@ -133,7 +133,7 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
       ggsci::scale_color_ucscgb()
 
     plt <- gridExtra::arrangeGrob(plt1, plt2, ncol = 2, nrow = 1)
-    file_name <- paste("Performance Plot 1D of Param Under Quantile", i, name, collapse = ",")
+    file_name <- paste("Performance Plot 1D of Param Under quantile", i, name, collapse = ",")
     save_path <- write_location_check(file_name = file_name, ...)
     ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt, width = 7, height = 5)
 
@@ -148,7 +148,7 @@ plot_sim_paramwise <- function(param_score, target, name, ...) {
       ggplot2::ylab("Score 1 Weight") +
       ggplot2::theme_bw()
 
-    file_name <- paste("Performance Plot 2D of Param under Quantile", i, name, collapse = ",")
+    file_name <- paste("Performance Plot 2D of Param under quantile", i, name, collapse = ",")
     save_path <- write_location_check(file_name = file_name, ...)
     ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = plt3, width = 7, height = 5)
 
@@ -186,8 +186,8 @@ plot_sim_tracewise <- function(predict_info, name, ...) {
   training_iter <- train_regions$training_iter
 
   actual_info <- predict_info[, c("time", "actual")]
-  all_quantiles <- grep("Quantile_*", colnames(predict_info), value = TRUE)
-  all_cut_off_probs <- 1 - as.numeric(sub("Quantile_", "", all_quantiles))
+  all_quantiles <- grep("quantile_*", colnames(predict_info), value = TRUE)
+  all_cut_off_probs <- 1 - as.numeric(sub("quantile_", "", all_quantiles))
 
   predict_info <- normalize_predict_info(all_cut_off_probs, predict_info)
 
@@ -198,7 +198,7 @@ plot_sim_tracewise <- function(predict_info, name, ...) {
     ts_plt <- ggplot2::ggplot(data = curr_predict_info, ggplot2::aes_string(x = "time")) +
       ggplot2::geom_rect(data = train_regions, inherit.aes = FALSE, aes(xmin = train_start, xmax = train_end, fill = as.factor(training_iter)), ymin = -Inf, ymax = Inf, alpha = 0.5) +
       ggplot2::geom_line(ggplot2::aes_string(y = "actual", x = "time"), data = actual_info, color = "black") +
-      ggplot2::geom_point(ggplot2::aes_string(y = "Quantile", color = "adjustment", group = 1), na.rm = TRUE) +
+      ggplot2::geom_point(ggplot2::aes_string(y = "quantile", color = "adjustment", group = 1), na.rm = TRUE) +
       ggplot2::geom_hline(yintercept = 100, linetype = "dashed", color = "yellow") +
       ggplot2::xlab("Time (5 minutes)") +
       ggplot2::ylab("Cpu (percent)") +
@@ -206,7 +206,7 @@ plot_sim_tracewise <- function(predict_info, name, ...) {
       ggplot2::theme(legend.position = "none") +
       ggplot2::scale_fill_manual(values = grDevices::colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(nrow(train_regions)))
 
-    file_name <- paste("Tracewise Plot of", name, "Under Quantile", i)
+    file_name <- paste("Tracewise Plot of", name, "Under quantile", i)
     save_path <- write_location_check(file_name = file_name, ...)
     ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = ts_plt, width = 7, height = 5)
     invisible()

@@ -296,6 +296,23 @@ check_score_pred <- function(object, predict_info, actual_obs, adjust_switch) {
 #' @return A sim_result object.
 #' @keywords internal
 check_score_trace <- function(object, predict_info) {
+  if (nrow(predict_info) == 0) {
+    trace_score <- do.call(cbind, lapply(object@cut_off_prob), function(i) {
+      result <- matrix(0, nrow = 1, ncol = 8)
+      colnames(result) <- c(paste0("score1.n_", 1 - i),
+                            paste0("score1.w_", 1 - i),
+                            paste0("score1_adj.n_", 1 - i),
+                            paste0("score1_adj.w_", 1 - i),
+                            paste0("score2.n_", 1 - i),
+                            paste0("score2.w_", 1 - i),
+                            paste0("score2_adj.n_", 1 - i),
+                            paste0("score2_adj.w_", 1 - i))
+      return(result)
+    })
+
+    return(trace_score)
+  }
+
   predict_info <- dplyr::distinct_at(predict_info, c("train_iter", "test_iter", "predict_iter"), .keep_all = TRUE)
 
   trace_score <- do.call(cbind, lapply(object@cut_off_prob, function(i) {

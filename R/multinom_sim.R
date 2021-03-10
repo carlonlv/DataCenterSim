@@ -147,7 +147,7 @@ setMethod("do_prediction",
                 }
               }
             } else {
-              if (!all.equal(sum(predicted_params), 1)) {
+              if (isFALSE(all.equal(sum(predicted_params), 1))) {
                 result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
               } else if (length(predicted_params) < 100 / object@granularity) {
                 missing_states <- which(!(1:(100 / object@granularity) %in% as.numeric(names(predicted_params))))

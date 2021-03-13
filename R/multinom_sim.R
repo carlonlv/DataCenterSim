@@ -133,7 +133,7 @@ setMethod("do_prediction",
             result_predicted_params <- data.frame()
             if (is.data.frame(predicted_params)) {
               for (i in 1:nrow(predicted_params)) {
-                if (!isTRUE(all.equal(sum(predicted_params), 1))) {
+                if (!isTRUE(all.equal(sum(predicted_params), 1, tolerance = 0.0001))) {
                   result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
                 } else if (ncol(predicted_params) < 100 / object@granularity) {
                   missing_states <- which(!(1:(100 / object@granularity) %in% as.numeric(colnames(predicted_params))))
@@ -147,7 +147,7 @@ setMethod("do_prediction",
                 }
               }
             } else {
-              if (!isTRUE(all.equal(sum(predicted_params), 1))) {
+              if (!isTRUE(all.equal(sum(predicted_params), 1, tolerance = 0.0001))) {
                 result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
               } else if (length(predicted_params) < 100 / object@granularity) {
                 missing_states <- which(!(1:(100 / object@granularity) %in% as.numeric(names(predicted_params))))

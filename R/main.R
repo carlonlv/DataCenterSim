@@ -147,7 +147,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
   if ("tracewise" %in% plot_type & !("none" %in% plot_type)) {
     plot_sim_tracewise(predict_info$predicted_quantiles, trace_name, ...)
   }
-  trace_score <- check_score_trace(object, predict_info$predicted_quantiles)
+  trace_score <- check_score_trace(object@cut_off_prob, predict_info$predicted_quantiles)
   return(list("trace_score" = trace_score, "predict_info" = predict_info))
 }
 
@@ -219,7 +219,7 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
     plot_sim_paramwise(trace_score_info, object@target, as.character(Sys.time()), ..., get_representation(object, "param_con"))
   }
 
-  param_score <- check_score_param(object, trace_score_info)
+  param_score <- check_score_param(object@cut_off_prob, trace_score_info)
   show_result(param_score)
   return(param_score)
 }

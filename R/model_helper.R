@@ -298,13 +298,13 @@ check_score_pred <- function(object, predict_info, actual_obs, adjust_switch) {
 #' Check Score Of An Entire Trace.
 #'
 #' @description Check the score information of an entire trace based on actual observations and predictions.
-#' @param object An S4 sim object.
+#' @param cut_off_prob A numeric vector representing cut off probability.
 #' @param predict_info A dataframe representing past prediction information.
 #' @return A sim_result object.
 #' @keywords internal
-check_score_trace <- function(object, predict_info) {
+check_score_trace <- function(cut_off_prob, predict_info) {
   if (nrow(predict_info) == 0) {
-    trace_score <- do.call(cbind, lapply(object@cut_off_prob, function(i) {
+    trace_score <- do.call(cbind, lapply(cut_off_prob, function(i) {
       result <- matrix(0, nrow = 1, ncol = 8)
       colnames(result) <- c(paste0("score1.n_", 1 - i),
                             paste0("score1.w_", 1 - i),
@@ -322,7 +322,7 @@ check_score_trace <- function(object, predict_info) {
 
   predict_info <- dplyr::distinct_at(predict_info, c("train_iter", "test_iter", "predict_iter"), .keep_all = TRUE)
 
-  trace_score <- do.call(cbind, lapply(object@cut_off_prob, function(i) {
+  trace_score <- do.call(cbind, lapply(cut_off_prob, function(i) {
     score_trace_1.n <- stats::weighted.mean(predict_info[, paste0("score_pred_1_", 1 - i)], rep(1, nrow(predict_info)), na.rm = TRUE)
     score_trace_1.w <- length(stats::na.omit(predict_info[, paste0("score_pred_1_", 1 - i)]))
     score_trace_1_adj.n <- stats::weighted.mean(predict_info[, paste0("score_pred_1_", 1 - i)], ifelse(predict_info[, paste0("adjustment_", 1 - i)], 0, 1), na.rm = TRUE)
@@ -402,12 +402,12 @@ normalize_predict_info <- function(cut_off_prob, param_info) {
 #' Check Score Of An Entire Parameter Setting.
 #'
 #' @description Check the score information of an entire parameter based on actual observations and predictions.
-#' @param object An S4 sim object.
+#' @param cut_off_prob A numeric vector of cut off probability.
 #' @param predict_info A dataframe representing prediction information of different traces.
 #' @return A sim_result object.
 #' @keywords internal
-check_score_param <- function(object, predict_info) {
-  param_score <- do.call(cbind, lapply(object@cut_off_prob, function(i) {
+check_score_param <- function(cut_off_prob, predict_info) {
+  param_score <- do.call(cbind, lapply(cut_off_prob, function(i) {
     temp_predict_info <- predict_info[predict_info$quantile == (1 - i),]
     score_param_1.n <- stats::weighted.mean(temp_predict_info[, "score1.n"], temp_predict_info[, "score1.w"], na.rm = TRUE)
     score_param_1.w <- sum(temp_predict_info[, "score1.w"])

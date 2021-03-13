@@ -4,10 +4,10 @@
 \alias{check_score_param}
 \title{Check Score Of An Entire Parameter Setting.}
 \usage{
-check_score_param(object, predict_info)
+check_score_param(cut_off_prob, predict_info)
 }
 \arguments{
-\item{object}{An S4 sim object.}
+\item{cut_off_prob}{A numeric vector of cut off probability.}
 
 \item{predict_info}{A dataframe representing prediction information of different traces.}
 }

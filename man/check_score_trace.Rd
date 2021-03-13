@@ -4,10 +4,10 @@
 \alias{check_score_trace}
 \title{Check Score Of An Entire Trace.}
 \usage{
-check_score_trace(object, predict_info)
+check_score_trace(cut_off_prob, predict_info)
 }
 \arguments{
-\item{object}{An S4 sim object.}
+\item{cut_off_prob}{A numeric vector representing cut off probability.}
 
 \item{predict_info}{A dataframe representing past prediction information.}
 }

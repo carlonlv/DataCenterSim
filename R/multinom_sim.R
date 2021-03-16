@@ -18,6 +18,10 @@ check_valid_multinom_sim <- function(object) {
     msg <- paste0("window_type_for_reg must be one of ", paste(window_type_choices, collapse = " "))
     errors <- c(errors, msg)
   }
+  if (any(is.na(object@state_num)) | any(object@state_num %% 1 != 0) | any(object@state_num <= 0)) {
+    msg <- paste0("state_num must only consist positive integers.")
+    errors <- c(errors, msg)
+  }
   if (length(errors) == 0) {
     return(TRUE)
   } else {
@@ -33,11 +37,12 @@ check_valid_multinom_sim <- function(object) {
 multinom_sim <- setClass("multinom_sim",
                        slots = list(window_size_for_reg = "numeric",
                                     window_type_for_reg = "character",
+                                    state_num = "numeric",
                                     train_args = "list"),
                        prototype = list(window_size_for_reg = 12,
                                         window_type_for_reg = "avg",
                                         name = "MULTINOM",
-                                        granularity = 3.125,
+                                        state_num = 8,
                                         train_args = list(),
                                         probability_function = find_state_based_cdf,
                                         probability_expectation = find_expectation_state_based_dist,
@@ -67,13 +72,13 @@ setMethod("train_model",
             }))
             colnames(new_train_xreg) <- names(train_xreg)
 
-            num_cores_usage <- sapply(new_train_x, find_state_num, "fixed", 100 / object@granularity)
+            num_cores_usage <- sapply(new_train_x, find_state_num, "fixed", object@state_num)
 
-            naive_dist <- sapply(1:(100 / object@granularity), function(i) {
+            naive_dist <- sapply(1:object@state_num, function(i) {
               sum(num_cores_usage == i) / length(num_cores_usage)
             })
             naive_dist <- stats::setNames(as.data.frame(matrix(naive_dist, nrow = 1)),
-                                   paste0("prob_dist.", 1:(100 / object@granularity)))
+                                   paste0("prob_dist.", 1:object@state_num))
 
             args.method <- list("data" = cbind(data.frame("num_cores_usage" = as.factor(num_cores_usage)), as.data.frame(new_train_xreg)),
                                 "model" = TRUE,
@@ -135,8 +140,8 @@ setMethod("do_prediction",
               for (i in 1:nrow(predicted_params)) {
                 if (!isTRUE(all.equal(sum(predicted_params), 1, tolerance = 0.0001))) {
                   result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
-                } else if (ncol(predicted_params) < 100 / object@granularity) {
-                  missing_states <- which(!(1:(100 / object@granularity) %in% as.numeric(colnames(predicted_params))))
+                } else if (ncol(predicted_params) < object@state_num) {
+                  missing_states <- which(!(1:object@state_num %in% as.numeric(colnames(predicted_params))))
                   temp_predicted_params <- cbind(predicted_params[i,],
                                                  stats::setNames(as.data.frame(matrix(0, nrow = 1, ncol = length(missing_states))),
                                                                  as.character(missing_states)))
@@ -149,8 +154,8 @@ setMethod("do_prediction",
             } else {
               if (!isTRUE(all.equal(sum(predicted_params), 1, tolerance = 0.0001))) {
                 result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
-              } else if (length(predicted_params) < 100 / object@granularity) {
-                missing_states <- which(!(1:(100 / object@granularity) %in% as.numeric(names(predicted_params))))
+              } else if (length(predicted_params) < object@state_num) {
+                missing_states <- which(!(1:object@state_num %in% as.numeric(names(predicted_params))))
                 temp_predicted_params <- cbind(stats::setNames(as.data.frame(matrix(predicted_params, nrow = 1)),
                                                                names(predicted_params)),
                                                stats::setNames(as.data.frame(matrix(0, nrow = 1, ncol = length(missing_states))),
@@ -162,7 +167,7 @@ setMethod("do_prediction",
                                                                                           names(predicted_params)))
               }
             }
-            colnames(result_predicted_params) <- paste0("prob_dist.", 1:(100 / object@granularity))
+            colnames(result_predicted_params) <- paste0("prob_dist.", 1:object@state_num)
             predicted_params <- result_predicted_params
 
             pi_up <- matrix(nrow = 0, ncol = length(object@cut_off_prob))

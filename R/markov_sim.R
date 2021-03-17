@@ -156,8 +156,14 @@ setMethod("do_prediction",
             }
             predicted_params[,"type"] <- object@cluster_type
 
-            expected <- data.frame("expected" = NA)
-            expected <- expected[rep(1, object@extrap_step),]
+            expected <- data.frame("expected" = sapply(1:object@extrap_step, function(i) {
+              if (object@cluster_type == "fixed") {
+                find_expectation_state_based_dist(predicted_params[i, grep("prob_dist.", colnames(predicted_params))])
+              } else {
+                find_expectation_state_based_dist(predicted_params[i,grep("prob_dist.", colnames(predicted_params))],
+                                                  predicted_params[i,grep("quantiles.", colnames(predicted_params))])
+              }
+            }))
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 
@@ -292,8 +298,14 @@ setMethod("do_prediction",
             }
             predicted_params[,"type"] <- object@cluster_type
 
-            expected <- data.frame("expected" = NA)
-            expected <- expected[rep(1, object@extrap_step),]
+            expected <- data.frame("expected" = sapply(1:object@extrap_step, function(i) {
+              if (object@cluster_type == "fixed") {
+                find_expectation_state_based_dist(predicted_params[i, grep("prob_dist.", colnames(predicted_params))])
+              } else {
+                find_expectation_state_based_dist(predicted_params[i,grep("prob_dist.", colnames(predicted_params))],
+                                                  predicted_params[i,grep("quantiles.", colnames(predicted_params))])
+              }
+            }))
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 

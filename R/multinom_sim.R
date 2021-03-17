@@ -88,7 +88,7 @@ setMethod("train_model",
             }
 
             trained_result <- do.call(nnet::multinom, c(list("formula" = stats::as.formula(paste0("num_cores_usage~", paste(colnames(new_train_xreg), collapse = " + ")))), args.method))
-            trained_result$call$x <- new_train_x
+            trained_result$call$x <- num_cores_usage
             trained_result$call$xreg <- new_train_xreg
             trained_result$call$orig_x <- train_x
             trained_result$call$orig_xreg <- train_xreg
@@ -136,35 +136,59 @@ setMethod("do_prediction",
 
             predicted_params <- stats::predict(trained_result, newdata = as.data.frame(new_test_xreg), type = "probs")
             result_predicted_params <- data.frame()
-            if (is.data.frame(predicted_params)) {
-              for (i in 1:nrow(predicted_params)) {
-                if (!isTRUE(all.equal(sum(predicted_params), 1, tolerance = 0.0001))) {
-                  result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
-                } else if (ncol(predicted_params) < object@state_num) {
-                  missing_states <- which(!(1:object@state_num %in% as.numeric(colnames(predicted_params))))
-                  temp_predicted_params <- cbind(predicted_params[i,],
-                                                 stats::setNames(as.data.frame(matrix(0, nrow = 1, ncol = length(missing_states))),
-                                                                 as.character(missing_states)))
-                  temp_predicted_params <- temp_predicted_params[,sort.int(as.numeric(colnames(temp_predicted_params)), index.return = TRUE)$ix]
-                  result_predicted_params <- rbind(result_predicted_params, temp_predicted_params)
-                } else {
-                  result_predicted_params <- rbind(result_predicted_params, predicted_params[i,])
+            if (object@extrap_step > 1) {
+              if (is.matrix(predicted_params)) {
+                for (i in 1:nrow(predicted_params)) {
+                  if (!isTRUE(all.equal(sum(predicted_params), 1, tolerance = 0.0001))) {
+                    result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
+                  } else if (ncol(predicted_params) < object@state_num) {
+                    missing_states <- which(!(1:object@state_num %in% as.numeric(colnames(predicted_params))))
+                    temp_predicted_params <- cbind(predicted_params[i,],
+                                                   stats::setNames(as.data.frame(matrix(0, nrow = 1, ncol = length(missing_states))),
+                                                                   as.character(missing_states)))
+                    temp_predicted_params <- temp_predicted_params[,sort.int(as.numeric(colnames(temp_predicted_params)), index.return = TRUE)$ix]
+                    result_predicted_params <- rbind(result_predicted_params, temp_predicted_params)
+                  } else {
+                    result_predicted_params <- rbind(result_predicted_params, predicted_params[i,])
+                  }
+                }
+              } else {
+                predicted_class <- stats::predict(trained_result, newdata = as.data.frame(new_test_xreg), type = "class")
+                for (i in 1:length(predicted_params)) {
+                  if (!isTRUE(all.equal(predicted_params[i], 1, tolerance = 0.0001))) {
+                    result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
+                  } else {
+                    temp_predicted_params <- rep(0, object@state_num)
+                    temp_predicted_params[predicted_class[i]] <- 1
+                    result_predicted_params <- rbind(result_predicted_params, temp_predicted_params)
+                  }
                 }
               }
             } else {
-              if (!isTRUE(all.equal(sum(predicted_params), 1, tolerance = 0.0001))) {
-                result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
-              } else if (length(predicted_params) < object@state_num) {
-                missing_states <- which(!(1:object@state_num %in% as.numeric(names(predicted_params))))
-                temp_predicted_params <- cbind(stats::setNames(as.data.frame(matrix(predicted_params, nrow = 1)),
-                                                               names(predicted_params)),
-                                               stats::setNames(as.data.frame(matrix(0, nrow = 1, ncol = length(missing_states))),
-                                                               as.character(missing_states)))
-                temp_predicted_params <- temp_predicted_params[,sort.int(as.numeric(names(temp_predicted_params)), index.return = TRUE)$ix]
-                result_predicted_params <- rbind(result_predicted_params, temp_predicted_params)
+              if (length(predicted_params) == 1) {
+                predicted_class <- stats::predict(trained_result, newdata = as.data.frame(new_test_xreg), type = "class")
+                if (!isTRUE(all.equal(predicted_params, 1, tolerance = 0.0001))) {
+                  result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
+                } else {
+                  temp_predicted_params <- rep(0, object@state_num)
+                  temp_predicted_params[predicted_class] <- 1
+                  result_predicted_params <- rbind(result_predicted_params, temp_predicted_params)
+                }
               } else {
-                result_predicted_params <- rbind(result_predicted_params, stats::setNames(as.data.frame(matrix(predicted_params, nrow = 1)),
-                                                                                          names(predicted_params)))
+                if (!isTRUE(all.equal(sum(predicted_params), 1, tolerance = 0.0001))) {
+                  result_predicted_params <- rbind(result_predicted_params, trained_result$naive_dist)
+                } else if (length(predicted_params) < object@state_num) {
+                  missing_states <- which(!(1:object@state_num %in% as.numeric(names(predicted_params))))
+                  temp_predicted_params <- cbind(stats::setNames(as.data.frame(matrix(predicted_params, nrow = 1)),
+                                                                 names(predicted_params)),
+                                                 stats::setNames(as.data.frame(matrix(0, nrow = 1, ncol = length(missing_states))),
+                                                                 as.character(missing_states)))
+                  temp_predicted_params <- temp_predicted_params[,sort.int(as.numeric(names(temp_predicted_params)), index.return = TRUE)$ix]
+                  result_predicted_params <- rbind(result_predicted_params, temp_predicted_params)
+                } else {
+                  result_predicted_params <- rbind(result_predicted_params, stats::setNames(as.data.frame(matrix(predicted_params, nrow = 1)),
+                                                                                            names(predicted_params)))
+                }
               }
             }
             colnames(result_predicted_params) <- paste0("prob_dist.", 1:object@state_num)
@@ -178,8 +202,9 @@ setMethod("do_prediction",
             }
             colnames(pi_up) <- paste0("Quantile_", sort(1 - object@cut_off_prob))
 
-            expected <- data.frame("expected" = NA)
-            expected <- expected[rep(1, object@extrap_step),]
+            expected <- data.frame("expected" = sapply(1:object@extrap_step, function(i) {
+              find_expectation_state_based_dist(predicted_params[i,])
+            }))
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 

@@ -125,10 +125,10 @@ setMethod("do_prediction",
             pi_up <- sapply(sort(1 - object@cut_off_prob), function(i) {
               compute_pi_up(i, agg_freq, breaks[-1])
             })
-            expected <- data.frame("expected" = NA)
             pi_up <- stats::setNames(as.data.frame(pi_up), paste0("Quantile_", sort(1 - object@cut_off_prob)))
             predicted_params <- stats::setNames(as.data.frame(matrix(agg_freq, nrow = 1, ncol = length(agg_freq))),
                                                 paste0("prob_dist.", 1:length(agg_freq)))
+            expected <- data.frame("expected" = find_expectation_state_based_dist(predicted_params))
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 

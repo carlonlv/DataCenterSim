@@ -371,7 +371,7 @@ check_summary_statistics_trace <- function(predict_info, granularity) {
   res.skewness <- moments::skewness(res)
   res.kurtosis <- moments::kurtosis(res)
 
-  res.acf <- stats::acf(res, lag.max = 5, plot = FALSE)
+  res.acf <- stats::acf(res, lag.max = 5, plot = FALSE)$acf
   res.acf.1 <- as.numeric(res.acf[2])
   res.acf.2 <- as.numeric(res.acf[3])
   res.acf.3 <- as.numeric(res.acf[4])
@@ -382,7 +382,7 @@ check_summary_statistics_trace <- function(predict_info, granularity) {
   actual.skewness <- moments::skewness(actual)
   actual.kurtosis <- moments::kurtosis(actual)
 
-  actual.acf <- stats::acf(actual, lag.max = 5, plot = FALSE)
+  actual.acf <- stats::acf(actual, lag.max = 5, plot = FALSE)$acf
   actual.acf.1 <- as.numeric(actual.acf[2])
   actual.acf.2 <- as.numeric(actual.acf[3])
   actual.acf.3 <- as.numeric(actual.acf[4])

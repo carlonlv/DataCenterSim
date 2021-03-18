@@ -371,11 +371,21 @@ check_summary_statistics_trace <- function(predict_info, granularity) {
   res.skewness <- moments::skewness(res)
   res.kurtosis <- moments::kurtosis(res)
 
+  res.acf <- stats::acf(res, lag.max = 5, plot = FALSE)
+  res.acf.1 <- res.acf[2]
+  res.acf.2 <- res.acf[3]
+  res.acf.3 <- res.acf[4]
+
   ## actual information
   actual.mean <- moments::moment(actual, order = 1)
   actual.var <- moments::moment(actual, order = 2, central = TRUE)
   actual.skewness <- moments::skewness(actual)
   actual.kurtosis <- moments::kurtosis(actual)
+
+  actual.acf <- stats::acf(actual, lag.max = 5, plot = FALSE)
+  actual.acf.1 <- actual.acf[2]
+  actual.acf.2 <- actual.acf[3]
+  actual.acf.3 <- actual.acf[4]
 
   if (granularity != 0) {
     discretized_actual <- entropy::discretize(actual, 100 / granularity, r = c(0, 100))
@@ -398,9 +408,11 @@ check_summary_statistics_trace <- function(predict_info, granularity) {
   actual.trimmed.97.var <- moments::moment(actual.trimmed.97, order = 2, central = TRUE)
 
   return(data.frame("res.mean" = res.mean, "res.var" = res.var, "res.skewness" = res.skewness, "res.kurtosis" = res.kurtosis,
+                    "res.acf.1" = res.acf.1, "res.acf.1" = res.acf.2, "res.acf.1" = res.acf.3,
                     "actual.mean" = actual.mean, "actual.var" = actual.var, "actual.skewness" = actual.skewness, "actual.kurtosis" = actual.kurtosis, "actual.entropy" = actual.entropy,
                     "actual.quantile.100" = actual.quantile.100, "actual.quantile.99" = actual.quantile.99, "actual.quantile.97" = actual.quantile.97, "actual.quantile.90" = actual.quantile.90, "actual.quantile.50" = actual.quantile.50,
-                    "actual.trimmed.99.mean" = actual.trimmed.99.mean, "actual.trimmed.99.var" = actual.trimmed.99.var, "actual.trimmed.97.mean" = actual.trimmed.97.mean, "actual.trimmed.97.var" = actual.trimmed.97.var))
+                    "actual.trimmed.99.mean" = actual.trimmed.99.mean, "actual.trimmed.99.var" = actual.trimmed.99.var, "actual.trimmed.97.mean" = actual.trimmed.97.mean, "actual.trimmed.97.var" = actual.trimmed.97.var,
+                    "actual.acf.1" = actual.acf.1, "actual.acf.2" = actual.acf.2, "actual.acf.3" = actual.acf.3))
 }
 
 

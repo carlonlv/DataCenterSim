@@ -372,9 +372,9 @@ check_summary_statistics_trace <- function(predict_info, granularity) {
   res.kurtosis <- moments::kurtosis(res)
 
   res.acf <- stats::acf(res, lag.max = 5, plot = FALSE)
-  res.acf.1 <- res.acf[2]
-  res.acf.2 <- res.acf[3]
-  res.acf.3 <- res.acf[4]
+  res.acf.1 <- as.numeric(res.acf[2])
+  res.acf.2 <- as.numeric(res.acf[3])
+  res.acf.3 <- as.numeric(res.acf[4])
 
   ## actual information
   actual.mean <- moments::moment(actual, order = 1)
@@ -383,9 +383,9 @@ check_summary_statistics_trace <- function(predict_info, granularity) {
   actual.kurtosis <- moments::kurtosis(actual)
 
   actual.acf <- stats::acf(actual, lag.max = 5, plot = FALSE)
-  actual.acf.1 <- actual.acf[2]
-  actual.acf.2 <- actual.acf[3]
-  actual.acf.3 <- actual.acf[4]
+  actual.acf.1 <- as.numeric(actual.acf[2])
+  actual.acf.2 <- as.numeric(actual.acf[3])
+  actual.acf.3 <- as.numeric(actual.acf[4])
 
   if (granularity != 0) {
     discretized_actual <- entropy::discretize(actual, 100 / granularity, r = c(0, 100))

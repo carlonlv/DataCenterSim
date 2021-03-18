@@ -354,6 +354,56 @@ check_score_trace <- function(cut_off_prob, predict_info) {
 }
 
 
+#' Check Summary Statistics of Prediction Result
+#'
+#' @description Check the statistics of training set and residuals.
+#' @param predict_info A dataframe representing past prediction information.
+#' @param granularity A numeric value represneting granularity of response.
+#' @return A dataframe of 1 row containing summary statistics.
+#' @keywords internal
+check_summary_statistics_trace <- function(predict_info, granularity) {
+  res <- predict_info$residuals
+  actual <- predict_info$actual
+
+  ## residual information
+  res.mean <- moments::moment(res, order = 1)
+  res.var <- moments::moment(res, order = 2, central = TRUE)
+  res.skewness <- moments::skewness(res)
+  res.kurtosis <- moments::kurtosis(res)
+
+  ## actual information
+  actual.mean <- moments::moment(actual, order = 1)
+  actual.var <- moments::moment(actual, order = 2, central = TRUE)
+  actual.skewness <- moments::skewness(actual)
+  actual.kurtosis <- moments::kurtosis(actual)
+
+  if (granularity != 0) {
+    discretized_actual <- entropy::discretize(actual, 100 / granularity, r = c(0, 100))
+    actual.entropy <- entropy::entropy(discretized_actual)
+  } else {
+    actual.entropy <- entropy::entropy.empirical(actual)
+  }
+
+  actual.quantile.100 <- stats::quantile(actual, 1)
+  actual.quantile.99 <- stats::quantile(actual, 0.99)
+  actual.quantile.97 <- stats::quantile(actual, 0.97)
+  actual.quantile.90 <- stats::quantile(actual, 0.9)
+  actual.quantile.50 <- stats::quantile(actual, 0.5)
+
+  actual.trimmed.99 <- actual[actual < actual.quantile.99]
+  actual.trimmed.99.mean <- moments::moment(actual.trimmed.99, order = 1)
+  actual.trimmed.99.var <- moments::moment(actual.trimmed.99, order = 2, central = TRUE)
+  actual.trimmed.97 <- actual[actual < actual.quantile.97]
+  actual.trimmed.97.mean <- moments::moment(actual.trimmed.97, order = 1)
+  actual.trimmed.97.var <- moments::moment(actual.trimmed.97, order = 2, central = TRUE)
+
+  return(data.frame("res.mean" = res.mean, "res.var" = res.var, "res.skewness" = res.skewness, "res.kurtosis" = res.kurtosis,
+                    "actual.mean" = actual.mean, "actual.var" = actual.var, "actual.skewness" = actual.skewness, "actual.kurtosis" = actual.kurtosis, "actual.entropy" = actual.entropy,
+                    "actual.quantile.100" = actual.quantile.100, "actual.quantile.99" = actual.quantile.99, "actual.quantile.97" = actual.quantile.97, "actual.quantile.90" = actual.quantile.90, "actual.quantile.50" = actual.quantile.50,
+                    "actual.trimmed.99.mean" = actual.trimmed.99.mean, "actual.trimmed.99.var" = actual.trimmed.99.var, "actual.trimmed.97.mean" = actual.trimmed.97.mean, "actual.trimmed.97.var" = actual.trimmed.97.var))
+}
+
+
 #' Normalize Parameter Info
 #'
 #' @description Change quantile information from column features to row features.

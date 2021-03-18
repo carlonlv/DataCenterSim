@@ -148,7 +148,8 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
     plot_sim_tracewise(predict_info$predicted_quantiles, trace_name, ...)
   }
   trace_score <- check_score_trace(object@cut_off_prob, predict_info$predicted_quantiles)
-  return(list("trace_score" = trace_score, "predict_info" = predict_info))
+  trace_pred_stats <- check_summary_statistics_trace(predict_info$predicted_quantiles, object@granularity)
+  return(list("trace_score" = trace_score, "trace_pred_stats" = trace_pred_stats, "predict_info" = predict_info))
 }
 
 
@@ -201,19 +202,23 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
 
   ## Reformat Results
   trace_score_info <- data.frame()
+  trace_pred_stats_info <- data.frame()
   trace_names <- c()
   for (ts_num in 1:ncol(x)) {
     #trace_score_info <- rbind(trace_score_info, trace_score[[ts_num]][["trace_score"]])
     if (!is.numeric(trace_score[[ts_num]])) {
       trace_score_info <- rbind(trace_score_info, trace_score[[ts_num]][["trace_score"]])
+      trace_pred_stats_info <- rbind(trace_pred_stats_info, trace_score[[ts_num]][["trace_pred_stats"]])
       trace_names <- c(trace_names, colnames(x)[ts_num])
     }
   }
   trace_score_info$trace_name <- trace_names
+  trace_pred_stats_info$trace_name <- trace_names
 
   trace_score_info <- normalize_predict_info(object@cut_off_prob, trace_score_info)
   if ("paramwise" %in% write_type & !("none" %in% write_type)) {
     write_sim_result(trace_score_info, "paramwise", as.character(Sys.time()), ..., get_representation(object, "param_con"))
+    write_sim_result(trace_score_info, "other", paste("Paramwise Prediction Statistics at", as.character(Sys.time())), ..., get_representation(object, "param_con"))
   }
   if ("paramwise" %in% plot_type & !("none" %in% plot_type)) {
     plot_sim_paramwise(trace_score_info, object@target, as.character(Sys.time()), ..., get_representation(object, "param_con"))
@@ -242,7 +247,7 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
 #' @return A list of S4 sim result object.
 #' @export
 run_sim <- function(epoch_setting, additional_setting = list(), x, xreg, start_point=1, wait_time=0, cores=parallel::detectCores(), write_type, plot_type, result_loc=getwd()) {
-  if (!(any(c(write_type, plot_type) %in% c("charwise", "tracewise", "paramwise", "none")))) {
+  if (!(any(c(write_type, plot_type) %in% c("charwise", "paramwise", "tracewise", "none")))) {
     stop("plot_type must be one of charwise, tracewise, paramwise and none.")
   }
 

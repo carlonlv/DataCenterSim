@@ -218,7 +218,7 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
   trace_score_info <- normalize_predict_info(object@cut_off_prob, trace_score_info)
   if ("paramwise" %in% write_type & !("none" %in% write_type)) {
     write_sim_result(trace_score_info, "paramwise", as.character(Sys.time()), ..., get_representation(object, "param_con"))
-    write_sim_result(trace_score_info, "other", paste("Paramwise Prediction Statistics at", as.character(Sys.time())), ..., get_representation(object, "param_con"))
+    write_sim_result(trace_pred_stats_info, "other", paste("Paramwise Prediction Statistics at", as.character(Sys.time())), ..., get_representation(object, "param_con"))
   }
   if ("paramwise" %in% plot_type & !("none" %in% plot_type)) {
     plot_sim_paramwise(trace_score_info, object@target, as.character(Sys.time()), ..., get_representation(object, "param_con"))

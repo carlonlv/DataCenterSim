@@ -179,7 +179,7 @@ find_and_remove_outliers_testing_set <- function(object, trained_result, new_x, 
 
   # Find outliers from past residuals and remove their effect.
   pars <- tsoutliers::coefs2poly(trained_result)
-  ol <- tsoutliers::locate.outliers.iloop(resid = res, pars = pars, cval = cval, types = ol_type, maxit = 20)
+  ol <- tsoutliers::locate.outliers.iloop(resid = res, pars = pars, cval = cval, types = ol_type, maxit = 10)
 
   if (nrow(ol) > 0) {
     non_ol <- tsoutliers::find.consecutive.outliers(ol, object@outlier_type)
@@ -221,7 +221,7 @@ prediction_including_outlier_effect <- function(object, trained_result, pi_up, e
     ol_occurence[["NO"]] <- trained_result$param_mle[nrow(trained_result$param_mle), "param"]
     ol_occurence <- data.frame(ol_occurence)
     ol_occurence <- do.call(rbind, replicate(object@extrap_step, ol_occurence, simplify = FALSE))
-  } else if (object@outlier_prediction == "Categorical-Dirichlet") {
+  } else {
     ## Probability of occurrences
     if (object@extrap_step > 1) {
       stop("Multiple extrapolation step for Categorical-Dirichlet is not implemented.")
@@ -237,13 +237,13 @@ prediction_including_outlier_effect <- function(object, trained_result, pi_up, e
 
   mu <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
     expected[h,1] + trained_result$param_mle$effect_mean
-  }))), paste0("mean.", ol_type))
+  }))), paste0("mean.", colnames(ol_occurence)))
   sd <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
     sqrt(predict_var[h] + trained_result$param_mle$effect_var)
-  }))), paste0("sd.", ol_type))
+  }))), paste0("sd.", colnames(ol_occurence)))
   pro <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
     ol_occurence[h,]
-  }))), paste0("pro.", ol_type))
+  }))), paste0("pro.", colnames(ol_occurence)))
   predicted_params <- cbind(mu, sd, pro)
 
   pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(sort(level), function(i) {
@@ -291,7 +291,7 @@ setMethod("train_model",
               }
 
               trained_result <- tryCatch({
-                tso_model <- tsoutliers::tso(y = new_train_x, types = ol_type, cval = cval, maxit = 2, tsmethod = "arima", args.tsmethod = args.tsmethod, maxit.oloop = 12, maxit.iloop = 6)
+                tso_model <- tsoutliers::tso(y = new_train_x, types = ol_type, cval = cval, maxit = 4, tsmethod = "arima", args.tsmethod = args.tsmethod, maxit.oloop = 20, maxit.iloop = 10)
                 tso_model$fit$call$orig_x <- train_x
                 param_mle <- estimate_outliers(object, ol_type, new_train_x, tso_model, trained_model)
                 c(tso_model$fit, list("param_mle" = param_mle))
@@ -426,7 +426,7 @@ setMethod("train_model",
               }
 
               trained_result <- tryCatch({
-                tso_model <- tsoutliers::tso(y = new_train_x, xreg = new_train_xreg, types = ol_type, cval = cval, maxit = 2, tsmethod = "arima", args.tsmethod = args.tsmethod, maxit.oloop = 12, maxit.iloop = 6)
+                tso_model <- tsoutliers::tso(y = new_train_x, xreg = new_train_xreg, types = ol_type, cval = cval, maxit = 4, tsmethod = "arima", args.tsmethod = args.tsmethod, maxit.oloop = 20, maxit.iloop = 10)
                 tso_model$fit$call$orig_x <- train_x
                 tso_model$fit$call$orig_xreg <- train_xreg
                 param_mle <- estimate_outliers(object, ol_type, new_train_x, tso_model, trained_model)
@@ -575,7 +575,7 @@ setMethod("train_model",
               }
 
               trained_result <- tryCatch({
-                tso_model <- tsoutliers::tso(y = new_train_x, xreg = new_train_xreg, types = ol_type, cval = cval, maxit = 2, tsmethod = "arima", args.tsmethod = args.tsmethod, maxit.oloop = 12, maxit.iloop = 6)
+                tso_model <- tsoutliers::tso(y = new_train_x, xreg = new_train_xreg, types = ol_type, cval = cval, maxit = 4, tsmethod = "arima", args.tsmethod = args.tsmethod, maxit.oloop = 20, maxit.iloop = 10)
                 tso_model$call$orig_x <- train_x
                 tso_model$call$orig_xreg <- train_xreg
                 param_mle <- estimate_outliers(object, ol_type, new_train_x, tso_model, trained_model)

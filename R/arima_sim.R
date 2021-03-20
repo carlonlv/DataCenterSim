@@ -250,8 +250,8 @@ prediction_including_outlier_effect <- function(object, trained_result, pi_up, e
                                     mean = predicted_params[h, grep("mean.*", colnames(predicted_params), value = TRUE)],
                                     sd = predicted_params[h, grep("sd.*", colnames(predicted_params), value = TRUE)],
                                     pro = predicted_params[h, grep("pro.*", colnames(predicted_params), value = TRUE)])
-      })
       ifelse(is.na(result), 100, result)
+      })
   }))), paste0("Quantile_", sort(1 - object@cut_off_prob)))
   expected <- stats::setNames(as.data.frame(sapply(1:object@extrap_step, function(h) {
     expected[h] + sum(trained_result$param_mle$effect_mean * ol_occurence[h,])

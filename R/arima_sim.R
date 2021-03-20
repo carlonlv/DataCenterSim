@@ -246,10 +246,16 @@ prediction_including_outlier_effect <- function(object, trained_result, pi_up, e
 
   pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(sort(level), function(i) {
     sapply(1:object@extrap_step, function(h) {
-      result <- KScorrect::qmixnorm(i / 100,
-                                    mean = predicted_params[h, grep("mean.*", colnames(predicted_params), value = TRUE)],
-                                    sd = predicted_params[h, grep("sd.*", colnames(predicted_params), value = TRUE)],
-                                    pro = predicted_params[h, grep("pro.*", colnames(predicted_params), value = TRUE)])
+      result <- NA
+      expand <- 1.0
+      while (is.na(result) & (expand >= 0.3)) {
+        result <- KScorrect::qmixnorm(i / 100,
+                                      mean = predicted_params[h, grep("mean.*", colnames(predicted_params), value = TRUE)],
+                                      sd = predicted_params[h, grep("sd.*", colnames(predicted_params), value = TRUE)],
+                                      pro = predicted_params[h, grep("pro.*", colnames(predicted_params), value = TRUE)],
+                                      expand = expand)
+        expand <- expand - 0.05
+      }
       ifelse(is.na(result), 100, result)
       })
   }))), paste0("Quantile_", sort(1 - object@cut_off_prob)))

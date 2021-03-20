@@ -109,7 +109,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
         train_xreg <- NULL
       }
 
-      train_models <- train_model(object, train_x, train_xreg, list(train_models))
+      train_models <- train_model(object, train_x, train_xreg, ifelse(is.list(train_models), train_models, list(train_models)))
 
       switch_status$train_iter <- switch_status$train_iter + 1
 

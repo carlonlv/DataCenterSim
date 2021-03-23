@@ -74,11 +74,15 @@ order_by_weighted_score1 <- function(predict_info_quantiles, cut_off_prob, targe
 calc_removal_to_reach_target <- function(predict_info_quantiles, cut_off_prob, target = 1 - cut_off_prob, adjustment=FALSE) {
   predict_info_quantiles_cp <- order_by_weighted_score1(predict_info_quantiles, cut_off_prob, target, adjustment)
 
+  score_change <- stats::setNames(data.frame(matrix(nrow = 0, ncol = 8)),
+                           "score1.n", "score1.w", "score1_adj.n", "score1_adj.w", "score2.n", "score2.w", "score2_adj.n", "score2_adj.w")
+
   current_removal_idx <- 0
   trace_name_removed <- c()
   while (current_removal_idx < nrow(predict_info_quantiles_cp)) {
     score_after_removal <- stats::setNames(check_score_param(cut_off_prob, predict_info_quantiles_cp[(current_removal_idx + 1):nrow(predict_info_quantiles_cp),]),
                                            c("score1.n", "score1.w", "score1_adj.n", "score1_adj.w", "score2.n", "score2.w", "score2_adj.n", "score2_adj.w"))
+    score_change <- rbind(score_change, score_after_removal)
     if (score_after_removal$score1.n >= target) {
       break
     }
@@ -86,14 +90,13 @@ calc_removal_to_reach_target <- function(predict_info_quantiles, cut_off_prob, t
     trace_name_removed <- c(trace_name_removed, predict_info_quantiles_cp[current_removal_idx, "trace_name"])
   }
   if (current_removal_idx == nrow(predict_info_quantiles_cp)) {
-    return(list("predict_info_quantiles" =  stats::setNames(data.frame(matrix(nrow = 0, ncol = ncol(predict_info_quantiles_cp))),
+    return(list("predict_info_quantiles" = stats::setNames(data.frame(matrix(nrow = 0, ncol = ncol(predict_info_quantiles_cp))),
                                                             colnames(predict_info_quantiles_cp)),
                 "trace_removed" = trace_name_removed,
-                "score_after_removal" = stats::setNames(data.frame(matrix(0, nrow = 1, ncol = ncol(score_after_removal))),
-                                                        colnames(score_after_removal))))
+                "score_change" = score_change))
   } else {
     return(list("predict_info_quantiles" = predict_info_quantiles_cp[(current_removal_idx + 1):nrow(predict_info_quantiles_cp),],
                 "trace_removed" = trace_name_removed,
-                "score_after_removal" = score_after_removal))
+                "score_change" = score_change))
   }
 }

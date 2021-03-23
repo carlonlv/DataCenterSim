@@ -41,6 +41,7 @@ LazyData: true
 RoxygenNote: 7.1.1
 Collate: 
     'DataCenterSim.R'
+    'ad_hoc_analysis.R'
     'model_helper.R'
     'sim_class.R'
     'generics.R'

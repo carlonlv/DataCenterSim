@@ -8,27 +8,30 @@
 #' @return A list containing update \code{predict_info_quantiles} and \code{predict_info_statistics}.
 #' @export
 label_performance_trace <- function(predict_info_quantiles, cut_off_prob, target = 1 - cut_off_prob, predict_info_statistics = NULL) {
-  predict_info_quantiles_cp <- predict_info_quantiles
-  predict_info_quantiles_cp <- normalize_predict_info(cut_off_prob, predict_info_quantiles_cp)
+  predict_info_quantiles_cp <- normalize_predict_info(cut_off_prob, predict_info_quantiles)
 
-  predict_info_quantiles_cp <- predict_info_quantiles_cp[predict_info_quantiles_cp$quantile == target,]
+  predict_info_quantiles_cp <- predict_info_quantiles_cp[predict_info_quantiles_cp$quantile == (1 - cut_off_prob),]
   predict_info_quantiles_cp <- predict_info_quantiles_cp[predict_info_quantiles_cp$score1.w != 0,]
 
-  under_performed_traces <- predict_info_quantiles_cp[(predict_info_quantiles_cp$score1.n < target) & (predict_info_quantiles_cp$score1_adj.n < target),]
-  well_performed_traces_under_adjustment <- predict_info_quantiles_cp[(predict_info_quantiles_cp$score1.n < target) & (predict_info_quantiles_cp$score1_adj.n >= target),]
-  well_performed_traces <- predict_info_quantiles_cp[predict_info_quantiles_cp$score1.n >= target,]
+  under_performed_traces <- predict_info_quantiles_cp[(predict_info_quantiles_cp$score1.n < target) & (predict_info_quantiles_cp$score1_adj.n < target), "trace_name"]
+  well_performed_traces_under_adjustment <- predict_info_quantiles_cp[(predict_info_quantiles_cp$score1.n < target) & (predict_info_quantiles_cp$score1_adj.n >= target), "trace_name"]
+  well_performed_traces <- predict_info_quantiles_cp[predict_info_quantiles_cp$score1.n >= target, "trace_name"]
 
-  predict_info_quantiles[, paste0("label.", (1 - cut_off_prob))] <- "undefined"
-  predict_info_quantiles[predict_info_quantiles$trace_name %in% under_performed_traces$trace_name, paste0("label.", (1 - cut_off_prob))] <- "under_performed"
-  predict_info_quantiles[predict_info_quantiles$trace_name %in% well_performed_traces_under_adjustment$trace_name, paste0("label.", (1 - cut_off_prob))] <- "well_performed_adjusted"
-  predict_info_quantiles[predict_info_quantiles$trace_name %in% well_performed_traces$trace_name, paste0("label.", (1 - cut_off_prob))] <- "well_performed"
+  predict_info_quantiles_cp[, paste0("label.", (1 - cut_off_prob))] <- "undefined"
+  predict_info_quantiles_cp[predict_info_quantiles_cp$trace_name %in% under_performed_traces, paste0("label.", (1 - cut_off_prob))] <- "under_performed"
+  predict_info_quantiles_cp[predict_info_quantiles_cp$trace_name %in% well_performed_traces_under_adjustment, paste0("label.", (1 - cut_off_prob))] <- "well_performed_adjusted"
+  predict_info_quantiles_cp[predict_info_quantiles_cp$trace_name %in% well_performed_traces, paste0("label.", (1 - cut_off_prob))] <- "well_performed"
 
 
   if (!is.null(predict_info_statistics)) {
-    predict_info_statistics[, paste0("label.", (1 - cut_off_prob))] <- predict_info_quantiles[, paste0("label.", (1 - cut_off_prob))]
+    predict_info_statistics_cp <- predict_info_statistics
+    predict_info_statistics_cp[, paste0("label.", (1 - cut_off_prob))] <- "undefined"
+    predict_info_statistics_cp[predict_info_statistics_cp$trace_name %in% under_performed_traces, paste0("label.", (1 - cut_off_prob))] <- "under_performed"
+    predict_info_statistics_cp[predict_info_statistics_cp$trace_name %in% well_performed_traces_under_adjustment, paste0("label.", (1 - cut_off_prob))] <- "well_performed_adjusted"
+    predict_info_statistics_cp[predict_info_statistics_cp$trace_name %in% well_performed_traces, paste0("label.", (1 - cut_off_prob))] <- "well_performed"
   }
 
-  return(list("predict_info_quantiles" = predict_info_quantiles, "predict_info_statistics" = predict_info_statistics))
+  return(list("predict_info_quantiles" = predict_info_quantiles_cp, "predict_info_statistics" = predict_info_statistics_cp))
 }
 
 
@@ -47,18 +50,19 @@ order_by_weighted_score1 <- function(predict_info_quantiles, cut_off_prob, targe
   predict_info_quantiles_cp <- predict_info_quantiles_cp[predict_info_quantiles_cp$quantile == (1 - cut_off_prob),]
   predict_info_quantiles_cp <- predict_info_quantiles_cp[predict_info_quantiles_cp$score1.w != 0,]
 
-  if (is.na(adjustment)) {
-    total_weight <- ifelse(predict_info_quantiles_cp$score1.n < target,
-                           predict_info_quantiles_cp$score1_adj.n * predict_info_quantiles_cp$score1_adj.w,
-                           predict_info_quantiles_cp$score1.n * predict_info_quantiles_cp$score1.w)
-  } else if (adjustment) {
-    total_weight <- predict_info_quantiles_cp$score1_adj.n * predict_info_quantiles_cp$score1_adj.w
+  if (adjustment) {
+    target_score1.n <- predict_info_quantiles_cp$score1_adj.n
+    target_score1.w <- predict_info_quantiles_cp$score1_adj.w
   } else {
-    total_weight <- predict_info_quantiles_cp$score1.n * predict_info_quantiles_cp$score1.w
+    target_score1.n <- predict_info_quantiles_cp$score1.n
+    target_score1.w <- predict_info_quantiles_cp$score1.w
   }
 
-  sorted_weight <- sort(total_weight, index.return = TRUE)
-  return(predict_info_quantiles_cp[sorted_weight$ix,])
+  predict_info_quantiles_cp$wt <- target_score1.n * (target_score1.w / sum(target_score1.w, na.rm = TRUE))
+  predict_info_quantiles_cp <- predict_info_quantiles_cp %>%
+    dplyr::group_by_at(paste0("label.", (1 - cut_off_prob))) %>%
+    dplyr::arrange_at("wt", .by_group = TRUE)
+  return(predict_info_quantiles_cp)
 }
 
 
@@ -75,19 +79,25 @@ calc_removal_to_reach_target <- function(predict_info_quantiles, cut_off_prob, t
   predict_info_quantiles_cp <- order_by_weighted_score1(predict_info_quantiles, cut_off_prob, target, adjustment)
 
   score_change <- stats::setNames(data.frame(matrix(nrow = 0, ncol = 8)),
-                           "score1.n", "score1.w", "score1_adj.n", "score1_adj.w", "score2.n", "score2.w", "score2_adj.n", "score2_adj.w")
+                           c("score1.n", "score1.w", "score1_adj.n", "score1_adj.w", "score2.n", "score2.w", "score2_adj.n", "score2_adj.w"))
+
+  under_performed_subset <- predict_info_quantiles_cp[predict_info_quantiles_cp[, paste0("label.", (1 - cut_off_prob))] == "under_performed",]
 
   current_removal_idx <- 0
   trace_name_removed <- c()
-  while (current_removal_idx < nrow(predict_info_quantiles_cp)) {
-    score_after_removal <- stats::setNames(check_score_param(cut_off_prob, predict_info_quantiles_cp[(current_removal_idx + 1):nrow(predict_info_quantiles_cp),]),
+  while (current_removal_idx < nrow(under_performed_subset)) {
+    score_after_removal <- stats::setNames(as.data.frame(check_score_param(cut_off_prob, predict_info_quantiles_cp[(current_removal_idx + 1):nrow(predict_info_quantiles_cp),])),
                                            c("score1.n", "score1.w", "score1_adj.n", "score1_adj.w", "score2.n", "score2.w", "score2_adj.n", "score2_adj.w"))
     score_change <- rbind(score_change, score_after_removal)
-    if (score_after_removal$score1.n >= target) {
+
+    if (!adjustment & score_after_removal$score1.n >= target) {
+      break
+    }
+    if (adjustment & score_after_removal$score1_adj.n >= target) {
       break
     }
     current_removal_idx <- current_removal_idx + 1
-    trace_name_removed <- c(trace_name_removed, predict_info_quantiles_cp[current_removal_idx, "trace_name"])
+    trace_name_removed <- c(trace_name_removed, predict_info_quantiles_cp$trace_name[current_removal_idx])
   }
   if (current_removal_idx == nrow(predict_info_quantiles_cp)) {
     return(list("predict_info_quantiles" = stats::setNames(data.frame(matrix(nrow = 0, ncol = ncol(predict_info_quantiles_cp))),

@@ -579,9 +579,11 @@ find_state_based_cdf <- function(q, prob_dist, quantiles=NULL, type = "fixed") {
 #' @param quantiles A numeric vector representing quantile of partitioning training set.
 #' @return The corresponding expectation.
 find_expectation_state_based_dist <- function(prob_dist, quantiles=NULL) {
+  prob_dist <- as.numeric(prob_dist)
   if (is.null(quantiles)) {
     val <- seq(by = 100 / length(prob_dist), length.out = length(prob_dist) + 1, to = 100)
   } else {
+    quantiles <- as.numeric(quantiles)
     val <- quantiles
   }
   mid_points <- sapply(2:length(val), function(i) {

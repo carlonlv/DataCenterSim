@@ -29,6 +29,8 @@ label_performance_trace <- function(predict_info_quantiles, cut_off_prob, target
     predict_info_statistics_cp[predict_info_statistics_cp$trace_name %in% under_performed_traces, paste0("label.", (1 - cut_off_prob))] <- "under_performed"
     predict_info_statistics_cp[predict_info_statistics_cp$trace_name %in% well_performed_traces_under_adjustment, paste0("label.", (1 - cut_off_prob))] <- "well_performed_adjusted"
     predict_info_statistics_cp[predict_info_statistics_cp$trace_name %in% well_performed_traces, paste0("label.", (1 - cut_off_prob))] <- "well_performed"
+  } else {
+    predict_info_statistics_cp <- NULL
   }
 
   return(list("predict_info_quantiles" = predict_info_quantiles_cp, "predict_info_statistics" = predict_info_statistics_cp))

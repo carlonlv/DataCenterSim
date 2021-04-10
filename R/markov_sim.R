@@ -276,7 +276,6 @@ setMethod("do_prediction",
               colnames(predicted_params) <- c(paste0("prob_dist.", 1:length(to_states)), paste0("quantiles.", 1:length(trained_result$quantiles_x)))
             }
 
-
             if (object@extrap_step > 1) {
               for (i in 1:(object@extrap_step - 1)) {
                 final_transition <- final_transition %*% trained_result$transition_x_x
@@ -302,8 +301,8 @@ setMethod("do_prediction",
               if (object@cluster_type == "fixed") {
                 find_expectation_state_based_dist(predicted_params[i, grep("prob_dist.", colnames(predicted_params))])
               } else {
-                find_expectation_state_based_dist(predicted_params[i,grep("prob_dist.", colnames(predicted_params))],
-                                                  predicted_params[i,grep("quantiles.", colnames(predicted_params))])
+                find_expectation_state_based_dist(predicted_params[i, grep("prob_dist.", colnames(predicted_params))],
+                                                  predicted_params[i, grep("quantiles.", colnames(predicted_params))])
               }
             }))
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))

@@ -88,7 +88,14 @@ calc_removal_to_reach_target <- function(predict_info_quantiles, cut_off_prob, t
   current_removal_idx <- 0
   trace_name_removed <- c()
   while (current_removal_idx < nrow(under_performed_subset)) {
-    score_after_removal <- stats::setNames(as.data.frame(check_score_param(cut_off_prob, predict_info_quantiles_cp[(current_removal_idx + 1):nrow(predict_info_quantiles_cp),])),
+    if (current_removal_idx > 0) {
+      if (adjustment) {
+        predict_info_quantiles_cp[current_removal_idx, c("score1_adj.w", "score2_adj.n")] = 0
+      } else {
+        predict_info_quantiles_cp[current_removal_idx, c("score1.w", "score2.n")] = 0
+      }
+    }
+    score_after_removal <- stats::setNames(as.data.frame(check_score_param(cut_off_prob, predict_info_quantiles_cp)),
                                            c("score1.n", "score1.w", "score1_adj.n", "score1_adj.w", "score2.n", "score2.w", "score2_adj.n", "score2_adj.w"))
     score_change <- rbind(score_change, score_after_removal)
 

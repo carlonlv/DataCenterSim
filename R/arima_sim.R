@@ -10,7 +10,7 @@ NULL
 check_valid_arima_sim <- function(object) {
   errors <- character()
   window_type_choices <- c("max", "avg")
-  res_dist_choices <- c("normal", "skew_norm", "empirical")
+  res_dist_choices <- c("normal", "skew_norm", "empirical", "discretized")
   outlier_type_choices <- c("AO", "IO", "LS", "None", "All")
   outlier_prediction_choices <- c("None", "Categorical", "Categorical-Dirichlet")
   if (any(is.na(object@window_type_for_reg)) | all(object@window_type_for_reg != window_type_choices)) {
@@ -35,6 +35,10 @@ check_valid_arima_sim <- function(object) {
   }
   if (length(object@outlier_prediction_update_param) != 1 | is.na(object@outlier_prediction_update_param)) {
     msg <- paste0("outlier_prediction_update_param must be length one logical value.")
+    errors <- c(errors, msg)
+  }
+  if (length(object@state_num) != 1 | (!is.na(object@state_num) & (object@state_num < 0 | object@state_num %% 1 != 0)) | (is.na(object@state_num) & object@granularity == 0)) {
+    msg <- paste0("state_num must be NA or positive integer, if granularity is 0, then state_num cannot be NA.")
     errors <- c(errors, msg)
   }
   if (length(errors) == 0) {
@@ -63,6 +67,7 @@ arima_sim <- setClass("arima_sim",
                                  outlier_prediction = "character",
                                  outlier_prediction_prior = "numeric",
                                  outlier_prediction_update_param = "logical",
+                                 state_num = "numeric",
                                  train_args = "list"),
                     contains = "sim",
                     prototype = list(window_size_for_reg = NA_real_,
@@ -74,6 +79,7 @@ arima_sim <- setClass("arima_sim",
                                      outlier_prediction = "None",
                                      outlier_prediction_prior = NA_real_,
                                      outlier_prediction_update_param = TRUE,
+                                     state_num = NA_real_,
                                      train_args = list("order" = c(1, 0, 0))),
                     validity = check_valid_arima_sim)
 
@@ -375,39 +381,67 @@ setMethod("do_prediction",
               expected <- skewnorm_prediction_result$expected
               pi_up <- skewnorm_prediction_result$pi_up
               predicted_params <- skewnorm_prediction_result$predicted_params
-            }
-
-            if (object@res_dist == "normal" & object@outlier_type != "None" & object@outlier_prediction != "None") {
-              if (is.null(trained_result$param_mle)) {
-                if (object@outlier_type == "All") {
-                  ol_type <- c("AO", "IO", "TC")
-                } else {
-                  ol_type <- object@outlier_type
+            } else if (object@res_dist == "discretized") {
+              compute_pi_up <- function(prob, to_states) {
+                current_state <- 1
+                current_prob <- 0
+                while (current_state <= length(to_states)) {
+                  current_prob <- current_prob + to_states[current_state]
+                  if (current_prob < prob) {
+                    current_state <- current_state + 1
+                  } else {
+                    break
+                  }
                 }
+                pi_up <- current_state * (100 / length(to_states))
+                return(pi_up)
+              }
+              predicted_params <- discretized_from_normal_param_prediction(object, expected, pi_up)
 
-                expected <- expected
-                pi_up <- pi_up
+              pi_up <- matrix(0, nrow = object@extrap_step, ncol = length(1 - object@cut_off_prob))
+              for (j in 1:nrow(pi_up)) {
+                pi_up[j,] <- sapply(sort(1 - object@cut_off_prob), function(i) {
+                  compute_pi_up(i, predicted_params[j,])
+                })
+              }
+              pi_up <- as.data.frame(pi_up)
+              colnames(pi_up) <- paste0("Quantile_", sort(1 - object@cut_off_prob))
 
-                mu <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
-                  rep(0, times = length(ol_type) + 1)
-                }))), paste0("mean.", c(ol_type, "NO")))
-                sd <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
-                  rep(0, times = length(ol_type) + 1)
-                }))), paste0("sd.", c(ol_type, "NO")))
-                pro <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
-                  rep(0, times = length(ol_type) + 1)
-                }))), paste0("pro.", c(ol_type, "NO")))
+              expected <- data.frame("expected" = sapply(1:object@extrap_step, function(i) {
+                find_expectation_state_based_dist(predicted_params[i, grep("prob_dist.", colnames(predicted_params))])
+              }))
+            } else {
+              if (object@res_dist == "normal" & object@outlier_type != "None" & object@outlier_prediction != "None") {
+                if (is.null(trained_result$param_mle)) {
+                  if (object@outlier_type == "All") {
+                    ol_type <- c("AO", "IO", "TC")
+                  } else {
+                    ol_type <- object@outlier_type
+                  }
 
-                predicted_params <- cbind(mu, sd, pro)
-              } else {
-                outlier_prediction_result <- prediction_including_outlier_effect(object, trained_result, pi_up, expected, level)
+                  expected <- expected
+                  pi_up <- pi_up
 
-                expected <- outlier_prediction_result$expected
-                pi_up <- outlier_prediction_result$pi_up
-                predicted_params <- outlier_prediction_result$predicted_params
+                  mu <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
+                    rep(0, times = length(ol_type) + 1)
+                  }))), paste0("mean.", c(ol_type, "NO")))
+                  sd <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
+                    rep(0, times = length(ol_type) + 1)
+                  }))), paste0("sd.", c(ol_type, "NO")))
+                  pro <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
+                    rep(0, times = length(ol_type) + 1)
+                  }))), paste0("pro.", c(ol_type, "NO")))
+
+                  predicted_params <- cbind(mu, sd, pro)
+                } else {
+                  outlier_prediction_result <- prediction_including_outlier_effect(object, trained_result, pi_up, expected, level)
+
+                  expected <- outlier_prediction_result$expected
+                  pi_up <- outlier_prediction_result$pi_up
+                  predicted_params <- outlier_prediction_result$predicted_params
+                }
               }
             }
-
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 
@@ -545,39 +579,67 @@ setMethod("do_prediction",
               expected <- skewnorm_prediction_result$expected
               pi_up <- skewnorm_prediction_result$pi_up
               predicted_params <- skewnorm_prediction_result$predicted_params
-            }
-
-            if (object@res_dist == "normal" & object@outlier_type != "None" & object@outlier_prediction != "None") {
-              if (is.null(trained_result$param_mle)) {
-                if (object@outlier_type == "All") {
-                  ol_type <- c("AO", "IO", "TC")
-                } else {
-                  ol_type <- object@outlier_type
+            } else if (object@res_dist == "discretized") {
+              compute_pi_up <- function(prob, to_states) {
+                current_state <- 1
+                current_prob <- 0
+                while (current_state <= length(to_states)) {
+                  current_prob <- current_prob + to_states[current_state]
+                  if (current_prob < prob) {
+                    current_state <- current_state + 1
+                  } else {
+                    break
+                  }
                 }
+                pi_up <- current_state * (100 / length(to_states))
+                return(pi_up)
+              }
+              predicted_params <- discretized_from_normal_param_prediction(object, expected, pi_up)
 
-                expected <- expected
-                pi_up <- pi_up
+              pi_up <- matrix(0, nrow = object@extrap_step, ncol = length(1 - object@cut_off_prob))
+              for (j in 1:nrow(pi_up)) {
+                pi_up[j,] <- sapply(sort(1 - object@cut_off_prob), function(i) {
+                  compute_pi_up(i, predicted_params[j,])
+                })
+              }
+              pi_up <- as.data.frame(pi_up)
+              colnames(pi_up) <- paste0("Quantile_", sort(1 - object@cut_off_prob))
 
-                mu <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
-                  rep(0, times = length(ol_type) + 1)
-                }))), paste0("mean.", c(ol_type, "NO")))
-                sd <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
-                  rep(0, times = length(ol_type) + 1)
-                }))), paste0("sd.", c(ol_type, "NO")))
-                pro <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
-                  rep(0, times = length(ol_type) + 1)
-                }))), paste0("pro.", c(ol_type, "NO")))
+              expected <- data.frame("expected" = sapply(1:object@extrap_step, function(i) {
+                find_expectation_state_based_dist(predicted_params[i, grep("prob_dist.", colnames(predicted_params))])
+              }))
+            } else {
+              if (object@res_dist == "normal" & object@outlier_type != "None" & object@outlier_prediction != "None") {
+                if (is.null(trained_result$param_mle)) {
+                  if (object@outlier_type == "All") {
+                    ol_type <- c("AO", "IO", "TC")
+                  } else {
+                    ol_type <- object@outlier_type
+                  }
 
-                predicted_params <- cbind(mu, sd, pro)
-              } else {
-                outlier_prediction_result <- prediction_including_outlier_effect(object, trained_result, pi_up, expected, level)
+                  expected <- expected
+                  pi_up <- pi_up
 
-                expected <- outlier_prediction_result$expected
-                pi_up <- outlier_prediction_result$pi_up
-                predicted_params <- outlier_prediction_result$predicted_params
+                  mu <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
+                    rep(0, times = length(ol_type) + 1)
+                  }))), paste0("mean.", c(ol_type, "NO")))
+                  sd <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
+                    rep(0, times = length(ol_type) + 1)
+                  }))), paste0("sd.", c(ol_type, "NO")))
+                  pro <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
+                    rep(0, times = length(ol_type) + 1)
+                  }))), paste0("pro.", c(ol_type, "NO")))
+
+                  predicted_params <- cbind(mu, sd, pro)
+                } else {
+                  outlier_prediction_result <- prediction_including_outlier_effect(object, trained_result, pi_up, expected, level)
+
+                  expected <- outlier_prediction_result$expected
+                  pi_up <- outlier_prediction_result$pi_up
+                  predicted_params <- outlier_prediction_result$predicted_params
+                }
               }
             }
-
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 
@@ -723,39 +785,67 @@ setMethod("do_prediction",
               expected <- skewnorm_prediction_result$expected
               pi_up <- skewnorm_prediction_result$pi_up
               predicted_params <- skewnorm_prediction_result$predicted_params
-            }
-
-            if (object@res_dist == "normal" & object@outlier_type != "None" & object@outlier_prediction != "None") {
-              if (is.null(trained_result$param_mle)) {
-                if (object@outlier_type == "All") {
-                  ol_type <- c("AO", "IO", "TC")
-                } else {
-                  ol_type <- object@outlier_type
+            } else if (object@res_dist == "discretized") {
+              compute_pi_up <- function(prob, to_states) {
+                current_state <- 1
+                current_prob <- 0
+                while (current_state <= length(to_states)) {
+                  current_prob <- current_prob + to_states[current_state]
+                  if (current_prob < prob) {
+                    current_state <- current_state + 1
+                  } else {
+                    break
+                  }
                 }
+                pi_up <- current_state * (100 / length(to_states))
+                return(pi_up)
+              }
+              predicted_params <- discretized_from_normal_param_prediction(object, expected, pi_up)
 
-                expected <- expected
-                pi_up <- pi_up
+              pi_up <- matrix(0, nrow = object@extrap_step, ncol = length(1 - object@cut_off_prob))
+              for (j in 1:nrow(pi_up)) {
+                pi_up[j,] <- sapply(sort(1 - object@cut_off_prob), function(i) {
+                  compute_pi_up(i, predicted_params[j,])
+                })
+              }
+              pi_up <- as.data.frame(pi_up)
+              colnames(pi_up) <- paste0("Quantile_", sort(1 - object@cut_off_prob))
 
-                mu <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
-                  rep(0, times = length(ol_type) + 1)
-                }))), paste0("mean.", c(ol_type, "NO")))
-                sd <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
-                  rep(0, times = length(ol_type) + 1)
-                }))), paste0("sd.", c(ol_type, "NO")))
-                pro <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
-                  rep(0, times = length(ol_type) + 1)
-                }))), paste0("pro.", c(ol_type, "NO")))
+              expected <- data.frame("expected" = sapply(1:object@extrap_step, function(i) {
+                find_expectation_state_based_dist(predicted_params[i, grep("prob_dist.", colnames(predicted_params))])
+              }))
+            } else {
+              if (object@res_dist == "normal" & object@outlier_type != "None" & object@outlier_prediction != "None") {
+                if (is.null(trained_result$param_mle)) {
+                  if (object@outlier_type == "All") {
+                    ol_type <- c("AO", "IO", "TC")
+                  } else {
+                    ol_type <- object@outlier_type
+                  }
 
-                predicted_params <- cbind(mu, sd, pro)
-              } else {
-                outlier_prediction_result <- prediction_including_outlier_effect(object, trained_result, pi_up, expected, level)
+                  expected <- expected
+                  pi_up <- pi_up
 
-                expected <- outlier_prediction_result$expected
-                pi_up <- outlier_prediction_result$pi_up
-                predicted_params <- outlier_prediction_result$predicted_params
+                  mu <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
+                    rep(0, times = length(ol_type) + 1)
+                  }))), paste0("mean.", c(ol_type, "NO")))
+                  sd <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
+                    rep(0, times = length(ol_type) + 1)
+                  }))), paste0("sd.", c(ol_type, "NO")))
+                  pro <- stats::setNames(as.data.frame(do.call(rbind, lapply(1:object@extrap_step, function(h) {
+                    rep(0, times = length(ol_type) + 1)
+                  }))), paste0("pro.", c(ol_type, "NO")))
+
+                  predicted_params <- cbind(mu, sd, pro)
+                } else {
+                  outlier_prediction_result <- prediction_including_outlier_effect(object, trained_result, pi_up, expected, level)
+
+                  expected <- outlier_prediction_result$expected
+                  pi_up <- outlier_prediction_result$pi_up
+                  predicted_params <- outlier_prediction_result$predicted_params
+                }
               }
             }
-
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 

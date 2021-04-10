@@ -788,3 +788,36 @@ skew_norm_param_prediction <- function(object, trained_result, predicted_mean, l
   return(list("expected" = expected, "pi_up" = pi_up, "predicted_params" = predicted_params))
 }
 
+
+
+#' Predict Parameters by Discretizing to States from Normal Parameters
+#'
+#' @param object A numeric vector of residuals of fitted model.
+#' @param expected A tso or Arima object containing trained parameters.
+#' @param pi_up A
+#' @return A list containing the xi, omega and alpha.
+#' @keywords internal
+discretized_from_normal_param_prediction <- function(object, expected, pi_up) {
+  if (is.na(object@state_num)) {
+    state_num <- 100 / object@granularity
+  } else {
+    state_num <- object@state_num
+  }
+
+  pred_sd <- (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1])
+  to_states <- matrix(0, nrow = object@extrap_step, ncol = state_num)
+  to_states_quantiles <- seq(to = 100, by = 100 / state_num, length.out = state_num)
+  for (i in 1:ncol(to_states)) {
+    if (i == 1) {
+      to_states[,1] <- pnorm(to_states_quantiles[1], mean = expected[,1], sd = pred_sd) - pnorm(0, mean = expected[,1], sd = pred_sd)
+    } else {
+      to_states[,i] <- pnorm(to_states_quantiles[i], mean = expected[,1], sd = pred_sd) - pnorm(to_states_quantiles[i - 1], mean = expected[,1], sd = pred_sd)
+    }
+  }
+  for (i in 1:nrow(to_states)) {
+    to_states[i,] <- to_states[i,] / sum(to_states[i,])
+  }
+  predicted_params <- as.data.frame(to_states)
+  colnames(predicted_params) <- paste0("prob_dist.", 1:ncol(predicted_params))
+  return(predicted_params)
+}

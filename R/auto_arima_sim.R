@@ -37,6 +37,10 @@ check_valid_auto_arima_sim <- function(object) {
     msg <- paste0("outlier_prediction_update_param must be length one logical value.")
     errors <- c(errors, msg)
   }
+  if (length(object@state_num) != 1 | (!is.na(object@state_num) & (object@state_num < 0 | object@state_num %% 1 != 0)) | (is.na(object@state_num) & object@granularity == 0)) {
+    msg <- paste0("state_num must be NA or positive integer, if granularity is 0, then state_num cannot be NA.")
+    errors <- c(errors, msg)
+  }
   if (length(errors) == 0) {
     return(TRUE)
   } else {
@@ -63,6 +67,7 @@ auto_arima_sim <- setClass("auto_arima_sim",
                                    outlier_prediction = "character",
                                    outlier_prediction_prior = "numeric",
                                    outlier_prediction_update_param = "logical",
+                                   state_num = "numeric",
                                    train_args = "list"),
                       contains = "sim",
                       prototype = list(window_size_for_reg = NA_real_,
@@ -74,6 +79,7 @@ auto_arima_sim <- setClass("auto_arima_sim",
                                        outlier_prediction = "None",
                                        outlier_prediction_prior = NA_real_,
                                        outlier_prediction_update_param = TRUE,
+                                       state_num = NA_real_,
                                        train_args = list("order" = c(1, 0, 0))),
                       validity = check_valid_auto_arima_sim)
 

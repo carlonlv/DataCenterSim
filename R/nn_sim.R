@@ -26,6 +26,10 @@ check_valid_nn_sim <- function(object) {
     msg <- paste0("size must be a positive numeric integer or NA_real_.")
     errors <- c(errors, msg)
   }
+  if (length(object@state_num) != 1 | (!is.na(object@state_num) & (object@state_num < 0 | object@state_num %% 1 != 0)) | (is.na(object@state_num) & object@granularity == 0)) {
+    msg <- paste0("state_num must be NA or positive integer, if granularity is 0, then state_num cannot be NA.")
+    errors <- c(errors, msg)
+  }
   if (length(errors) == 0) {
     return(TRUE)
   } else {
@@ -45,6 +49,7 @@ nn_sim <- setClass("nn_sim",
                            slots = list(p = "numeric",
                                         P = "numeric",
                                         size = "numeric",
+                                        state_num = "numeric",
                                         train_args = "list",
                                         pred_args = "list"),
                            contains = "sim",
@@ -52,6 +57,7 @@ nn_sim <- setClass("nn_sim",
                                             p = NA_real_,
                                             P = 0,
                                             size = NA_real_,
+                                            state_num = "numeric",
                                             train_args = list("repeats" = 50),
                                             pred_args = list("bootstrap" = TRUE, "npaths" = 800)),
                            validity = check_valid_nn_sim)
@@ -106,6 +112,36 @@ setMethod("do_prediction",
             pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
             predicted_params <- data.frame("mean" = as.numeric(predict_result$mean), "sd." = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
+            if (object@res_dist == "discretized") {
+              compute_pi_up <- function(prob, to_states) {
+                current_state <- 1
+                current_prob <- 0
+                while (current_state <= length(to_states)) {
+                  current_prob <- current_prob + to_states[current_state]
+                  if (current_prob < prob) {
+                    current_state <- current_state + 1
+                  } else {
+                    break
+                  }
+                }
+                pi_up <- current_state * (100 / length(to_states))
+                return(pi_up)
+              }
+              predicted_params <- discretized_from_normal_param_prediction(object, expected, pi_up)
+
+              pi_up <- matrix(0, nrow = object@extrap_step, ncol = length(1 - object@cut_off_prob))
+              for (j in 1:nrow(pi_up)) {
+                pi_up[j,] <- sapply(sort(1 - object@cut_off_prob), function(i) {
+                  compute_pi_up(i, predicted_params[j,])
+                })
+              }
+              pi_up <- as.data.frame(pi_up)
+              colnames(pi_up) <- paste0("Quantile_", sort(1 - object@cut_off_prob))
+
+              expected <- data.frame("expected" = sapply(1:object@extrap_step, function(i) {
+                find_expectation_state_based_dist(predicted_params[i, grep("prob_dist.", colnames(predicted_params))])
+              }))
+            }
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 
@@ -191,6 +227,36 @@ setMethod("do_prediction",
             pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
             predicted_params <- data.frame("mean." = as.numeric(predict_result$mean), "sd." = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
+            if (object@res_dist == "discretized") {
+              compute_pi_up <- function(prob, to_states) {
+                current_state <- 1
+                current_prob <- 0
+                while (current_state <= length(to_states)) {
+                  current_prob <- current_prob + to_states[current_state]
+                  if (current_prob < prob) {
+                    current_state <- current_state + 1
+                  } else {
+                    break
+                  }
+                }
+                pi_up <- current_state * (100 / length(to_states))
+                return(pi_up)
+              }
+              predicted_params <- discretized_from_normal_param_prediction(object, expected, pi_up)
+
+              pi_up <- matrix(0, nrow = object@extrap_step, ncol = length(1 - object@cut_off_prob))
+              for (j in 1:nrow(pi_up)) {
+                pi_up[j,] <- sapply(sort(1 - object@cut_off_prob), function(i) {
+                  compute_pi_up(i, predicted_params[j,])
+                })
+              }
+              pi_up <- as.data.frame(pi_up)
+              colnames(pi_up) <- paste0("Quantile_", sort(1 - object@cut_off_prob))
+
+              expected <- data.frame("expected" = sapply(1:object@extrap_step, function(i) {
+                find_expectation_state_based_dist(predicted_params[i, grep("prob_dist.", colnames(predicted_params))])
+              }))
+            }
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 
@@ -283,6 +349,36 @@ setMethod("do_prediction",
             pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
             predicted_params <- data.frame("mean" = as.numeric(predict_result$mean), "sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
+            if (object@res_dist == "discretized") {
+              compute_pi_up <- function(prob, to_states) {
+                current_state <- 1
+                current_prob <- 0
+                while (current_state <= length(to_states)) {
+                  current_prob <- current_prob + to_states[current_state]
+                  if (current_prob < prob) {
+                    current_state <- current_state + 1
+                  } else {
+                    break
+                  }
+                }
+                pi_up <- current_state * (100 / length(to_states))
+                return(pi_up)
+              }
+              predicted_params <- discretized_from_normal_param_prediction(object, expected, pi_up)
+
+              pi_up <- matrix(0, nrow = object@extrap_step, ncol = length(1 - object@cut_off_prob))
+              for (j in 1:nrow(pi_up)) {
+                pi_up[j,] <- sapply(sort(1 - object@cut_off_prob), function(i) {
+                  compute_pi_up(i, predicted_params[j,])
+                })
+              }
+              pi_up <- as.data.frame(pi_up)
+              colnames(pi_up) <- paste0("Quantile_", sort(1 - object@cut_off_prob))
+
+              expected <- data.frame("expected" = sapply(1:object@extrap_step, function(i) {
+                find_expectation_state_based_dist(predicted_params[i, grep("prob_dist.", colnames(predicted_params))])
+              }))
+            }
             return(list("predicted_quantiles" = cbind(expected, pi_up), "predicted_params" = predicted_params))
           })
 

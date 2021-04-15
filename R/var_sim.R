@@ -47,7 +47,7 @@ var_sim <- setClass("var_sim",
                                       window_type_for_reg = "avg",
                                       name = "VAR1",
                                       p = 1,
-                                      state_num = "numeric"),
+                                      state_num = NA_real_),
                      validity = check_valid_var_sim)
 
 

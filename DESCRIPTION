@@ -34,7 +34,8 @@ Imports:
   lattice (>= 0.20-41),
   nnet (>= 7.3-14),
   moments (>= 0.14),
-  entropy (>= 1.2.1)
+  entropy (>= 1.2.1),
+  ggpubr (>= 0.4.0)
 License: GPL-2
 Encoding: UTF-8
 LazyData: true

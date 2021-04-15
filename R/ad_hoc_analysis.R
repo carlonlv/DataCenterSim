@@ -8,8 +8,7 @@
 #' @return A list containing update \code{predict_info_quantiles} and \code{predict_info_statistics}.
 #' @export
 label_performance_trace <- function(predict_info_quantiles, cut_off_prob, target = 1 - cut_off_prob, predict_info_statistics = NULL) {
-  predict_info_quantiles_cp <- normalize_predict_info(cut_off_prob, predict_info_quantiles)
-
+  predict_info_quantiles_cp <- predict_info_quantiles
   predict_info_quantiles_cp <- predict_info_quantiles_cp[predict_info_quantiles_cp$quantile == (1 - cut_off_prob),]
   predict_info_quantiles_cp <- predict_info_quantiles_cp[predict_info_quantiles_cp$score1.w != 0,]
 
@@ -17,6 +16,7 @@ label_performance_trace <- function(predict_info_quantiles, cut_off_prob, target
   well_performed_traces_under_adjustment <- predict_info_quantiles_cp[(predict_info_quantiles_cp$score1.n < target) & (predict_info_quantiles_cp$score1_adj.n >= target), "trace_name"]
   well_performed_traces <- predict_info_quantiles_cp[predict_info_quantiles_cp$score1.n >= target, "trace_name"]
 
+  predict_info_quantiles_cp <- predict_info_quantiles
   predict_info_quantiles_cp[, paste0("label.", (1 - cut_off_prob))] <- "undefined"
   predict_info_quantiles_cp[predict_info_quantiles_cp$trace_name %in% under_performed_traces, paste0("label.", (1 - cut_off_prob))] <- "under_performed"
   predict_info_quantiles_cp[predict_info_quantiles_cp$trace_name %in% well_performed_traces_under_adjustment, paste0("label.", (1 - cut_off_prob))] <- "well_performed_adjusted"
@@ -108,14 +108,54 @@ calc_removal_to_reach_target <- function(predict_info_quantiles, cut_off_prob, t
     current_removal_idx <- current_removal_idx + 1
     trace_name_removed <- c(trace_name_removed, predict_info_quantiles_cp$trace_name[current_removal_idx])
   }
-  if (current_removal_idx == nrow(predict_info_quantiles_cp)) {
-    return(list("predict_info_quantiles" = stats::setNames(data.frame(matrix(nrow = 0, ncol = ncol(predict_info_quantiles_cp))),
-                                                            colnames(predict_info_quantiles_cp)),
-                "trace_removed" = trace_name_removed,
-                "score_change" = score_change))
-  } else {
-    return(list("predict_info_quantiles" = predict_info_quantiles_cp[(current_removal_idx + 1):nrow(predict_info_quantiles_cp),],
-                "trace_removed" = trace_name_removed,
-                "score_change" = score_change))
+  return(list("trace_removed" = trace_name_removed,
+              "score_change" = score_change))
+}
+
+
+#' Find the Score Change Information
+#'
+#' @description Find the score change dataframe from the stored result folder.
+#' @param cut_off_prob  A vector of cut off probabilities as in y axis.
+#' @param target A vector of targets as in x axis.
+#' @param window_size A vector of window sizes in legend.
+#' @param granularity A numeric value of granularity.
+#' @param result_path A string for the path where simulation results are stored.
+#' @param adjustment A logical value representing whether adjustment is accounted.
+#' @return A list with paste0(cut_off_prob, ",", target) as keys, and score change as values.
+#' @export
+find_score_change <- function(cut_off_prob, target, window_size, granularity, result_path, adjustment = FALSE) {
+  result_files_prediction_quantiles <- list.files(result_path, pattern = "Paramwise Simulation", full.names = TRUE, recursive = TRUE)
+
+  result <- list()
+  for (i in cut_off_prob) {
+    for (j in target) {
+      score_change <- data.frame()
+      for (k in window_size) {
+        locator <- c(paste0("window_size-", k, ","), paste0("granularity-", granularity, ","))
+        string_constraints_quantiles <- result_files_prediction_quantiles
+        for (dd in locator) {
+          string_constraints_quantiles <- grep(dd, string_constraints_quantiles, value = TRUE)
+        }
+
+        prediction_quantiles <- do.call(rbind, lapply(string_constraints_quantiles, function(pth) {
+          utils::read.csv(pth, row.names = 1)
+        }))
+
+        prediction_quantiles <- prediction_quantiles[prediction_quantiles$quantile == 1 - i,]
+
+        labeled_prediction_information <- label_performance_trace(prediction_quantiles, i, target = j, predict_info_statistics = NULL)
+
+        prediction_quantiles <- labeled_prediction_information$predict_info_quantiles
+        removal_information <- calc_removal_to_reach_target(prediction_quantiles, i, target = j, adjustment = adjustment)
+
+        removal_information$score_change[, "window_size"] <- k
+        removal_information$score_change[, "num_traces_removed"] <- 0:(nrow(removal_information$score_change) - 1)
+        removal_information$score_change[, "granularity"] <- granularity
+        score_change <- rbind(score_change, removal_information$score_change)
+      }
+      result[[paste0(i, ",", j)]] <- score_change
+    }
   }
+  return(result)
 }

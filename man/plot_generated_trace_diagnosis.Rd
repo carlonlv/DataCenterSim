@@ -2,6 +2,7 @@
 % Please edit documentation in R/plotting_tools.R
 \name{plot_generated_trace_diagnosis}
 \alias{plot_generated_trace_diagnosis}
+\alias{plot_trace_removal_information}
 \title{Plot the Diagnosis of Generated Traces}
 \usage{
 plot_generated_trace_diagnosis(
@@ -11,6 +12,17 @@ plot_generated_trace_diagnosis(
   orig_rate,
   new_rate,
   trace_name = NULL,
+  ...
+)
+
+plot_trace_removal_information(
+  score_change_info_list,
+  cut_off_prob,
+  target,
+  window_size,
+  granularity,
+  adjustment,
+  name,
   ...
 )
 }
@@ -28,7 +40,23 @@ plot_generated_trace_diagnosis(
 \item{trace_name}{A character or NULL acting as an identifier for the trace.}
 
 \item{...}{Characters that represent the name of parent directories that will be passed to \code{write_location_check}.}
+
+\item{score_change_info_list}{A list with paste0(cut_off_prob, ",", target) as keys, and score change as values.}
+
+\item{cut_off_prob}{A numeric vector that represents cut off probabilities.}
+
+\item{target}{A numeric vector that represents the target of score 1.}
+
+\item{window_size}{A numeric vector representing the window sizes to be displayed.}
+
+\item{granularity}{A numeric value represneting granularity of response.}
+
+\item{adjustment}{A logical value representing whether adjustment is accounted.}
+
+\item{name}{A character representing identifier for the plot.}
 }
 \description{
 Plot the generated trace and the actual maximum and average to compare.
+
+Plot the score change information for different combinations of different \code{cut_off_prob} and \code{window_size}.
 }

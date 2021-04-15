@@ -607,3 +607,61 @@ plot_generated_trace_diagnosis <- function(generated_trace, max_trace, avg_trace
   ggplot2::ggsave(fs::path(save_path, ext = "png"), plot = comp_plt, width = 7, height = 5)
   invisible()
 }
+
+
+#' Plot the Diagnosis of Generated Traces
+#'
+#' Plot the score change information for different combinations of different \code{cut_off_prob} and \code{window_size}.
+#' @param score_change_info_list A list with paste0(cut_off_prob, ",", target) as keys, and score change as values.
+#' @param cut_off_prob A numeric vector that represents cut off probabilities.
+#' @param target A numeric vector that represents the target of score 1.
+#' @param window_size A numeric vector representing the window sizes to be displayed.
+#' @param granularity A numeric value represneting granularity of response.
+#' @param adjustment A logical value representing whether adjustment is accounted.
+#' @param name A character representing identifier for the plot.
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
+#' @rdname plot_generated_trace_diagnosis
+#' @export
+plot_trace_removal_information <- function(score_change_info_list, cut_off_prob, target, window_size, granularity, adjustment, name, ...) {
+  plt_score1_list <- list()
+  plt_score2_list <- list()
+
+  for (i in cut_off_prob) {
+    for (j in target) {
+      curr_score_change <- score_change_info_list[[paste0(i, ",", j)]]
+      curr_score_change[, "window_size"] <- factor(curr_score_change[, "window_size"])
+
+      plt1 <- ggplot2::ggplot(curr_score_change, ggplot2::aes_string(x = "num_traces_removed", y = "score1.n", colour = "window_size")) +
+        ggplot2::geom_line(na.rm = TRUE) +
+        ggplot2::theme_bw() +
+        ggsci::scale_color_ucscgb(name = "window size") +
+        ggplot2::guides(col = ggplot2::guide_legend(nrow = 1)) +
+        ggplot2::theme(axis.title.x = ggplot2::element_blank(), axis.title.y = ggplot2::element_blank())
+      plt_score1_list[[paste0(i, ",", j)]] <- plt1
+
+      plt2 <- ggplot2::ggplot(curr_score_change, ggplot2::aes_string(x = "num_traces_removed", y = "score2.n", colour = "window_size")) +
+        ggplot2::geom_line(na.rm = TRUE) +
+        ggplot2::theme_bw() +
+        ggsci::scale_color_ucscgb(name = "window size") +
+        ggplot2::theme(axis.title.x = ggplot2::element_blank(), axis.title.y = ggplot2::element_blank())
+      plt_score2_list[[paste0(i, ",", j)]] <- plt2
+    }
+  }
+
+  lab <- expand.grid("target" = target, "cut_off_prob" = cut_off_prob, stringsAsFactors = FALSE)
+  lab <- paste0("Cut off Prob:", lab[, "cut_off_prob"], ",", "Target:", lab[, "target"])
+
+  result_plt1 <- ggpubr::ggarrange(plotlist = plt_score1_list, common.legend = TRUE, nrow = length(cut_off_prob), ncol = length(target), labels = lab, font.label = list(size = 5), legend = "top", legend.grob = ggpubr::get_legend(plt_score1_list[[1]]))
+  result_plt1 <- ggpubr::annotate_figure(result_plt1, left = ggpubr::text_grob("Score 1 After Trace Removal", rot = 90), bottom = ggpubr::text_grob("Number of Traces Removed"))
+
+  result_plt2 <- ggpubr::ggarrange(plotlist = plt_score2_list, common.legend = TRUE, nrow = length(cut_off_prob), ncol = length(target), labels = lab, font.label = list(size = 5), legend = "top", legend.grob = ggpubr::get_legend(plt_score1_list[[1]]))
+  result_plt2 <- ggpubr::annotate_figure(result_plt2, left = ggpubr::text_grob("Score 2 After Trace Removal", rot = 90), bottom = ggpubr::text_grob("Number of Traces Removed"))
+
+  file_name1 <- paste("Trace Removal Score 1 of", name)
+  save_path <- write_location_check(file_name = file_name1, ...)
+  ggpubr::ggexport(result_plt1, filename = fs::path(save_path, ext = "png"), width = 1600, height = 1600, res = 250)
+  file_name2 <- paste("Trace Removal Score 2 of", name)
+  save_path <- write_location_check(file_name = file_name2, ...)
+  ggpubr::ggexport(result_plt2, filename = fs::path(save_path, ext = "png"), width = 1600, height = 1600, res = 250)
+  invisible()
+}

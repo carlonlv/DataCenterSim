@@ -809,9 +809,9 @@ discretized_from_normal_param_prediction <- function(object, expected, pi_up) {
   to_states_quantiles <- seq(to = 100, by = 100 / state_num, length.out = state_num)
   for (i in 1:ncol(to_states)) {
     if (i == 1) {
-      to_states[,1] <- pnorm(to_states_quantiles[1], mean = expected[,1], sd = pred_sd) - pnorm(0, mean = expected[,1], sd = pred_sd)
+      to_states[,1] <- stats::pnorm(to_states_quantiles[1], mean = expected[,1], sd = pred_sd) - stats::pnorm(0, mean = expected[,1], sd = pred_sd)
     } else {
-      to_states[,i] <- pnorm(to_states_quantiles[i], mean = expected[,1], sd = pred_sd) - pnorm(to_states_quantiles[i - 1], mean = expected[,1], sd = pred_sd)
+      to_states[,i] <- stats::pnorm(to_states_quantiles[i], mean = expected[,1], sd = pred_sd) - stats::pnorm(to_states_quantiles[i - 1], mean = expected[,1], sd = pred_sd)
     }
   }
   for (i in 1:nrow(to_states)) {

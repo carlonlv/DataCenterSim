@@ -57,7 +57,7 @@ nn_sim <- setClass("nn_sim",
                                             p = NA_real_,
                                             P = 0,
                                             size = NA_real_,
-                                            state_num = "numeric",
+                                            state_num = NA_real_,
                                             train_args = list("repeats" = 50),
                                             pred_args = list("bootstrap" = TRUE, "npaths" = 800)),
                            validity = check_valid_nn_sim)

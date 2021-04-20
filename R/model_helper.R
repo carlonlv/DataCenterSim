@@ -424,6 +424,10 @@ check_summary_statistics_trace <- function(predict_info, granularity) {
 #' @return A dataframe of normalized scoring information.
 #' @keywords internal
 normalize_predict_info <- function(cut_off_prob, param_info) {
+  if ("quantile" %in% colnames(param_info)) {
+    return(param_info)
+  }
+
   rest_feaures <- c()
   needle1 <- 1 - cut_off_prob
   needle2 <- cut_off_prob

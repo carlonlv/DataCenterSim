@@ -143,6 +143,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
 
   if ("tracewise" %in% write_type & !("none" %in% write_type)) {
     write_sim_result(predict_info$predicted_quantiles, "tracewise", trace_name, ...)
+    write_sim_result(predict_info$predicted_params, "other", paste("Tracewise Parameters With trace", trace_name), ...)
   }
   if ("tracewise" %in% plot_type & !("none" %in% plot_type)) {
     plot_sim_tracewise(predict_info$predicted_quantiles, trace_name, ...)

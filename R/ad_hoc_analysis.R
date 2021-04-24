@@ -190,7 +190,7 @@ find_extra_margin <- function(target, cut_off_prob, window_size, granularity, ad
     while (any(is_underperformed)) {
       core_padding[is_underperformed] <- core_padding[is_underperformed] + 1
       quantile_result_cp <- quantile_result
-      for (i in core_padding) {
+      for (i in 1:length(core_padding)) {
         quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob[i])] <- quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob[i])] + core_padding[i] * granularity
       }
       recorded_quantiles <- check_score_trace_after_adjusment(cut_off_prob, quantile_result_cp, granularity, adjustment_policy)

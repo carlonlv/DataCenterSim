@@ -665,3 +665,4 @@ plot_trace_removal_information <- function(score_change_info_list, cut_off_prob,
   ggpubr::ggexport(result_plt2, filename = fs::path(save_path, ext = "png"), width = 1600, height = 1600, res = 250)
   invisible()
 }
+

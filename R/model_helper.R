@@ -321,6 +321,7 @@ check_score_trace <- function(cut_off_prob, predict_info) {
   }
 
   predict_info <- dplyr::distinct_at(predict_info, c("train_iter", "test_iter", "predict_iter"), .keep_all = TRUE)
+  predict_info <- as.data.frame(predict_info)
 
   trace_score <- do.call(cbind, lapply(cut_off_prob, function(i) {
     score_trace_1.n <- stats::weighted.mean(predict_info[, paste0("score_pred_1_", 1 - i)], rep(1, nrow(predict_info)), na.rm = TRUE)
@@ -351,6 +352,174 @@ check_score_trace <- function(cut_off_prob, predict_info) {
     return(result)
   }))
   return(trace_score)
+}
+
+
+#' Check Adjustment Status After a Specific Setting of Adjustment Policy
+#'
+#' @description Find adjustment policy after applying adjustment policy.
+#' @param score1 A numeric vector representing the vanilla score1.
+#' @param adjustment_policy A numeric length \code{2} vector representing the adjustment policy.
+#' @return A numeric vector of \code{0}s and \code{1}s representing whether adjustment policy is activated.
+#' @keywords internal
+check_decision_trace_after_adjustment <- function(score1, adjustment_policy) {
+  NA_indicator <- is.na(score1)
+  rest_scores <- score1[!NA_indicator]
+
+  curr_string_rep <- paste0(rest_scores, collapse = "")
+  result_adjust <- rep(0, stringr::str_length(curr_string_rep))
+  curr_switch <- FALSE
+  anchor <- 1
+  while (stringr::str_length(curr_string_rep) > 0) {
+    if (curr_switch) {
+      next_pos <- stringr::str_locate(curr_string_rep, paste0("1{", adjustment_policy[2], "}"))
+    } else {
+      next_pos <- stringr::str_locate(curr_string_rep, paste0("0{", adjustment_policy[1], "}"))
+    }
+    if (is.na(next_pos[,"start"]) | is.na(next_pos[,"end"])) {
+      if (curr_switch) {
+        result_adjust[anchor:length(result_adjust)] <- 1
+      } else {
+        result_adjust[anchor:length(result_adjust)] <- 0
+      }
+      break
+    } else {
+      if (curr_switch) {
+        result_adjust[anchor:(anchor + next_pos[,"end"] - 1)] <- 1
+        curr_switch <- FALSE
+      } else {
+        result_adjust[anchor:(anchor + next_pos[,"end"] - 1)] <- 0
+        curr_switch <- TRUE
+      }
+      curr_string_rep <- substr(curr_string_rep, next_pos[, "end"] + 1, stringr::str_length(curr_string_rep))
+      anchor <- anchor + next_pos[, "end"]
+    }
+  }
+
+  result_score <- rep(NA, length(score1))
+  result_score[!NA_indicator] <- result_adjust
+
+  if (NA_indicator[length(NA_indicator)]) {
+    ## back checking
+    non_NA_position <- which(!NA_indicator)
+    if (length(non_NA_position) == 0) {
+      result_score[NA_indicator] <- 0
+      return(result_score)
+    } else {
+      result_score[(non_NA_position[length(non_NA_position)] + 1):(length(result_score))] <- result_score[non_NA_position[length(non_NA_position)]]
+    }
+  }
+
+  NA_nums <- sum(NA_indicator)
+  while (NA_nums > 0) {
+    result_score[which(NA_indicator)] <- result_score[which(NA_indicator) + 1]
+    NA_indicator <- is.na(result_score)
+    NA_nums <- sum(NA_indicator)
+  }
+  return(result_score)
+}
+
+
+#' Check Tracewise score After Applying Adjustment Policy
+#'
+#' @param cut_off_prob A numeric vector representing the cut off probabilities.
+#' @param predict_info A dataframe representing logged information before \code{adjustment_policy}.
+#' @param granularity A numeric value representing granularity of calculating scores.
+#' @return A matrix of \code{1} row representing the score after \code{adjustment_policy}.
+#' @keywords internal
+check_score_trace_after_adjusment <- function(cut_off_prob, predict_info, granularity, adjustment_policy) {
+  check_score1 <- function(pi_up, actual_obs, granularity) {
+    if (granularity > 0) {
+      actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
+      predicted_available <- round_to_nearest(100 - pi_up, granularity, TRUE)
+    } else {
+      actual_available <- 100 - actual_obs
+      predicted_available <- 100 - pi_up
+    }
+
+    if (granularity == 0) {
+      if (predicted_available <= 0) {
+        score <- NA
+      } else {
+        score <- ifelse(actual_available >= predicted_available, 1, 0)
+      }
+    } else {
+      if (predicted_available < granularity) {
+        score <- NA
+      } else {
+        if (actual_available < granularity) {
+          score <- 0
+        } else {
+          score <- ifelse(actual_available >= predicted_available, 1, 0)
+        }
+      }
+    }
+    return(score)
+  }
+
+  check_score2 <- function(pi_up, actual_obs, granularity) {
+    if (granularity > 0) {
+      actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
+      predicted_available <- round_to_nearest(100 - pi_up, granularity, TRUE)
+    } else {
+      actual_available <- 100 - actual_obs
+      predicted_available <- 100 - pi_up
+    }
+
+    if (granularity == 0) {
+      if (actual_available <= 0) {
+        score <- 1
+      } else {
+        score <- ifelse(predicted_available / actual_available > 1 | predicted_available / actual_available < 0, 0, predicted_available / actual_available)
+      }
+    } else {
+      if (actual_available < granularity) {
+        score <- NA
+      } else {
+        if (predicted_available < granularity) {
+          score <- 0
+        } else {
+          score <- ifelse(predicted_available / actual_available > 1 | predicted_available / actual_available < 0, 0, predicted_available / actual_available)
+        }
+      }
+    }
+    return(score)
+  }
+
+  new_score <- do.call(rbind, lapply(1:nrow(predict_info), function(i) {
+    pi_ups <- predict_info[i, paste0("Quantile_", sort(1 - cut_off_prob))]
+    actual <- predict_info[i,"actual"]
+    score1 <- sapply(1:length(cut_off_prob), function(j) {
+      check_score1(pi_ups[j], actual, granularity)
+    })
+    score2 <- sapply(1:length(cut_off_prob), function(j) {
+      check_score2(pi_ups[j], actual, granularity)
+    })
+    cbind(matrix(predict_info[i, c("train_iter", "test_iter", "predict_iter")], nrow = 1, ncol = 3),
+          matrix(score1, nrow = 1, ncol = length(cut_off_prob)),
+          matrix(score2, nrow = 1, ncol = length(cut_off_prob)),
+          matrix(NA, nrow = 1, ncol = length(cut_off_prob)))
+  }))
+  new_score <- as.data.frame(new_score)
+  for (i in 1:ncol(new_score)) {
+    new_score[,i] <- unlist(new_score[,i])
+  }
+  colnames(new_score) <- c("train_iter", "test_iter", "predict_iter", paste0("score_pred_1_", sort(1 - cut_off_prob)), paste0("score_pred_2_", sort(1 - cut_off_prob)), paste0("adjustment_", sort(1 - cut_off_prob)))
+
+  new_score <- new_score %>%
+    dplyr::group_by_at(c("train_iter", "test_iter", "predict_iter")) %>%
+    dplyr::mutate_at(paste0("score_pred_1_", 1 - cut_off_prob), min) %>%
+    dplyr::mutate_at(paste0("score_pred_2_", 1 - cut_off_prob), mean) %>%
+    dplyr::ungroup()
+
+  score1 <- new_score[, paste0("score_pred_1_", 1 - cut_off_prob), drop = FALSE]
+  adjustment_decision <- do.call(cbind, lapply(1:ncol(score1), function(i) {
+    check_decision_trace_after_adjustment(score1[, i], adjustment_policy)
+  }))
+  adjustment_decision <- as.data.frame(adjustment_decision)
+  colnames(adjustment_decision) <- paste0("adjustment_", 1 - cut_off_prob)
+  new_score[, colnames(adjustment_decision)] <- adjustment_decision
+  return(check_score_trace(cut_off_prob, new_score))
 }
 
 

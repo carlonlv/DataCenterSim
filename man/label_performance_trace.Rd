@@ -14,7 +14,7 @@ label_performance_trace(
 \arguments{
 \item{predict_info_quantiles}{A dataframe storing the prediction info.}
 
-\item{cut_off_prob}{A numeric vector representing cut off probability.}
+\item{cut_off_prob}{A numeric value representing cut off probability.}
 
 \item{target}{A numeric value for the target of score1.}
 

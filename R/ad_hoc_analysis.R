@@ -2,21 +2,20 @@
 #'
 #' @description Label the traces based on their performance.
 #' @param predict_info_quantiles A dataframe storing the prediction info.
-#' @param cut_off_prob A numeric vector representing cut off probability.
+#' @param cut_off_prob A numeric value representing cut off probability.
 #' @param target A numeric value for the target of score1.
 #' @param predict_info_statistics A dataframe storing statsitics of predictions. Can be \code{NULL}.
 #' @return A list containing update \code{predict_info_quantiles} and \code{predict_info_statistics}.
 #' @export
 label_performance_trace <- function(predict_info_quantiles, cut_off_prob, target = 1 - cut_off_prob, predict_info_statistics = NULL) {
-  predict_info_quantiles_cp <- predict_info_quantiles
-  predict_info_quantiles_cp <- predict_info_quantiles_cp[predict_info_quantiles_cp$quantile == (1 - cut_off_prob),]
+  predict_info_quantiles_cp <- predict_info_quantiles[predict_info_quantiles$quantile == (1 - cut_off_prob),]
   predict_info_quantiles_cp <- predict_info_quantiles_cp[predict_info_quantiles_cp$score1.w != 0,]
 
   under_performed_traces <- predict_info_quantiles_cp[(predict_info_quantiles_cp$score1.n < target) & (predict_info_quantiles_cp$score1_adj.n < target), "trace_name"]
   well_performed_traces_under_adjustment <- predict_info_quantiles_cp[(predict_info_quantiles_cp$score1.n < target) & (predict_info_quantiles_cp$score1_adj.n >= target), "trace_name"]
   well_performed_traces <- predict_info_quantiles_cp[predict_info_quantiles_cp$score1.n >= target, "trace_name"]
 
-  predict_info_quantiles_cp <- predict_info_quantiles
+  predict_info_quantiles_cp <- predict_info_quantiles[predict_info_quantiles$quantile == (1 - cut_off_prob),]
   predict_info_quantiles_cp[, paste0("label_", (1 - cut_off_prob))] <- "undefined"
   predict_info_quantiles_cp[predict_info_quantiles_cp$trace_name %in% under_performed_traces, paste0("label_", (1 - cut_off_prob))] <- "under_performed"
   predict_info_quantiles_cp[predict_info_quantiles_cp$trace_name %in% well_performed_traces_under_adjustment, paste0("label_", (1 - cut_off_prob))] <- "well_performed_adjusted"
@@ -168,55 +167,67 @@ find_score_change <- function(cut_off_prob, target, window_size, granularity, re
 #' @param cut_off_prob A numeric vector representing the cut off probabilities.
 #' @param window_size A numeric vector representing the window sizes.
 #' @param granularity A numeric value representing the granularity.
+#' @param adjustment_policy A numeric vector of length 2 representing adjustment policy.
 #' @param result_path A string for the path where simulation results are stored.
 #' @return A dataframe representing the number of cores for each underperformed traces.
 #' @export
-find_extra_margin <- function(target, cut_off_prob, window_size, granularity, result_path) {
+find_extra_margin <- function(target, cut_off_prob, window_size, granularity, adjustment_policy, result_path) {
   result_files_prediction_quantiles <- list.files(result_path, pattern = "Tracewise Simulation With trace ", recursive = TRUE, full.names = TRUE)
 
-  find_extra_cores_needed <- function(cut_off_prob, labeled_quantile_information, quantile_result) {
-    under_performed_traces <- labeled_quantile_information[labeled_quantile_information[, paste0("label_", 1 - cut_off_prob)] == "under_performed", ]
-    if (nrow(under_performed_traces) == 0) {
-      return(0)
-    } else {
-      for (i in 1:nrow(under_performed_traces)) {
-        i <- 1
-        ## While not well performed, keep adding i, finally return i
-        while () {
+  find_extra_cores_needed <- function(cut_off_prob, quantile_result, target, trace_name) {
+    recorded_quantiles <- check_score_trace(cut_off_prob, quantile_result)
+    recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
+    recorded_quantiles <- check_score_param(cut_off_prob, recorded_quantiles)
+    recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
+    recorded_quantiles[, "trace_name"] <- trace_name
+    is_underperformed <- sapply(1:length(cut_off_prob), function(i) {
+      labeled_info <- label_performance_trace(recorded_quantiles, cut_off_prob[i], target[i], NULL)$predict_info_quantiles
+      labeled_info[, paste0("label_", 1 - cut_off_prob[i])]
+    }) == "under_performed"
 
-        }
+    core_padding <- rep(0, length(cut_off_prob))
+    iter <- 1
+    while (any(is_underperformed)) {
+      core_padding[is_underperformed] <- core_padding[is_underperformed] + 1
+      quantile_result_cp <- quantile_result
+      for (i in core_padding) {
+        quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob[i])] <- quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob[i])] + core_padding[i] * granularity
       }
+      recorded_quantiles <- check_score_trace_after_adjusment(cut_off_prob, quantile_result_cp, granularity, adjustment_policy)
+      recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
+      recorded_quantiles <- check_score_param(cut_off_prob, recorded_quantiles)
+      recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
+      recorded_quantiles[, "trace_name"] <- trace_name
+      is_underperformed <- sapply(1:length(cut_off_prob), function(i) {
+        labeled_info <- label_performance_trace(recorded_quantiles, cut_off_prob[i], target[i], NULL)$predict_info_quantiles
+        labeled_info[, paste0("label_", 1 - cut_off_prob[i])]
+      }) == "under_performed"
+      print(iter)
+      iter <- iter + 1
     }
+    return(core_padding)
   }
 
-  for (j in target) {
-    for (k in window_size) {
-      locator <- c(paste0("window_size-", k, ","), paste0("granularity-", granularity, ","))
-      for (dd in locator) {
-        result_files_prediction_quantiles <- grep(dd, result_files_prediction_quantiles, value = TRUE)
-      }
-
-      string_constraints_quantiles <- result_files_prediction_quantiles
-      traces_quantiles_names <- stringr::str_extract(string_constraints_quantiles, "Tracewise Simulation With trace \\d+.csv$")
-      traces_quantiles_names <- gsub(".csv", "", traces_quantiles_names)
-      traces_quantiles_names <- gsub("Tracewise Simulation With trace ", "", traces_quantiles_names)
-      traces_quantiles_names <- as.numeric(traces_quantiles_names)
-
-      lapply(traces_quantiles_names, function(ts_name) {
-        file_name <- grep(ts_name, result_files_prediction_quantiles, value = TRUE)
-        quantile_result <- read.csv(file_name)
-
-        recorded_quantiles <- quantile_result[, paste0("Quantile_", cut_off_prob)]
-        recorded_quantiles <- check_score_param(cut_off_prob, recorded_quantiles)
-        labeled_prediction_information <- label_performance_trace(recorded_quantiles, cut_off_prob, target = j, NULL)
-
-
-      })
-      prediction_quantiles <- labeled_prediction_information$predict_info_quantiles
-      prediction_statistics <- labeled_prediction_information$prediction_statistics
-
-      under_performed_traces <- prediction_quantiles[prediction_quantiles[, paste0("label_", 1 - i)] == "under_performed", "trace_name"]
-
+  result <- list()
+  for (k in window_size) {
+    locator <- c(paste0("window_size-", k, ","), paste0("granularity-", granularity, ","))
+    for (dd in locator) {
+      result_files_prediction_quantiles <- grep(dd, result_files_prediction_quantiles, value = TRUE)
     }
+
+    string_constraints_quantiles <- result_files_prediction_quantiles
+    traces_quantiles_names <- stringr::str_extract(string_constraints_quantiles, "Tracewise Simulation With trace \\d+.csv$")
+    traces_quantiles_names <- gsub(".csv", "", traces_quantiles_names)
+    traces_quantiles_names <- gsub("Tracewise Simulation With trace ", "", traces_quantiles_names)
+    traces_quantiles_names <- as.numeric(traces_quantiles_names)
+
+    cores_padding_needed <- do.call(rbind, lapply(traces_quantiles_names, function(ts_name) {
+      file_name <- grep(ts_name, result_files_prediction_quantiles, value = TRUE)
+      quantile_result <- utils::read.csv(file_name)
+      find_extra_cores_needed(cut_off_prob, quantile_result, target, ts_name)
+    }))
+    colnames(cores_padding_needed) <- paste0("Cores_", 1 - cut_off_prob)
+    result[[k]] <- cores_padding_needed
   }
+  return(result)
 }

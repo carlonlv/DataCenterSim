@@ -10,6 +10,7 @@ find_extra_margin(
   window_size,
   granularity,
   adjustment_policy,
+  cores = 1,
   result_path
 )
 }
@@ -23,6 +24,8 @@ find_extra_margin(
 \item{granularity}{A numeric value representing the granularity.}
 
 \item{adjustment_policy}{A numeric vector of length 2 representing adjustment policy.}
+
+\item{cores}{A numeric value representing the number of cores used for multiprocessing.}
 
 \item{result_path}{A string for the path where simulation results are stored.}
 }

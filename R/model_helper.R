@@ -406,10 +406,15 @@ check_decision_trace_after_adjustment <- function(score1, adjustment_policy) {
       result_score[NA_indicator] <- 0
       return(result_score)
     } else {
-      result_score[(non_NA_position[length(non_NA_position)] + 1):(length(result_score))] <- result_score[non_NA_position[length(non_NA_position)]]
+      if (curr_switch) {
+        result_score[(non_NA_position[length(non_NA_position)] + 1):(length(result_score))] <- 1
+      } else {
+        result_score[(non_NA_position[length(non_NA_position)] + 1):(length(result_score))] <- 0
+      }
     }
   }
 
+  NA_indicator <- is.na(result_score)
   NA_nums <- sum(NA_indicator)
   while (NA_nums > 0) {
     result_score[which(NA_indicator)] <- result_score[which(NA_indicator) + 1]
@@ -487,13 +492,13 @@ check_score_trace_after_adjusment <- function(cut_off_prob, predict_info, granul
   }
 
   new_score <- do.call(rbind, lapply(1:nrow(predict_info), function(i) {
-    pi_ups <- predict_info[i, paste0("Quantile_", sort(1 - cut_off_prob))]
+    pi_ups <- predict_info[i, paste0("Quantile_", 1 - sort(cut_off_prob))]
     actual <- predict_info[i,"actual"]
     score1 <- sapply(1:length(cut_off_prob), function(j) {
-      check_score1(pi_ups[j], actual, granularity)
+      check_score1(pi_ups[,j], actual, granularity)
     })
     score2 <- sapply(1:length(cut_off_prob), function(j) {
-      check_score2(pi_ups[j], actual, granularity)
+      check_score2(pi_ups[,j], actual, granularity)
     })
     cbind(matrix(predict_info[i, c("train_iter", "test_iter", "predict_iter")], nrow = 1, ncol = 3),
           matrix(score1, nrow = 1, ncol = length(cut_off_prob)),
@@ -504,7 +509,7 @@ check_score_trace_after_adjusment <- function(cut_off_prob, predict_info, granul
   for (i in 1:ncol(new_score)) {
     new_score[,i] <- unlist(new_score[,i])
   }
-  colnames(new_score) <- c("train_iter", "test_iter", "predict_iter", paste0("score_pred_1_", sort(1 - cut_off_prob)), paste0("score_pred_2_", sort(1 - cut_off_prob)), paste0("adjustment_", sort(1 - cut_off_prob)))
+  colnames(new_score) <- c("train_iter", "test_iter", "predict_iter", paste0("score_pred_1_", 1 - sort(cut_off_prob)), paste0("score_pred_2_", 1 - sort(cut_off_prob)), paste0("adjustment_", 1 - sort(cut_off_prob)))
 
   new_score <- new_score %>%
     dplyr::group_by_at(c("train_iter", "test_iter", "predict_iter")) %>%
@@ -512,12 +517,12 @@ check_score_trace_after_adjusment <- function(cut_off_prob, predict_info, granul
     dplyr::mutate_at(paste0("score_pred_2_", 1 - cut_off_prob), mean) %>%
     dplyr::ungroup()
 
-  score1 <- new_score[, paste0("score_pred_1_", 1 - cut_off_prob), drop = FALSE]
+  score1 <- new_score[, paste0("score_pred_1_", 1 - sort(cut_off_prob)), drop = FALSE]
   adjustment_decision <- do.call(cbind, lapply(1:ncol(score1), function(i) {
     check_decision_trace_after_adjustment(score1[, i], adjustment_policy)
   }))
   adjustment_decision <- as.data.frame(adjustment_decision)
-  colnames(adjustment_decision) <- paste0("adjustment_", 1 - cut_off_prob)
+  colnames(adjustment_decision) <- paste0("adjustment_", 1 - sort(cut_off_prob))
   new_score[, colnames(adjustment_decision)] <- adjustment_decision
   return(check_score_trace(cut_off_prob, new_score))
 }

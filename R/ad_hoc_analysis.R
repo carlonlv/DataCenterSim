@@ -167,15 +167,14 @@ find_score_change <- function(cut_off_prob, target, window_size, granularity, re
 #' @param cut_off_prob A numeric vector representing the cut off probabilities.
 #' @param window_size A numeric vector representing the window sizes.
 #' @param granularity A numeric value representing the granularity.
-#' @param adjustment_policy A numeric vector of length 2 representing adjustment policy.
+#' @param adjustment_policy A list of numeric vectors of length 2.
 #' @param cores A numeric value representing the number of cores used for multiprocessing.
 #' @param result_path A string for the path where simulation results are stored.
 #' @return A dataframe representing the number of cores for each underperformed traces.
 #' @export
 find_extra_margin <- function(target, cut_off_prob, window_size, granularity, adjustment_policy, cores = 1, result_path) {
-  result_files_prediction_quantiles <- list.files(result_path, pattern = "Tracewise Simulation With trace ", recursive = TRUE, full.names = TRUE)
 
-  find_extra_cores_needed <- function(cut_off_prob, quantile_result, target, trace_name) {
+  find_extra_cores_needed <- function(cut_off_prob, quantile_result, adjustment_policy, target, trace_name) {
     recorded_quantiles <- check_score_trace(cut_off_prob, quantile_result)
     recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
     recorded_quantiles <- check_score_param(cut_off_prob, recorded_quantiles)
@@ -207,36 +206,109 @@ find_extra_margin <- function(target, cut_off_prob, window_size, granularity, ad
   }
 
   result <- list()
-  for (i in adjustment_policy) {
-    for (k in window_size) {
-      locator <- c(paste0("window_size-", k, ","), paste0("granularity-", granularity, ","))
-      for (dd in locator) {
-        result_files_prediction_quantiles <- grep(dd, result_files_prediction_quantiles, value = TRUE)
-      }
+  for (k in window_size) {
+    result_files_prediction_quantiles <- list.files(result_path, pattern = "Tracewise Simulation With trace ", recursive = TRUE, full.names = TRUE)
 
-      string_constraints_quantiles <- result_files_prediction_quantiles
-      traces_quantiles_names <- stringr::str_extract(string_constraints_quantiles, "Tracewise Simulation With trace \\d+.csv$")
-      traces_quantiles_names <- gsub(".csv", "", traces_quantiles_names)
-      traces_quantiles_names <- gsub("Tracewise Simulation With trace ", "", traces_quantiles_names)
-      traces_quantiles_names <- as.numeric(traces_quantiles_names)
+    locator <- c(paste0("window_size-", k, ","), paste0("granularity-", granularity, ","))
+    for (dd in locator) {
+      result_files_prediction_quantiles <- grep(dd, result_files_prediction_quantiles, value = TRUE)
+    }
 
+    string_constraints_quantiles <- result_files_prediction_quantiles
+    traces_quantiles_names <- stringr::str_extract(string_constraints_quantiles, "Tracewise Simulation With trace \\d+.csv$")
+    traces_quantiles_names <- gsub(".csv", "", traces_quantiles_names)
+    traces_quantiles_names <- gsub("Tracewise Simulation With trace ", "", traces_quantiles_names)
+    traces_quantiles_names <- as.numeric(traces_quantiles_names)
+
+    for (i in adjustment_policy) {
       if (cores == 1) {
         pbapply::pboptions(type = "txt")
-        cores_padding_needed <- do.call(rbind, pbapply::pblapply(traces_quantiles_names, function(ts_name) {
+        cores_padding_needed <- pbapply::pblapply(traces_quantiles_names, function(ts_name) {
           file_name <- grep(paste0(" ", ts_name, ".csv"), result_files_prediction_quantiles, value = TRUE)
           quantile_result <- utils::read.csv(file_name)
-          find_extra_cores_needed(sort(cut_off_prob), quantile_result, target, ts_name)
-        }))
+          find_extra_cores_needed(sort(cut_off_prob), quantile_result, i, target, ts_name)
+        })
       } else {
-        cores_padding_needed <- do.call(rbind, pbmcapply::pbmclapply(traces_quantiles_names, function(ts_name) {
+        cores_padding_needed <- pbmcapply::pbmclapply(traces_quantiles_names, function(ts_name) {
           file_name <- grep(paste0(" ", ts_name, ".csv"), result_files_prediction_quantiles, value = TRUE)
           quantile_result <- utils::read.csv(file_name)
-          find_extra_cores_needed(sort(cut_off_prob), quantile_result, target, ts_name)
-        }, mc.cores = cores, ignore.interactive = TRUE))
+          find_extra_cores_needed(sort(cut_off_prob), quantile_result, i, target, ts_name)
+        }, mc.cores = cores, ignore.interactive = TRUE)
       }
+      cores_padding_needed <- do.call(rbind, cores_padding_needed)
       cores_padding_needed <- as.data.frame(cores_padding_needed)
       colnames(cores_padding_needed) <- paste0("Cores_", 1 - sort(cut_off_prob))
-      result[[k]] <- cores_padding_needed
+      result[[paste(paste0(i, collapse = ","), k, sep = ",")]] <- normalize_predict_info(cut_off_prob, cores_padding_needed)
+    }
+  }
+  return(result)
+}
+
+
+#' Find the Score Changes After Adding Buffers
+#'
+#' @description Find the Score1 and Score2 change after appending a specific size of buffers.
+#' @param cut_off_prob A numeric vector representing the cut off probabilities.
+#' @param window_size A numeric vector representing the window sizes.
+#' @param granularity A numeric value representing the granularity.
+#' @param max_cores A numeric value representing the maximum numer of cores being considered.
+#' @param adjustment_policy A list of numeric vectors of length 2.
+#' @param cores A numeric value representing the number of cores used for multiprocessing.
+#' @param result_path A string for the path where simulation results are stored.
+#' @export
+find_score_after_buffer <- function(cut_off_prob, window_size, granularity, max_cores, adjustment_policy, cores = 1, result_path) {
+  result <- list()
+  for (k in window_size) {
+    result_files_prediction_quantiles <- list.files(result_path, pattern = "Tracewise Simulation With trace ", recursive = TRUE, full.names = TRUE)
+
+    locator <- c(paste0("window_size-", k, ","), paste0("granularity-", granularity, ","))
+    for (dd in locator) {
+      result_files_prediction_quantiles <- grep(dd, result_files_prediction_quantiles, value = TRUE)
+    }
+
+    string_constraints_quantiles <- result_files_prediction_quantiles
+    traces_quantiles_names <- stringr::str_extract(string_constraints_quantiles, "Tracewise Simulation With trace \\d+.csv$")
+    traces_quantiles_names <- gsub(".csv", "", traces_quantiles_names)
+    traces_quantiles_names <- gsub("Tracewise Simulation With trace ", "", traces_quantiles_names)
+    traces_quantiles_names <- as.numeric(traces_quantiles_names)
+
+    for (i in adjustment_policy) {
+      score_change <- data.frame()
+      current_core <- 0
+      while (current_core <= max_cores) {
+        if (cores == 1) {
+          pbapply::pboptions(type = "txt")
+          current_score_change <- do.call(rbind, pbapply::pblapply(traces_quantiles_names, function(ts_name) {
+            file_name <- grep(paste0(" ", ts_name, ".csv"), result_files_prediction_quantiles, value = TRUE)
+            quantile_result <- utils::read.csv(file_name)
+            quantile_result_cp <- quantile_result
+            quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob)] <- quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob)] + current_core * granularity
+            recorded_quantiles <- check_score_trace_after_adjusment(cut_off_prob, quantile_result_cp, granularity, i)
+            recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
+            recorded_quantiles <- check_score_param(cut_off_prob, recorded_quantiles)
+            recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
+            recorded_quantiles[, "trace_name"] <- ts_name
+            return(recorded_quantiles)
+          }))
+        } else {
+          current_score_change <- do.call(rbind, pbmcapply::pbmclapply(traces_quantiles_names, function(ts_name) {
+            file_name <- grep(paste0(" ", ts_name, ".csv"), result_files_prediction_quantiles, value = TRUE)
+            quantile_result <- utils::read.csv(file_name)
+            quantile_result_cp <- quantile_result
+            quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob)] <- quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob)] + current_core * granularity
+            recorded_quantiles <- check_score_trace_after_adjusment(cut_off_prob, quantile_result_cp, granularity, i)
+            recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
+            recorded_quantiles <- check_score_param(cut_off_prob, recorded_quantiles)
+            recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
+            recorded_quantiles[, "trace_name"] <- ts_name
+            return(recorded_quantiles)
+          }, mc.cores = cores, ignore.interactive = TRUE))
+        }
+        current_score_change <- as.data.frame(current_score_change)
+        current_score_change[, "buffer_size"] <- current_core * granularity
+      }
+      score_change <- rbind(score_change, current_score_change)
+      result[[paste(paste0(i, collapse = ","), k, sep = ",")]] <- current_score_change
     }
   }
   return(result)

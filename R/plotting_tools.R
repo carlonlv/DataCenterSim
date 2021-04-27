@@ -620,7 +620,7 @@ plot_generated_trace_diagnosis <- function(generated_trace, max_trace, avg_trace
 #' @param adjustment A logical value representing whether adjustment is accounted.
 #' @param name A character representing identifier for the plot.
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
-#' @rdname plot_generated_trace_diagnosis
+#' @rdname plot_trace_removal_information
 #' @export
 plot_trace_removal_information <- function(score_change_info_list, cut_off_prob, target, window_size, granularity, adjustment, name, ...) {
   plt_score1_list <- list()
@@ -666,3 +666,47 @@ plot_trace_removal_information <- function(score_change_info_list, cut_off_prob,
   invisible()
 }
 
+
+#' Plot the Diagnosis of Generated Traces
+#'
+#' Plot the score change information for different combinations of different \code{cut_off_prob} and \code{window_size}.
+#' @param extra_buffer_info A list with paste0(cut_off_prob, ",", target) as keys, and score change as values.
+#' @param adjustment_policy A list of numeric vector of length 2.
+#' @param window_size A numeric vector representing the window sizes to be displayed.
+#' @param granularity A numeric value represneting granularity of response.
+#' @param target A numeric vector that represents the target of score 1.
+#' @param name A character representing identifier for the plot.
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
+#' @rdname plot_buffer_needed_to_reach_target
+#' @export
+plot_buffer_needed_to_reach_target <- function(extra_buffer_info, adjustment_policy, window_size, granularity, target, name, ...) {
+  plt_list <- list()
+
+  for (j in window_size) {
+    for (i in adjustment_policy) {
+      curr_core_info <- extra_buffer_info[[paste(paste0(i, collapse = ","), j, sep = ",")]]
+      curr_core_info[, "quantile"] <- factor(curr_core_info[, "quantile"])
+
+      ecdf_plt <- ggplot2::ggplot(curr_core_info, ggplot2::aes_string("Cores", colour = "quantile")) +
+        ggplot2::stat_ecdf(na.rm = TRUE) +
+        ggplot2::ylab("Fraction of Traces") +
+        ggplot2::theme_bw() +
+        ggsci::scale_color_ucscgb(name = "quantile") +
+        ggplot2::guides(col = ggplot2::guide_legend(nrow = 1)) +
+        ggplot2::theme(axis.title.x = ggplot2::element_blank(), axis.title.y = ggplot2::element_blank())
+      plt_list[[paste(paste0(i, collapse = ","), j, sep = ",")]] <- ecdf_plt
+    }
+  }
+
+
+  lab <- expand.grid("adjustment_policy" = sapply(adjustment_policy, function(i) paste(i, collapse = ",")), "window_size" = window_size, stringsAsFactors = FALSE)
+  lab <- paste0("Adjustment Policy:", lab[, "adjustment_policy"], ",", "Window Size:", lab[, "window_size"])
+
+  result_plt <- ggpubr::ggarrange(plotlist = plt_list, common.legend = TRUE, nrow = length(window_size), ncol = length(adjustment_policy), labels = lab, font.label = list(size = 5), legend = "top", legend.grob = ggpubr::get_legend(plt_list[[1]]))
+  result_plt <- ggpubr::annotate_figure(result_plt, left = ggpubr::text_grob("Fraction of Data", rot = 90), bottom = ggpubr::text_grob("NUmber of Cores Needed to Reach Target"))
+
+  file_name1 <- paste("ECDF of Number of Cores to Reach Target", name)
+  save_path <- write_location_check(file_name = file_name1, ...)
+  ggpubr::ggexport(result_plt, filename = fs::path(save_path, ext = "png"), width = 1600, height = 1600, res = 250)
+  invisible()
+}

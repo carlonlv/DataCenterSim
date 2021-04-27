@@ -372,9 +372,17 @@ check_decision_trace_after_adjustment <- function(score1, adjustment_policy) {
   anchor <- 1
   while (stringr::str_length(curr_string_rep) > 0) {
     if (curr_switch) {
-      next_pos <- stringr::str_locate(curr_string_rep, paste0("1{", adjustment_policy[2], "}"))
+      if (adjustment_policy[2] == 0) {
+        next_pos <- data.frame("start" = NA, "end" = NA)
+      } else {
+        next_pos <- stringr::str_locate(curr_string_rep, paste0("1{", adjustment_policy[2], "}"))
+      }
     } else {
-      next_pos <- stringr::str_locate(curr_string_rep, paste0("0{", adjustment_policy[1], "}"))
+      if (adjustment_policy[1] == 0) {
+        next_pos <- data.frame("start" = NA, "end" = NA)
+      } else {
+        next_pos <- stringr::str_locate(curr_string_rep, paste0("0{", adjustment_policy[1], "}"))
+      }
     }
     if (is.na(next_pos[,"start"]) | is.na(next_pos[,"end"])) {
       if (curr_switch) {

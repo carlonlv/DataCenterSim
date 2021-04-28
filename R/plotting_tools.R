@@ -609,14 +609,14 @@ plot_generated_trace_diagnosis <- function(generated_trace, max_trace, avg_trace
 }
 
 
-#' Plot the Diagnosis of Generated Traces
+#' Plot Score Change After Removing Traces
 #'
 #' Plot the score change information for different combinations of different \code{cut_off_prob} and \code{window_size}.
 #' @param score_change_info_list A list with paste0(cut_off_prob, ",", target) as keys, and score change as values.
 #' @param cut_off_prob A numeric vector that represents cut off probabilities.
 #' @param target A numeric vector that represents the target of score 1.
 #' @param window_size A numeric vector representing the window sizes to be displayed.
-#' @param granularity A numeric value represneting granularity of response.
+#' @param granularity A numeric value representing granularity of response.
 #' @param adjustment A logical value representing whether adjustment is accounted.
 #' @param name A character representing identifier for the plot.
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
@@ -687,7 +687,7 @@ plot_buffer_needed_to_reach_target <- function(extra_buffer_info, adjustment_pol
       curr_core_info <- extra_buffer_info[[paste(paste0(i, collapse = ","), j, sep = ",")]]
       curr_core_info[, "quantile"] <- factor(curr_core_info[, "quantile"])
 
-      ecdf_plt <- ggplot2::ggplot(curr_core_info, ggplot2::aes_string("Cores", colour = "quantile")) +
+      ecdf_plt <- ggplot2::ggplot(curr_core_info, ggplot2::aes_string(x = "Cores", colour = "quantile")) +
         ggplot2::stat_ecdf(na.rm = TRUE) +
         ggplot2::ylab("Fraction of Traces") +
         ggplot2::theme_bw() +
@@ -703,10 +703,72 @@ plot_buffer_needed_to_reach_target <- function(extra_buffer_info, adjustment_pol
   lab <- paste0("Adjustment Policy:", lab[, "adjustment_policy"], ",", "Window Size:", lab[, "window_size"])
 
   result_plt <- ggpubr::ggarrange(plotlist = plt_list, common.legend = TRUE, nrow = length(window_size), ncol = length(adjustment_policy), labels = lab, font.label = list(size = 5), legend = "top", legend.grob = ggpubr::get_legend(plt_list[[1]]))
-  result_plt <- ggpubr::annotate_figure(result_plt, left = ggpubr::text_grob("Fraction of Data", rot = 90), bottom = ggpubr::text_grob("NUmber of Cores Needed to Reach Target"))
+  result_plt <- ggpubr::annotate_figure(result_plt, left = ggpubr::text_grob("Fraction of Data", rot = 90), bottom = ggpubr::text_grob("Number of Cores Needed to Reach Target"))
 
   file_name1 <- paste("ECDF of Number of Cores to Reach Target", name)
   save_path <- write_location_check(file_name = file_name1, ...)
   ggpubr::ggexport(result_plt, filename = fs::path(save_path, ext = "png"), width = 1600, height = 1600, res = 250)
+  invisible()
+}
+
+
+#' Plot the Diagnosis of Generated Traces
+#'
+#' Plot the score change information for different combinations of different \code{cut_off_prob} and \code{window_size}.
+#' @param score_change_lst A list with paste0(cut_off_prob, ",", target) as keys, and score change as values.
+#' @param adjustment_policy A list of numeric vector of length 2.
+#' @param window_size A numeric vector representing the window sizes to be displayed.
+#' @param granularity A numeric value representing granularity of response.
+#' @param adjustment A logical value representing whether adjustment is accounted.
+#' @param name A character representing identifier for the plot.
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
+#' @rdname plot_buffer_needed_to_reach_target
+#' @export
+plot_score_change_with_buffer <- function(score_change_lst, adjustment_policy, window_size, granularity, adjustment, name, ...) {
+  plt1_list <- list()
+  plt2_list <- list()
+
+  for (j in window_size) {
+    for (i in adjustment_policy) {
+      curr_core_info <- score_change_lst[[paste(paste0(i, collapse = ","), j, sep = ",")]]
+      curr_core_info[, "quantile"] <- factor(curr_core_info[, "quantile"])
+
+      plt1 <- ggplot2::ggplot(curr_core_info, ggplot2::aes_string(x = "buffer_size", y = ifelse(adjustment, "score1_adj.n", "score1.n"), colour = "quantile")) +
+        ggplot2::geom_point(na.rm = TRUE) +
+        ggplot2::geom_path(na.rm = TRUE) +
+        ggplot2::theme_bw() +
+        ggsci::scale_color_ucscgb(name = "quantile") +
+        ggplot2::guides(col = ggplot2::guide_legend(nrow = 1)) +
+        ggplot2::theme(axis.title.x = ggplot2::element_blank(), axis.title.y = ggplot2::element_blank())
+
+      plt2 <- ggplot2::ggplot(curr_core_info, ggplot2::aes_string(x = "buffer_size", y = ifelse(adjustment, "score2_adj.n" , "score2.n"), colour = "quantile")) +
+        ggplot2::geom_point(na.rm = TRUE) +
+        ggplot2::geom_path(na.rm = TRUE) +
+        ggplot2::theme_bw() +
+        ggsci::scale_color_ucscgb(name = "quantile") +
+        ggplot2::guides(col = ggplot2::guide_legend(nrow = 1)) +
+        ggplot2::theme(axis.title.x = ggplot2::element_blank(), axis.title.y = ggplot2::element_blank())
+
+      plt1_list[[paste(paste0(i, collapse = ","), j, sep = ",")]] <- plt1
+      plt2_list[[paste(paste0(i, collapse = ","), j, sep = ",")]] <- plt2
+    }
+  }
+
+  lab <- expand.grid("adjustment_policy" = sapply(adjustment_policy, function(i) paste(i, collapse = ",")), "window_size" = window_size, stringsAsFactors = FALSE)
+  lab <- paste0("Adjustment Policy:", lab[, "adjustment_policy"], ",", "Window Size:", lab[, "window_size"])
+
+  result_plt1 <- ggpubr::ggarrange(plotlist = plt1_list, common.legend = TRUE, nrow = length(window_size), ncol = length(adjustment_policy), labels = lab, font.label = list(size = 5), legend = "top", legend.grob = ggpubr::get_legend(plt1_list[[1]]))
+  result_plt1 <- ggpubr::annotate_figure(result_plt1, left = ggpubr::text_grob(ifelse(adjustment, "Score 1 Adj", "Score 1"), rot = 90), bottom = ggpubr::text_grob(paste("Buffer Size = Num Cores *", granularity)))
+
+  result_plt2 <- ggpubr::ggarrange(plotlist = plt2_list, common.legend = TRUE, nrow = length(window_size), ncol = length(adjustment_policy), labels = lab, font.label = list(size = 5), legend = "top", legend.grob = ggpubr::get_legend(plt2_list[[1]]))
+  result_plt2 <- ggpubr::annotate_figure(result_plt2, left = ggpubr::text_grob(ifelse(adjustment, "Score 2 Adj", "Score 2"), rot = 90), bottom = ggpubr::text_grob(paste("Buffer Size = Num Cores *", granularity)))
+
+  file_name1 <- paste(ifelse(adjustment, "Score 1 Adj", "Score 1"), "Change After Buffer", name)
+  save_path <- write_location_check(file_name = file_name1, ...)
+  ggpubr::ggexport(result_plt1, filename = fs::path(save_path, ext = "png"), width = 1600, height = 1600, res = 250)
+
+  file_name2 <- paste(ifelse(adjustment, "Score 2 Adj", "Score 2"), "Change After Buffer", name)
+  save_path <- write_location_check(file_name = file_name2, ...)
+  ggpubr::ggexport(result_plt2, filename = fs::path(save_path, ext = "png"), width = 1600, height = 1600, res = 250)
   invisible()
 }

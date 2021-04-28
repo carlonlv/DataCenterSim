@@ -177,8 +177,6 @@ find_extra_margin <- function(target, cut_off_prob, window_size, granularity, ad
   find_extra_cores_needed <- function(cut_off_prob, quantile_result, adjustment_policy, target, trace_name) {
     recorded_quantiles <- check_score_trace(cut_off_prob, quantile_result)
     recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
-    recorded_quantiles <- check_score_param(cut_off_prob, recorded_quantiles)
-    recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
     recorded_quantiles[, "trace_name"] <- trace_name
     is_underperformed <- sapply(1:length(cut_off_prob), function(i) {
       labeled_info <- label_performance_trace(recorded_quantiles, cut_off_prob[i], target[i], NULL)$predict_info_quantiles
@@ -193,8 +191,6 @@ find_extra_margin <- function(target, cut_off_prob, window_size, granularity, ad
         quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob[i])] <- quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob[i])] + core_padding[i] * granularity
       }
       recorded_quantiles <- check_score_trace_after_adjusment(cut_off_prob, quantile_result_cp, granularity, adjustment_policy)
-      recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
-      recorded_quantiles <- check_score_param(cut_off_prob, recorded_quantiles)
       recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
       recorded_quantiles[, "trace_name"] <- trace_name
       is_underperformed <- sapply(1:length(cut_off_prob), function(i) {
@@ -272,44 +268,62 @@ find_score_after_buffer <- function(cut_off_prob, window_size, granularity, max_
     traces_quantiles_names <- gsub("Tracewise Simulation With trace ", "", traces_quantiles_names)
     traces_quantiles_names <- as.numeric(traces_quantiles_names)
 
-    for (i in adjustment_policy) {
-      score_change <- data.frame()
-      current_core <- 0
-      while (current_core <= max_cores) {
-        if (cores == 1) {
-          pbapply::pboptions(type = "txt")
-          current_score_change <- do.call(rbind, pbapply::pblapply(traces_quantiles_names, function(ts_name) {
-            file_name <- grep(paste0(" ", ts_name, ".csv"), result_files_prediction_quantiles, value = TRUE)
-            quantile_result <- utils::read.csv(file_name)
-            quantile_result_cp <- quantile_result
-            quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob)] <- quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob)] + current_core * granularity
+    pb <- progress::progress_bar$new(format = "  Progressed [:bar] :percent in :elapsed, ETA: :eta", total = max_cores + 1, clear = FALSE, width= 120)
+    current_core <- 0
+    while (current_core <= max_cores) {
+      if (cores == 1) {
+        current_score_change_lst <- lapply(traces_quantiles_names, function(ts_name) {
+          file_name <- grep(paste0(" ", ts_name, ".csv"), result_files_prediction_quantiles, value = TRUE)
+          quantile_result <- utils::read.csv(file_name)
+          quantile_result_cp <- quantile_result
+          quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob)] <- quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob)] + current_core * granularity
+          temp_result <- lapply(adjustment_policy, function(i) {
             recorded_quantiles <- check_score_trace_after_adjusment(cut_off_prob, quantile_result_cp, granularity, i)
-            recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
-            recorded_quantiles <- check_score_param(cut_off_prob, recorded_quantiles)
             recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
             recorded_quantiles[, "trace_name"] <- ts_name
             return(recorded_quantiles)
-          }))
-        } else {
-          current_score_change <- do.call(rbind, pbmcapply::pbmclapply(traces_quantiles_names, function(ts_name) {
-            file_name <- grep(paste0(" ", ts_name, ".csv"), result_files_prediction_quantiles, value = TRUE)
-            quantile_result <- utils::read.csv(file_name)
-            quantile_result_cp <- quantile_result
-            quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob)] <- quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob)] + current_core * granularity
+          })
+          return(temp_result)
+        })
+      } else {
+        current_score_change_lst <- parallel::mclapply(traces_quantiles_names, function(ts_name) {
+          file_name <- grep(paste0(" ", ts_name, ".csv"), result_files_prediction_quantiles, value = TRUE)
+          quantile_result <- utils::read.csv(file_name)
+          quantile_result_cp <- quantile_result
+          quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob)] <- quantile_result_cp[,paste0("Quantile_", 1 - cut_off_prob)] + current_core * granularity
+          temp_result <- lapply(adjustment_policy, function(i) {
             recorded_quantiles <- check_score_trace_after_adjusment(cut_off_prob, quantile_result_cp, granularity, i)
-            recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
-            recorded_quantiles <- check_score_param(cut_off_prob, recorded_quantiles)
             recorded_quantiles <- normalize_predict_info(cut_off_prob, recorded_quantiles)
             recorded_quantiles[, "trace_name"] <- ts_name
             return(recorded_quantiles)
-          }, mc.cores = cores, ignore.interactive = TRUE))
-        }
-        current_score_change <- as.data.frame(current_score_change)
-        current_score_change[, "buffer_size"] <- current_core * granularity
+          })
+          return(temp_result)
+        }, mc.cores = cores)
       }
-      score_change <- rbind(score_change, current_score_change)
-      result[[paste(paste0(i, collapse = ","), k, sep = ",")]] <- current_score_change
+      for (i in 1:length(adjustment_policy)) {
+        idx <- paste(paste0(adjustment_policy[[i]], collapse = ","), k, sep = ",")
+        if (is.null(result[[idx]])) {
+          curr_result <- do.call(rbind, lapply(1:length(current_score_change_lst), function(ts_num) {
+            current_score_change_lst[[ts_num]][[i]]
+          }))
+          curr_result <- check_score_param(cut_off_prob, curr_result)
+          curr_result <- normalize_predict_info(cut_off_prob, curr_result)
+          curr_result[, "buffer_size"] <- current_core * granularity
+          result[[idx]] <- as.data.frame(curr_result)
+        } else {
+          curr_result <- do.call(rbind, lapply(1:length(current_score_change_lst), function(ts_num) {
+            current_score_change_lst[[ts_num]][[i]]
+          }))
+          curr_result <- check_score_param(cut_off_prob, curr_result)
+          curr_result <- normalize_predict_info(cut_off_prob, curr_result)
+          curr_result[, "buffer_size"] <- current_core * granularity
+          result[[idx]] <- rbind(result[[idx]], as.data.frame(curr_result))
+        }
+      }
+      current_core <- current_core + 1
+      pb$tick()
     }
+    pb$terminate()
   }
   return(result)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/plotting_tools.R
 \name{plot_trace_removal_information}
 \alias{plot_trace_removal_information}
-\title{Plot the Diagnosis of Generated Traces}
+\title{Plot Score Change After Removing Traces}
 \usage{
 plot_trace_removal_information(
   score_change_info_list,
@@ -24,7 +24,7 @@ plot_trace_removal_information(
 
 \item{window_size}{A numeric vector representing the window sizes to be displayed.}
 
-\item{granularity}{A numeric value represneting granularity of response.}
+\item{granularity}{A numeric value representing granularity of response.}
 
 \item{adjustment}{A logical value representing whether adjustment is accounted.}
 

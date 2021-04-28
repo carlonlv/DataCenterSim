@@ -2,6 +2,7 @@
 % Please edit documentation in R/plotting_tools.R
 \name{plot_buffer_needed_to_reach_target}
 \alias{plot_buffer_needed_to_reach_target}
+\alias{plot_score_change_with_buffer}
 \title{Plot the Diagnosis of Generated Traces}
 \usage{
 plot_buffer_needed_to_reach_target(
@@ -13,6 +14,16 @@ plot_buffer_needed_to_reach_target(
   name,
   ...
 )
+
+plot_score_change_with_buffer(
+  score_change_lst,
+  adjustment_policy,
+  window_size,
+  granularity,
+  adjustment,
+  name,
+  ...
+)
 }
 \arguments{
 \item{extra_buffer_info}{A list with paste0(cut_off_prob, ",", target) as keys, and score change as values.}
@@ -21,14 +32,20 @@ plot_buffer_needed_to_reach_target(
 
 \item{window_size}{A numeric vector representing the window sizes to be displayed.}
 
-\item{granularity}{A numeric value represneting granularity of response.}
+\item{granularity}{A numeric value representing granularity of response.}
 
 \item{target}{A numeric vector that represents the target of score 1.}
 
 \item{name}{A character representing identifier for the plot.}
 
 \item{...}{Characters that represent the name of parent directories that will be passed to \code{write_location_check}.}
+
+\item{score_change_lst}{A list with paste0(cut_off_prob, ",", target) as keys, and score change as values.}
+
+\item{adjustment}{A logical value representing whether adjustment is accounted.}
 }
 \description{
+Plot the score change information for different combinations of different \code{cut_off_prob} and \code{window_size}.
+
 Plot the score change information for different combinations of different \code{cut_off_prob} and \code{window_size}.
 }

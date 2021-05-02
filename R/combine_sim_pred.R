@@ -428,7 +428,13 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
             }  else {
               processed_foreground_xreg <- NULL
             }
-            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = processed_foreground_x, xreg = processed_foreground_xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+            predict_info <- tryCatch({
+              svt_predicting_sim(ts_num = ts_num, object = sim_object, x = processed_foreground_x, xreg = processed_foreground_xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+            }, error = function(e) {
+              print(ts_num)
+              print(e)
+              return(data.frame())
+            })
             return(predict_info$predicted_params)
           })
         })
@@ -506,7 +512,14 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
             }  else {
               processed_foreground_xreg <- NULL
             }
-            predict_info <- svt_predicting_sim(ts_num = ts_num, object = sim_object, x = processed_foreground_x, xreg = processed_foreground_xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+
+            predict_info <- tryCatch({
+              svt_predicting_sim(ts_num = ts_num, object = sim_object, x = processed_foreground_x, xreg = processed_foreground_xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
+            }, error = function(e) {
+              print(ts_num)
+              print(e)
+              return(data.frame())
+            })
             return(predict_info$predicted_params)
           })
         }, mc.cores = cores, ignore.interactive = TRUE)

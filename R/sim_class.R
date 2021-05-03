@@ -80,9 +80,9 @@ check_valid_sim <- function(object) {
 #' @slot update_freq A numeric number that specify the number of times to predict into the future after each training step after aggregated by \code{window_size}. Default values is \code{3}.
 #' @slot react_speed A numeric number of length two that specify the number of failed/successfull predictions needed to activate/deactive backing off strategy. Default value is \code{c(1, 1)}.
 #' @slot response A character that specify the targeting trace to be tested on, this can either be \code{"max"} or \code{"avg"} for max traces and average traces respectively. Default value is \code{"max"}.
-#' @param probability_function A function pointer to the function to compute the cdf, used in \code{combine_sim_pred} function. Default value is \code{stats::qnorm}.
-#' @param probability_expectation A function pointer to the function to compute the expectation, used in \code{combine_sim_pred} function.
-#' @param probability_mean_shift A function pointer to the update rule of shifting the probability distribution by a constant, used in \code{combine_sim_pred} function.
+#' @slot probability_function A function pointer to the function to compute the cdf, used in \code{combine_sim_pred} function. Default value is \code{stats::qnorm}.
+#' @slot probability_expectation A function pointer to the function to compute the expectation, used in \code{combine_sim_pred} function.
+#' @slot probability_mean_shift A function pointer to the update rule of shifting the probability distribution by a constant, used in \code{combine_sim_pred} function.
 #' @name sim-class
 #' @rdname sim-class
 #' @exportClass sim
@@ -98,6 +98,7 @@ sim <- setClass("sim",
                              update_freq = "numeric",
                              react_speed = "numeric",
                              response = "character",
+                             schedule_setting = "character",
                              probability_function = "function",
                              probability_expectation = "function",
                              probability_mean_shift = "function"),
@@ -112,6 +113,7 @@ sim <- setClass("sim",
                                  update_freq = 3,
                                  react_speed = c(1, 1),
                                  response = "max",
+                                 schedule_setting = "max_size",
                                  probability_function = stats::qnorm,
                                  probability_expectation = function(mean, sd) {
                                    return(mean)

@@ -192,6 +192,108 @@ get_adjust_switch <- function(score1, react_counter, adjust_switch, react_speed)
 }
 
 
+#' Check Score 1 Based on Prediction
+#'
+#' @description Check score 1 of the prediction based on actual observation and the granularity of simulation.
+#' @param pi_up A numeric value representing the prediction upper bound.
+#' @param actual_obs A numeric value representing the actual observation corresponding to the predictions.
+#' @param granularity A numeric value represneting granularity of response.
+#' @param how A character representing how the score is calculated. \code{"max_size"} by default schedules one job that takes maximum place. \code{"\\d_jobs"} schedules \code{"\\d"} jobs with equal sizes. \code{"\\d_cores"} schedules jobs each with fixed \code{\\d} number of cores, only works for \code{granularity} not being \code{0}.
+#' @return A numeric value between \code{0} and \code{1} or \code{NA}.
+#' @keywords internal
+check_score1 <- function(pi_up, actual_obs, granularity, how = "max_size") {
+  if (granularity > 0) {
+    actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
+    predicted_available <- round_to_nearest(100 - pi_up, granularity, TRUE)
+  } else {
+    actual_available <- 100 - actual_obs
+    predicted_available <- 100 - pi_up
+  }
+
+  if (granularity == 0) {
+    if (predicted_available <= 0) {
+      score <- NA
+    } else {
+      if (how == "max_size") {
+        score <- ifelse(actual_available >= predicted_available, 1, 0)
+      } else {
+        num_jobs <- as.numeric(gsub("_jobs", "", how))
+        end_points <- seq(from = 0, by = predicted_available / num_jobs, length.out = num_jobs + 1)[-1]
+        score <- sum(actual_available >= end_points) / num_jobs
+      }
+    }
+  } else {
+    if (predicted_available < granularity) {
+      score <- NA
+    } else {
+      if (how == "max_size") {
+        score <- ifelse(actual_available >= predicted_available, 1, 0)
+      } else if (grepl("^\\d+_jobs$", how)) {
+        num_jobs <- as.numeric(gsub("_jobs", "", how))
+        end_points <- seq(from = 0, by = round_to_nearest(predicted_available / num_jobs, granularity, TRUE), length.out = num_jobs + 1)[-1]
+        score <- sum(actual_available >= end_points) / num_jobs
+      } else {
+        job_size <- as.numeric(gsub("_cores", "", how))
+        end_points <- seq(from = 0, by = granularity * job_size, to = predicted_available)[-1]
+        score <- sum(actual_available >= end_points) / length(end_points)
+      }
+    }
+  }
+  return(score)
+}
+
+
+#' Check Score 2 Based on Prediction
+#'
+#' @description Check score 2 of the prediction based on actual observation and the granularity of simulation.
+#' @param pi_up A numeric value representing the prediction upper bound.
+#' @param actual_obs A numeric value representing the actual observation corresponding to the predictions.
+#' @param granularity A numeric value represneting granularity of response.
+#' @param how A character representing how the score is calculated. \code{"max_size"} by default schedules one job that takes maximum place. \code{"\\d_jobs"} schedules \code{"\\d"} jobs with equal sizes. \code{"\\d_cores"} schedules jobs each with fixed \code{\\d} number of cores, only works for \code{granularity} not being \code{0}.
+#' @return A numeric value between \code{0} and \code{1} or \code{NA}.
+#' @keywords internal
+check_score2 <- function(pi_up, actual_obs, granularity, how = "max_size") {
+  if (granularity > 0) {
+    actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
+    predicted_available <- round_to_nearest(100 - pi_up, granularity, TRUE)
+  } else {
+    actual_available <- 100 - actual_obs
+    predicted_available <- 100 - pi_up
+  }
+
+  if (granularity == 0) {
+    if (actual_available <= 0) {
+      score <- 1
+    } else {
+      if (how == "max_size") {
+        score <- ifelse(predicted_available / actual_available > 1 | predicted_available / actual_available < 0, 0, predicted_available / actual_available)
+      } else {
+        num_jobs <- as.numeric(gsub("_jobs", "", how))
+        end_points <- seq(from = 0, by = predicted_available / num_jobs, length.out = num_jobs + 1)[-1]
+        score <- sum(actual_available >= end_points) * (predicted_available / num_jobs)
+      }
+    }
+  } else {
+    if (actual_available < granularity) {
+      score <- NA
+    } else {
+      if (how == "max_size") {
+        score <- ifelse(predicted_available / actual_available > 1 | predicted_available / actual_available < 0, 0, predicted_available / actual_available)
+      } else if (grepl("^\\d+_jobs$", how)) {
+        num_jobs <- as.numeric(gsub("_jobs", "", how))
+        end_points <- seq(from = 0, by = round_to_nearest(predicted_available / num_jobs, granularity, TRUE), length.out = num_jobs + 1)[-1]
+        score <- sum(actual_available >= end_points) * round_to_nearest(predicted_available / num_jobs, granularity, TRUE)
+      } else {
+        job_size <- as.numeric(gsub("_cores", "", how))
+        end_points <- seq(from = 0, by = granularity * job_size, to = predicted_available)[-1]
+        score <- sum(actual_available >= end_points) * (granularity * job_size)
+      }
+    }
+  }
+  return(score)
+}
+
+
 #' Check Scores Of A Single Prediction.
 #'
 #' @description Check the score information of a prediction based on actual observations and predictions
@@ -206,64 +308,6 @@ check_score_pred <- function(object, predict_info, actual_obs, adjust_switch) {
     return(ifelse(is.na(expected), NA_real_, actual_obs - expected))
   }
 
-  check_score1 <- function(pi_up, actual_obs, granularity) {
-    if (granularity > 0) {
-      actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
-      predicted_available <- round_to_nearest(100 - pi_up, granularity, TRUE)
-    } else {
-      actual_available <- 100 - actual_obs
-      predicted_available <- 100 - pi_up
-    }
-
-    if (granularity == 0) {
-      if (predicted_available <= 0) {
-        score <- NA
-      } else {
-        score <- ifelse(actual_available >= predicted_available, 1, 0)
-      }
-    } else {
-      if (predicted_available < granularity) {
-        score <- NA
-      } else {
-        if (actual_available < granularity) {
-          score <- 0
-        } else {
-          score <- ifelse(actual_available >= predicted_available, 1, 0)
-        }
-      }
-    }
-    return(score)
-  }
-
-  check_score2 <- function(pi_up, actual_obs, granularity) {
-    if (granularity > 0) {
-      actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
-      predicted_available <- round_to_nearest(100 - pi_up, granularity, TRUE)
-    } else {
-      actual_available <- 100 - actual_obs
-      predicted_available <- 100 - pi_up
-    }
-
-    if (granularity == 0) {
-      if (actual_available <= 0) {
-        score <- 1
-      } else {
-        score <- ifelse(predicted_available / actual_available > 1 | predicted_available / actual_available < 0, 0, predicted_available / actual_available)
-      }
-    } else {
-      if (actual_available < granularity) {
-        score <- NA
-      } else {
-        if (predicted_available < granularity) {
-          score <- 0
-        } else {
-          score <- ifelse(predicted_available / actual_available > 1 | predicted_available / actual_available < 0, 0, predicted_available / actual_available)
-        }
-      }
-    }
-    return(score)
-  }
-
   actual <- convert_frequency_dataset(actual_obs, object@window_size, object@response, keep.names = TRUE)
   time <- as.numeric(names(actual))
 
@@ -271,12 +315,12 @@ check_score_pred <- function(object, predict_info, actual_obs, adjust_switch) {
   expected <- predict_info[, "expected"]
   score1 <- sapply(1:ncol(pi_up), function(quan) {
     min(sapply(1:object@extrap_step, function(pred_step) {
-      check_score1(pi_up[pred_step, quan], actual[pred_step], object@granularity)
+      check_score1(pi_up[pred_step, quan], actual[pred_step], object@granularity, object@schedule_setting)
     }))
   })
   score2 <- sapply(1:ncol(pi_up), function(quan) {
     mean(sapply(1:object@extrap_step, function(pred_step){
-      check_score2(pi_up[pred_step, quan], actual[pred_step], object@granularity)
+      check_score2(pi_up[pred_step, quan], actual[pred_step], object@granularity, object@schedule_setting)
     }))
   })
   res <- check_residual(expected, actual)
@@ -438,75 +482,18 @@ check_decision_trace_after_adjustment <- function(score1, adjustment_policy) {
 #' @param cut_off_prob A numeric vector representing the cut off probabilities.
 #' @param predict_info A dataframe representing logged information before \code{adjustment_policy}.
 #' @param granularity A numeric value representing granularity of calculating scores.
+#' @param how A character representing how the score is calculated. \code{"max_size"} by default schedules one job that takes maximum place. \code{"\\d_jobs"} schedules \code{"\\d"} jobs with equal sizes. \code{"\\d_cores"} schedules jobs each with fixed \code{\\d} number of cores, only works for \code{granularity} not being \code{0}.
 #' @return A matrix of \code{1} row representing the score after \code{adjustment_policy}.
 #' @keywords internal
-check_score_trace_after_adjusment <- function(cut_off_prob, predict_info, granularity, adjustment_policy) {
-  check_score1 <- function(pi_up, actual_obs, granularity) {
-    if (granularity > 0) {
-      actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
-      predicted_available <- round_to_nearest(100 - pi_up, granularity, TRUE)
-    } else {
-      actual_available <- 100 - actual_obs
-      predicted_available <- 100 - pi_up
-    }
-
-    if (granularity == 0) {
-      if (predicted_available <= 0) {
-        score <- NA
-      } else {
-        score <- ifelse(actual_available >= predicted_available, 1, 0)
-      }
-    } else {
-      if (predicted_available < granularity) {
-        score <- NA
-      } else {
-        if (actual_available < granularity) {
-          score <- 0
-        } else {
-          score <- ifelse(actual_available >= predicted_available, 1, 0)
-        }
-      }
-    }
-    return(score)
-  }
-
-  check_score2 <- function(pi_up, actual_obs, granularity) {
-    if (granularity > 0) {
-      actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
-      predicted_available <- round_to_nearest(100 - pi_up, granularity, TRUE)
-    } else {
-      actual_available <- 100 - actual_obs
-      predicted_available <- 100 - pi_up
-    }
-
-    if (granularity == 0) {
-      if (actual_available <= 0) {
-        score <- 1
-      } else {
-        score <- ifelse(predicted_available / actual_available > 1 | predicted_available / actual_available < 0, 0, predicted_available / actual_available)
-      }
-    } else {
-      if (actual_available < granularity) {
-        score <- NA
-      } else {
-        if (predicted_available < granularity) {
-          score <- 0
-        } else {
-          score <- ifelse(predicted_available / actual_available > 1 | predicted_available / actual_available < 0, 0, predicted_available / actual_available)
-        }
-      }
-    }
-    return(score)
-  }
-
+check_score_trace_after_adjusment <- function(cut_off_prob, predict_info, granularity, adjustment_policy, how = "max_size") {
   new_score <- do.call(rbind, lapply(1:nrow(predict_info), function(i) {
     pi_ups <- predict_info[i, paste0("Quantile_", 1 - sort(cut_off_prob))]
     actual <- predict_info[i,"actual"]
     score1 <- sapply(1:length(cut_off_prob), function(j) {
-      check_score1(pi_ups[,j], actual, granularity)
+      check_score1(pi_ups[,j], actual, granularity, how)
     })
     score2 <- sapply(1:length(cut_off_prob), function(j) {
-      check_score2(pi_ups[,j], actual, granularity)
+      check_score2(pi_ups[,j], actual, granularity, how)
     })
     cbind(matrix(predict_info[i, c("train_iter", "test_iter", "predict_iter")], nrow = 1, ncol = 3),
           matrix(score1, nrow = 1, ncol = length(cut_off_prob)),

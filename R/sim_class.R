@@ -55,8 +55,12 @@ check_valid_sim <- function(object) {
     msg <- paste0("react_speed must be vector of length two consists of positive integers.")
     errors <- c(errors, msg)
   }
-  if (length(object@response) != 1 | length(object@response) != 1 | is.na(object@response) |  all(object@response != response_choices)) {
+  if (length(object@response) != 1 | is.na(object@response) |  all(object@response != response_choices)) {
     msg <- paste0("response must be one of ", paste(response_choices, collapse = " "), ".")
+    errors <- c(errors, msg)
+  }
+  if (length(object@schedule_setting) != 1 | (!grepl("^\\d+_jobs$", object@schedule_setting) & !grepl("^\\d+_cores$", object@schedule_setting) & object@schedule_setting != "max_size")) {
+    msg <- paste0("schedule_setting must be equal to max_size or of form [0-9]+_jobs or [0-9]+_cores.")
     errors <- c(errors, msg)
   }
   if (length(errors) == 0) {
@@ -80,6 +84,7 @@ check_valid_sim <- function(object) {
 #' @slot update_freq A numeric number that specify the number of times to predict into the future after each training step after aggregated by \code{window_size}. Default values is \code{3}.
 #' @slot react_speed A numeric number of length two that specify the number of failed/successfull predictions needed to activate/deactive backing off strategy. Default value is \code{c(1, 1)}.
 #' @slot response A character that specify the targeting trace to be tested on, this can either be \code{"max"} or \code{"avg"} for max traces and average traces respectively. Default value is \code{"max"}.
+#' @slot schedule_setting A character that specify how the scores are calculated depending on the scheduling strategy. \code{"max_size"} by default schedules one job with maximum size. \code{"^\\d+_jobs$"} schedules a specified number of equally sized jobs. \code{"^\\d+_cores"} schedules jobs with each specified size, cannot be used when \code{granularity} is \code{0}.
 #' @slot probability_function A function pointer to the function to compute the cdf, used in \code{combine_sim_pred} function. Default value is \code{stats::qnorm}.
 #' @slot probability_expectation A function pointer to the function to compute the expectation, used in \code{combine_sim_pred} function.
 #' @slot probability_mean_shift A function pointer to the update rule of shifting the probability distribution by a constant, used in \code{combine_sim_pred} function.

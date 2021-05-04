@@ -389,8 +389,8 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
               }
 
               if ("one_to_many" %in% curr_additional_param_sim[["reg_mapping_rule"]]) {
-                sim_object@window_size_for_reg <- rep(c(self_window, curr_additional_param_sim[["window_size_for_reg"]]), times = ifelse(is.matrix(curr_foreground_xreg) | is.dataframe(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
-                sim_object@window_type_for_reg <- rep(curr_additional_param_sim[["window_type_for_reg"]], times = ifelse(is.matrix(curr_foreground_xreg) | is.dataframe(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
+                sim_object@window_size_for_reg <- rep(c(self_window, curr_additional_param_sim[["window_size_for_reg"]]), times = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
+                sim_object@window_type_for_reg <- rep(curr_additional_param_sim[["window_type_for_reg"]], times = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
                 if (is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg)) {
                   processed_foreground_xreg <- stats::setNames(lapply(1:length(sim_object@window_size_for_reg), function(k) {
                     matrix(curr_foreground_xreg[1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
@@ -401,8 +401,8 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
                   }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
                 }
               } else if ("many_to_one" %in% curr_additional_param_sim[["reg_mapping_rule"]]) {
-                sim_object@window_size_for_reg <- rep(c(self_window, curr_additional_param_sim[["window_size_for_reg"]]), each = ifelse(is.matrix(curr_foreground_xreg) | is.dataframe(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
-                sim_object@window_type_for_reg <- rep(curr_additional_param_sim[["window_type_for_reg"]], each = ifelse(is.matrix(curr_foreground_xreg) | is.dataframe(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
+                sim_object@window_size_for_reg <- rep(c(self_window, curr_additional_param_sim[["window_size_for_reg"]]), each = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
+                sim_object@window_type_for_reg <- rep(curr_additional_param_sim[["window_type_for_reg"]], each = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
                 if (is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg)) {
                   processed_foreground_xreg <- stats::setNames(lapply(1:length(sim_object@window_size_for_reg), function(k) {
                     matrix(curr_foreground_xreg[1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
@@ -467,14 +467,14 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
             processed_foreground_x <- curr_foreground_x[1:trace_length,]
             if (!is.null(curr_foreground_xreg)) {
               if ("include_past_window_size" %in% curr_additional_param_sim[["reg_mapping_rule"]]) {
-                self_window <- object@window_size
+                self_window <- sim_object@window_size
               } else {
                 self_window <- NULL
               }
 
               if ("one_to_many" %in% curr_additional_param_sim[["reg_mapping_rule"]]) {
-                sim_object@window_size_for_reg <- rep(c(self_window, curr_additional_param_sim[["window_size_for_reg"]]), times = ifelse(is.matrix(curr_foreground_xreg) | is.dataframe(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
-                sim_object@window_type_for_reg <- rep(curr_additional_param_sim[["window_type_for_reg"]], times = ifelse(is.matrix(curr_foreground_xreg) | is.dataframe(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
+                sim_object@window_size_for_reg <- rep(c(self_window, curr_additional_param_sim[["window_size_for_reg"]]), times = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
+                sim_object@window_type_for_reg <- rep(curr_additional_param_sim[["window_type_for_reg"]], times = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
                 if (is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg)) {
                   processed_foreground_xreg <- stats::setNames(lapply(1:length(sim_object@window_size_for_reg), function(k) {
                     matrix(curr_foreground_xreg[1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
@@ -485,8 +485,8 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
                   }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
                 }
               } else if ("many_to_one" %in% curr_additional_param_sim[["reg_mapping_rule"]]) {
-                sim_object@window_size_for_reg <- rep(c(self_window, curr_additional_param_sim[["window_size_for_reg"]]), each = ifelse(is.matrix(curr_foreground_xreg) | is.dataframe(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
-                sim_object@window_type_for_reg <- rep(curr_additional_param_sim[["window_type_for_reg"]], each = ifelse(is.matrix(curr_foreground_xreg) | is.dataframe(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
+                sim_object@window_size_for_reg <- rep(c(self_window, curr_additional_param_sim[["window_size_for_reg"]]), each = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
+                sim_object@window_type_for_reg <- rep(curr_additional_param_sim[["window_type_for_reg"]], each = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
                 if (is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg)) {
                   processed_foreground_xreg <- stats::setNames(lapply(1:length(sim_object@window_size_for_reg), function(k) {
                     matrix(curr_foreground_xreg[1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
@@ -542,7 +542,8 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
               "fg_predict_info_lst" = fg_predict_info_lst,
               "sim_length" = sim_length,
               "bins" = bins,
-              "load_foreground_result" = load_foreground_result))
+              "load_foreground_result" = load_foreground_result,
+              "window_multipliers" = window_multipliers))
 }
 
 
@@ -574,7 +575,7 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
 run_sim_pred <- function(load_foreground_result = NULL, load_background_result = NULL, param_setting_sim = NULL, additional_param_sim = list(), param_setting_pred = NULL, additional_param_pred = list(), foreground_x = NULL, foreground_xreg = NULL, background_x = NULL, background_xreg = NULL, sim_length = 200, constraint_prob = 0.99, machines_full_indicator = 100, heartbeats_percent = 1, bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
   ## Foreground
   print("Foreground model fitting...")
-  foreground_result_lst <- pre_compute_models_foreground(load_save_directory, param_setting_sim, additional_param_sim, foreground_x, foreground_xreg, sim_length, bins, cores)
+  foreground_result_lst <- pre_compute_models_foreground(load_foreground_result, param_setting_sim, additional_param_sim, foreground_x, foreground_xreg, sim_length, bins, cores)
   param_setting_sim <- foreground_result_lst$param_setting_sim
   additional_param_sim <- foreground_result_lst$additional_param_sim
   foreground_x <- foreground_result_lst$foreground_x
@@ -584,6 +585,7 @@ run_sim_pred <- function(load_foreground_result = NULL, load_background_result =
   sim_length <- foreground_result_lst$sim_length
   bins <- foreground_result_lst$bins
   load_foreground_result <- foreground_result_lst$load_foreground_result
+  window_multipliers <- foreground_result_lst$window_multipliers
 
   ## Background
   print("Background model fitting...")

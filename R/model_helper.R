@@ -203,11 +203,11 @@ get_adjust_switch <- function(score1, react_counter, adjust_switch, react_speed)
 #' @keywords internal
 check_score1 <- function(pi_up, actual_obs, granularity, how = "max_size") {
   if (granularity > 0) {
-    actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
-    predicted_available <- round_to_nearest(100 - pi_up, granularity, TRUE)
+    actual_available <- max(round_to_nearest(100 - actual_obs, granularity, TRUE), 0)
+    predicted_available <- max(round_to_nearest(100 - pi_up, granularity, TRUE), 0)
   } else {
-    actual_available <- 100 - actual_obs
-    predicted_available <- 100 - pi_up
+    actual_available <- max(100 - actual_obs, 0)
+    predicted_available <- max(100 - pi_up, 0)
   }
 
   if (granularity == 0) {
@@ -254,11 +254,11 @@ check_score1 <- function(pi_up, actual_obs, granularity, how = "max_size") {
 #' @keywords internal
 check_score2 <- function(pi_up, actual_obs, granularity, how = "max_size") {
   if (granularity > 0) {
-    actual_available <- round_to_nearest(100 - actual_obs, granularity, TRUE)
-    predicted_available <- round_to_nearest(100 - pi_up, granularity, TRUE)
+    actual_available <- max(round_to_nearest(100 - actual_obs, granularity, TRUE), 0)
+    predicted_available <- max(round_to_nearest(100 - pi_up, granularity, TRUE), 0)
   } else {
-    actual_available <- 100 - actual_obs
-    predicted_available <- 100 - pi_up
+    actual_available <- max(100 - actual_obs, 0)
+    predicted_available <- max(100 - pi_up, 0)
   }
 
   if (granularity == 0) {
@@ -266,11 +266,11 @@ check_score2 <- function(pi_up, actual_obs, granularity, how = "max_size") {
       score <- 1
     } else {
       if (how == "max_size") {
-        score <- ifelse(predicted_available / actual_available > 1 | predicted_available / actual_available < 0, 0, predicted_available / actual_available)
+        score <- ifelse(predicted_available / actual_available > 1, 0, predicted_available / actual_available)
       } else {
         num_jobs <- as.numeric(gsub("_jobs", "", how))
         end_points <- seq(from = 0, by = predicted_available / num_jobs, length.out = num_jobs + 1)[-1]
-        score <- sum(actual_available >= end_points) * (predicted_available / num_jobs)
+        score <- sum(actual_available >= end_points) * (predicted_available / num_jobs) / actual_available
       }
     }
   } else {
@@ -278,15 +278,15 @@ check_score2 <- function(pi_up, actual_obs, granularity, how = "max_size") {
       score <- NA
     } else {
       if (how == "max_size") {
-        score <- ifelse(predicted_available / actual_available > 1 | predicted_available / actual_available < 0, 0, predicted_available / actual_available)
+        score <- ifelse(predicted_available / actual_available > 1, 0, predicted_available / actual_available)
       } else if (grepl("^\\d+_jobs$", how)) {
         num_jobs <- as.numeric(gsub("_jobs", "", how))
         end_points <- seq(from = 0, by = round_to_nearest(predicted_available / num_jobs, granularity, TRUE), length.out = num_jobs + 1)[-1]
-        score <- sum(actual_available >= end_points) * round_to_nearest(predicted_available / num_jobs, granularity, TRUE)
+        score <- sum(actual_available >= end_points) * round_to_nearest(predicted_available / num_jobs, granularity, TRUE) / actual_available
       } else {
         job_size <- as.numeric(gsub("_cores", "", how))
         end_points <- seq(from = 0, by = granularity * job_size, to = predicted_available)[-1]
-        score <- sum(actual_available >= end_points) * (granularity * job_size)
+        score <- sum(actual_available >= end_points) * (granularity * job_size) / actual_available
       }
     }
   }

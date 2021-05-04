@@ -8,7 +8,8 @@ check_score_trace_after_adjusment(
   cut_off_prob,
   predict_info,
   granularity,
-  adjustment_policy
+  adjustment_policy,
+  how = "max_size"
 )
 }
 \arguments{
@@ -17,6 +18,8 @@ check_score_trace_after_adjusment(
 \item{predict_info}{A dataframe representing logged information before \code{adjustment_policy}.}
 
 \item{granularity}{A numeric value representing granularity of calculating scores.}
+
+\item{how}{A character representing how the score is calculated. \code{"max_size"} by default schedules one job that takes maximum place. \code{"\\d_jobs"} schedules \code{"\\d"} jobs with equal sizes. \code{"\\d_cores"} schedules jobs each with fixed \code{\\d} number of cores, only works for \code{granularity} not being \code{0}.}
 }
 \value{
 A matrix of \code{1} row representing the score after \code{adjustment_policy}.

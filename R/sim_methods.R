@@ -8,7 +8,7 @@ NULL
 setMethod("get_param_slots",
           signature(object = "sim"),
           function(object) {
-            numeric_slots <- c("granularity", "train_size", "update_freq", "react_speed")
+            numeric_slots <- c("granularity", "train_size", "update_freq", "react_speed", "schedule_setting")
             numeric_lst <- list()
             for (i in numeric_slots) {
               numeric_lst[[i]] <- methods::slot(object, i)

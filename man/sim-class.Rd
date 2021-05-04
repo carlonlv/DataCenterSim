@@ -24,12 +24,6 @@
 \alias{var_sim}
 \title{An S4 Class to Represent A Simulation.}
 \arguments{
-\item{probability_function}{A function pointer to the function to compute the cdf, used in \code{combine_sim_pred} function. Default value is \code{stats::qnorm}.}
-
-\item{probability_expectation}{A function pointer to the function to compute the expectation, used in \code{combine_sim_pred} function.}
-
-\item{probability_mean_shift}{A function pointer to the update rule of shifting the probability distribution by a constant, used in \code{combine_sim_pred} function.}
-
 \item{outlier_type}{A character representing the type of outlier it will be treated, it can be None for not checking outliers, AO as additive outliers, IO as innovative outliers, LS as level shift, or All for taking account of all outlier types. Default value is \code{"None"}.}
 
 \item{outlier_cval}{A numeric value representing the critical value to determine the significance of each type of outlier. If NA_real_ is supplied, then it uses defaults: If n ≤ 50 then cval is set equal to 3.0; If n ≥ 450 then cval is set equal to 4.0; otherwise cval is set equal to 3 + 0.0025 * (n - 50). Default value is \code{NA_real_}.}
@@ -93,5 +87,13 @@ An S4 Class to Represent A Simulation.
 \item{\code{react_speed}}{A numeric number of length two that specify the number of failed/successfull predictions needed to activate/deactive backing off strategy. Default value is \code{c(1, 1)}.}
 
 \item{\code{response}}{A character that specify the targeting trace to be tested on, this can either be \code{"max"} or \code{"avg"} for max traces and average traces respectively. Default value is \code{"max"}.}
+
+\item{\code{schedule_setting}}{A character that specify how the scores are calculated depending on the scheduling strategy. \code{"max_size"} by default schedules one job with maximum size. \code{"^\\d+_jobs$"} schedules a specified number of equally sized jobs. \code{"^\\d+_cores"} schedules jobs with each specified size, cannot be used when \code{granularity} is \code{0}.}
+
+\item{\code{probability_function}}{A function pointer to the function to compute the cdf, used in \code{combine_sim_pred} function. Default value is \code{stats::qnorm}.}
+
+\item{\code{probability_expectation}}{A function pointer to the function to compute the expectation, used in \code{combine_sim_pred} function.}
+
+\item{\code{probability_mean_shift}}{A function pointer to the update rule of shifting the probability distribution by a constant, used in \code{combine_sim_pred} function.}
 }}
 

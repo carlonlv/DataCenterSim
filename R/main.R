@@ -284,7 +284,7 @@ run_sim <- function(epoch_setting, additional_setting = list(), x, xreg, start_p
                                                           }
                                                         }
                                                         param_uni_lst <- lapply(param_uni_lst, function(param_uni) {
-                                                          for (j in names(additional_setting)[!(names(additional_setting) %in% c("window_size", "window_type_for_reg", "window_size_for_reg"))]) {
+                                                          for (j in names(additional_setting)[!(names(additional_setting) %in% c("window_size", "include_past_window_size", "window_type_for_reg", "window_size_for_reg"))]) {
                                                             methods::slot(param_uni, j) <- additional_setting[[j]]
                                                             if ((j %in% colnames(char)) | (j %in% colnames(other))) {
                                                               methods::slot(param_uni, j) <- c(methods::slot(param_uni, j), additional_setting[[j]])

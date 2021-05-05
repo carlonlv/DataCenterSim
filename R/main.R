@@ -278,9 +278,9 @@ run_sim <- function(epoch_setting, additional_setting = list(), x, xreg, start_p
 
                                                           reg_lengths <- c(length(window_size_for_reg), length(window_type_for_reg), length(reg_indicator))
                                                           if (all(reg_lengths == 1 | reg_lengths == max(reg_lengths))) {
-                                                            reg_param_setting <- data.frame("window_size_for_reg" = window_size_for_reg, "window_type_for_reg" = window_type_for_reg, "reg_indicator" = reg_indicator)
+                                                            reg_param_setting <- data.frame("window_size_for_reg" = window_size_for_reg, "window_type_for_reg" = window_type_for_reg, "reg_indicator" = reg_indicator, stringsAsFactors = FALSE)
                                                           } else {
-                                                            reg_param_setting <- expand.grid("window_size_for_reg" = window_size_for_reg, "window_type_for_reg" = window_type_for_reg, "reg_indicator" = reg_indicator)
+                                                            reg_param_setting <- expand.grid("window_size_for_reg" = window_size_for_reg, "window_type_for_reg" = window_type_for_reg, "reg_indicator" = reg_indicator, stringsAsFactors = FALSE)
                                                           }
                                                         }
                                                         param_uni_lst <- lapply(param_uni_lst, function(param_uni) {

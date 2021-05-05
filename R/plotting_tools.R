@@ -31,7 +31,9 @@ plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size",
 
   charwise_summ <- charwise_summ %>%
     dplyr::group_by_at(.vars = as.character(mapping)) %>%
-    dplyr::arrange_at(.vars = "quantile")
+    dplyr::arrange_at(.vars = c("quantile", unlist(mapping)))
+
+  charwise_summ <- as.data.frame(charwise_summ)
 
   plt <- ggplot2::ggplot(charwise_summ, do.call(ggplot2::aes_string, mapping))
   if (!adjusted) {
@@ -64,11 +66,11 @@ plot_sim_charwise <- function(charwise_summ, mapping=list(shape = "window_size",
     ggplot2::annotate("text", x = -Inf, y = Inf, vjust = 2, hjust = 0, label = paste0("quantile settings:", paste(sort(unique(charwise_summ[, "quantile", drop = TRUE])), collapse = ","))) +
     ggplot2::ylab("Utilization Rate") +
     ggplot2::xlab("Survival Rate") +
-    ggplot2::scale_color_brewer(name = ifelse(is.null(mapping[["color"]]), "empty", mapping[["color"]]), palette = "Set1", guide = ggplot2::guide_legend(ncol = 1)) +
-    ggplot2::scale_fill_brewer(name = ifelse(is.null(mapping[["fill"]]), "empty", mapping[["fill"]]), palette = "Set3", guide = ggplot2::guide_legend(ncol =  2)) +
-    ggplot2::scale_shape_manual(name = ifelse(is.null(mapping[["shape"]]), "empty", mapping[["shape"]]), values = 21:25, guide = ggplot2::guide_legend(ncol = 1)) +
-    ggplot2::scale_alpha_discrete(name = ifelse(is.null(mapping[["alpha"]]), "empty", mapping[["alpha"]]), guide = ggplot2::guide_legend(ncol = 1)) +
-    ggplot2::scale_size_manual(name = ifelse(is.null(mapping[["size"]]), "empty", mapping[["size"]]), guide = ggplot2::guide_legend(ncol = 1)) +
+    ggplot2::scale_color_brewer(name = ifelse(is.null(mapping[["color"]]), "empty", mapping[["color"]]), labels = stringr::str_sort(unique(charwise_summ[, mapping[["color"]]])), palette = "Set1", guide = ggplot2::guide_legend(ncol = 1)) +
+    ggplot2::scale_fill_brewer(name = ifelse(is.null(mapping[["fill"]]), "empty", mapping[["fill"]]), labels = stringr::str_sort(unique(charwise_summ[, mapping[["fill"]]])), palette = "Set3", guide = ggplot2::guide_legend(ncol =  2)) +
+    ggplot2::scale_shape_manual(name = ifelse(is.null(mapping[["shape"]]), "empty", mapping[["shape"]]), labels = stringr::str_sort(unique(charwise_summ[, mapping[["shape"]]])), values = 21:25, guide = ggplot2::guide_legend(ncol = 1)) +
+    ggplot2::scale_alpha_discrete(name = ifelse(is.null(mapping[["alpha"]]), "empty", mapping[["alpha"]]), labels = stringr::str_sort(unique(charwise_summ[, mapping[["alpha"]]])), guide = ggplot2::guide_legend(ncol = 1)) +
+    ggplot2::scale_size_manual(name = ifelse(is.null(mapping[["size"]]), "empty", mapping[["size"]]), labels = stringr::str_sort(unique(charwise_summ[, mapping[["size"]]])), guide = ggplot2::guide_legend(ncol = 1)) +
     ggplot2::guides(fill = ggplot2::guide_legend(override.aes = list(shape = 21), ncol = 2)) +
     ggplot2::theme_bw() +
     ggplot2::theme(legend.position = c(0.25, 0.25), legend.background = ggplot2::element_rect(fill = "white", color = "black"))

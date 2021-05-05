@@ -312,7 +312,7 @@ compute_summary_performance <- function(predict_info, past_failures, machine_ava
 #' @description Save/Load precomputed result in destined directory.
 #' @param load_foreground_result \code{NULL} or a character representing the destined load/save file path.
 #' @param param_setting_sim \code{NULL} or a dataframe representing the parameter setting of simulation, can be multiple roles corresponding to each \code{foreground_x} type.
-#' @param additional_param_sim A list of additional parameter settings of simulation, including \code{"reg_mapping_rule"} which can take value including \code{"include_past_window_size"} (optional), and one of \code{"one_to_one"} (default), \code{"one_to_many"} or \code{"many_to_one"}.
+#' @param additional_param_sim A list of additional parameter settings of simulation.
 #' @param foreground_x \code{NULL} or a matrix or dataframe or a list of matrices or dataframes representing foreground observations.
 #' @param foreground_xreg \code{NULL} or a matrix or dataframe or a list of matrices or dataframes or a list of lists of matrices or dataframes, representing the regressor corresponding to \code{foreground_x}.
 #' @param sim_length \code{NULL} or a numeric integer representing the length of simulation. If exceeding the maximum length of each times series, the maximum length of each time series would be used.
@@ -383,7 +383,7 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
             processed_foreground_x <- curr_foreground_x[1:trace_length,]
             if (!is.null(curr_foreground_xreg)) {
               if ("include_past_window_size" %in% curr_additional_param_sim[["reg_mapping_rule"]]) {
-                self_window <- object@window_size
+                self_window <- sim_object@window_size
               } else {
                 self_window <- NULL
               }

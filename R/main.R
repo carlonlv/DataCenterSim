@@ -261,8 +261,30 @@ run_sim <- function(epoch_setting, additional_setting = list(), x, xreg, start_p
                      score_char_lst <- dplyr::group_map(char_epoch_setting,
                                                       function(other, char) {
                                                         param_uni_lst <- methods::as(cbind(char, other), "sim")
+                                                        if (!is.null(xreg)) {
+                                                          if (ifelse(is.null(additional_setting[["include_past_window_size"]]), FALSE, additional_setting[["include_past_window_size"]])) {
+                                                            self_window <- param_uni_lst[[1]]@window_size
+                                                          } else {
+                                                            self_window <- NULL
+                                                          }
+
+                                                          window_size_for_reg <- c(self_window, additional_setting[["window_size_for_reg"]])
+                                                          window_type_for_reg <- additional_setting[["window_type_for_reg"]]
+                                                          if (is.matrix(xreg) | is.data.frame(xreg)) {
+                                                            reg_indicator <- 1
+                                                          } else {
+                                                            reg_indicator <- 1:length(xreg)
+                                                          }
+
+                                                          reg_lengths <- c(length(window_size_for_reg), length(window_type_for_reg), length(reg_indicator))
+                                                          if (all(reg_lengths == 1 | reg_lengths == max(reg_lengths))) {
+                                                            reg_param_setting <- data.frame("window_size_for_reg" = window_size_for_reg, "window_type_for_reg" = window_type_for_reg, "reg_indicator" = reg_indicator)
+                                                          } else {
+                                                            reg_param_setting <- expand.grid("window_size_for_reg" = window_size_for_reg, "window_type_for_reg" = window_type_for_reg, "reg_indicator" = reg_indicator)
+                                                          }
+                                                        }
                                                         param_uni_lst <- lapply(param_uni_lst, function(param_uni) {
-                                                          for (j in names(additional_setting)[!(names(additional_setting) %in% c("reg_mapping_rule", "window_type_for_reg", "window_size_for_reg"))]) {
+                                                          for (j in names(additional_setting)[!(names(additional_setting) %in% c("window_size", "window_type_for_reg", "window_size_for_reg"))]) {
                                                             methods::slot(param_uni, j) <- additional_setting[[j]]
                                                             if ((j %in% colnames(char)) | (j %in% colnames(other))) {
                                                               methods::slot(param_uni, j) <- c(methods::slot(param_uni, j), additional_setting[[j]])
@@ -272,63 +294,21 @@ run_sim <- function(epoch_setting, additional_setting = list(), x, xreg, start_p
                                                           }
 
                                                           if (!is.null(xreg)) {
-                                                            if ("include_past_window_size" %in% additional_setting[["reg_mapping_rule"]]) {
-                                                              self_window <- param_uni@window_size
-                                                            } else {
-                                                              self_window <- NULL
-                                                            }
-
-                                                            if ("one_to_many" %in% additional_setting[["reg_mapping_rule"]]) {
-                                                              param_uni@window_size_for_reg <- rep(c(self_window, additional_setting[["window_size_for_reg"]]), times = ifelse(is.matrix(xreg) | is.data.frame(xreg), 1, length(xreg)))
-                                                              param_uni@window_type_for_reg <- rep(additional_setting[["window_type_for_reg"]], times = ifelse(is.matrix(xreg) | is.data.frame(xreg), 1, length(xreg)))
-                                                            } else if ("many_to_one" %in% additional_setting[["reg_mapping_rule"]]) {
-                                                              param_uni@window_size_for_reg <- rep(c(self_window, additional_setting[["window_size_for_reg"]]), each = ifelse(is.matrix(xreg) | is.data.frame(xreg), 1, length(xreg)))
-                                                              param_uni@window_type_for_reg <- rep(additional_setting[["window_type_for_reg"]], each = ifelse(is.matrix(xreg) | is.data.frame(xreg), 1, length(xreg)))
-                                                            } else {
-                                                              param_uni@window_size_for_reg <- c(self_window, additional_setting[["window_size_for_reg"]])
-                                                              param_uni@window_type_for_reg <- additional_setting[["window_type_for_reg"]]
-                                                            }
+                                                            param_uni@window_size_for_reg <- reg_param_setting[, "window_size_for_reg"]
+                                                            param_uni@window_type_for_reg <- reg_param_setting[, "window_type_for_reg"]
                                                           }
                                                           return(param_uni)
                                                         })
 
                                                         if (!is.null(xreg)) {
-                                                          if ("include_past_window_size" %in% additional_setting[["reg_mapping_rule"]]) {
-                                                            self_window <- param_uni_lst[[1]]@window_size
+                                                          if (is.matrix(xreg) | is.data.frame(xreg)) {
+                                                            mapped_xreg <- stats::setNames(lapply(reg_param_setting[, "reg_indicator"], function(k) {
+                                                              xreg
+                                                            }), paste(reg_param_setting[, "window_type_for_reg"], reg_param_setting[, "window_size_for_reg"], sep = "_"))
                                                           } else {
-                                                            self_window <- NULL
-                                                          }
-
-                                                          if ("one_to_many" %in% additional_setting[["reg_mapping_rule"]]) {
-                                                            if (is.matrix(xreg) | is.data.frame(xreg)) {
-                                                              mapped_xreg <- stats::setNames(lapply(1:length(param_uni_lst[[1]]@window_size_for_reg), function(k) {
-                                                                matrix(xreg, ncol = 1, dimnames = list(rownames(xreg)))
-                                                              }), paste(param_uni_lst[[1]]@window_type_for_reg, param_uni_lst[[1]]@window_size_for_reg, sep = "_"))
-                                                            } else {
-                                                              mapped_xreg <- stats::setNames(lapply(rep(1:length(c(self_window, additional_setting[["window_size_for_reg"]])), each = length(param_uni_lst[[1]]@window_size_for_reg)), function(k) {
-                                                                matrix(xreg[[k]], ncol = 1, dimnames = list(rownames(xreg)))
-                                                              }), paste(param_uni_lst[[1]]@window_type_for_reg, param_uni_lst[[1]]@window_size_for_reg, sep = "_"))
-                                                            }
-                                                          } else if ("many_to_one" %in% additional_setting[["reg_mapping_rule"]]) {
-                                                            if (is.matrix(xreg) | is.data.frame(xreg)) {
-                                                              mapped_xreg <- stats::setNames(lapply(1:length(param_uni_lst[[1]]@window_size_for_reg), function(k) {
-                                                                matrix(xreg, ncol = 1, dimnames = list(rownames(xreg)))
-                                                              }), paste(param_uni_lst[[1]]@window_type_for_reg, param_uni_lst[[1]]@window_size_for_reg, sep = "_"))
-                                                            } else {
-                                                              mapped_xreg <- stats::setNames(lapply(rep(1:length(c(self_window, additional_setting[["window_size_for_reg"]])), each = length(param_uni_lst[[1]]@window_size_for_reg)), function(k) {
-                                                                matrix(xreg[[k]], ncol = 1, dimnames = list(rownames(xreg)))
-                                                              }), paste(param_uni_lst[[1]]@window_type_for_reg, param_uni_lst[[1]]@window_size_for_reg, sep = "_"))
-                                                            }
-                                                          } else {
-                                                            if (is.matrix(xreg) | is.data.frame(xreg)) {
-                                                              mapped_xreg <- stats::setNames(lapply(1:length(param_uni_lst[[1]]@window_size_for_reg), function(k) {
-                                                                matrix(xreg, ncol = 1, dimnames = list(rownames(xreg)))
-                                                              }), paste(param_uni_lst[[1]]@window_type_for_reg, param_uni_lst[[1]]@window_size_for_reg, sep = "_"))
-                                                            } else {
-                                                              mapped_xreg <- stats::setNames(lapply(1:length(c(self_window, additional_setting[["window_size_for_reg"]])), function(k) {
-                                                                matrix(xreg[[k]], ncol = 1, dimnames = list(rownames(xreg)))
-                                                              }), paste(param_uni_lst[[1]]@window_type_for_reg, param_uni_lst[[1]]@window_size_for_reg, sep = "_"))
-                                                            }
+                                                            mapped_xreg <- stats::setNames(lapply(reg_param_setting[, "reg_indicator"], function(k) {
+                                                              xreg[[k]]
+                                                            }), paste(reg_param_setting[, "window_type_for_reg"], reg_param_setting[, "window_size_for_reg"], sep = "_"))
                                                           }
                                                         } else {
                                                           mapped_xreg <- NULL

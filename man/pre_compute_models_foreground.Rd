@@ -20,7 +20,7 @@ pre_compute_models_foreground(
 
 \item{param_setting_sim}{\code{NULL} or a dataframe representing the parameter setting of simulation, can be multiple roles corresponding to each \code{foreground_x} type.}
 
-\item{additional_param_sim}{A list of additional parameter settings of simulation, including \code{"reg_mapping_rule"} which can take value including \code{"include_past_window_size"} (optional), and one of \code{"one_to_one"} (default), \code{"one_to_many"} or \code{"many_to_one"}.}
+\item{additional_param_sim}{A list of additional parameter settings of simulation.}
 
 \item{foreground_x}{\code{NULL} or a matrix or dataframe or a list of matrices or dataframes representing foreground observations.}
 

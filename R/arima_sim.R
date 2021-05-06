@@ -279,7 +279,7 @@ setMethod("train_model",
           function(object, train_x, train_xreg, trained_model) {
             new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
 
-            args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
+            args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "CSS-ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
             for (i in names(object@train_args)) {
               args.tsmethod[[i]] <- object@train_args[[i]]
             }

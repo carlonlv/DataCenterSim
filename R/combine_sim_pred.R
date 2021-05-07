@@ -388,52 +388,40 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
                 self_window <- NULL
               }
 
-              if ("one_to_many" %in% curr_additional_param_sim[["reg_mapping_rule"]]) {
-                sim_object@window_size_for_reg <- rep(c(self_window, curr_additional_param_sim[["window_size_for_reg"]]), times = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
-                sim_object@window_type_for_reg <- rep(curr_additional_param_sim[["window_type_for_reg"]], times = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
-                if (is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg)) {
-                  processed_foreground_xreg <- stats::setNames(lapply(1:length(sim_object@window_size_for_reg), function(k) {
-                    matrix(curr_foreground_xreg[1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
-                  }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
-                } else {
-                  processed_foreground_xreg <- stats::setNames(lapply(rep(1:length(c(self_window, curr_additional_param_sim[["window_size_for_reg"]])), each = length(sim_object@window_size_for_reg)), function(k) {
-                    matrix(curr_foreground_xreg[[k]][1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
-                  }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
-                }
-              } else if ("many_to_one" %in% curr_additional_param_sim[["reg_mapping_rule"]]) {
-                sim_object@window_size_for_reg <- rep(c(self_window, curr_additional_param_sim[["window_size_for_reg"]]), each = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
-                sim_object@window_type_for_reg <- rep(curr_additional_param_sim[["window_type_for_reg"]], each = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
-                if (is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg)) {
-                  processed_foreground_xreg <- stats::setNames(lapply(1:length(sim_object@window_size_for_reg), function(k) {
-                    matrix(curr_foreground_xreg[1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
-                  }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
-                } else {
-                  processed_foreground_xreg <- stats::setNames(lapply(rep(1:length(c(self_window, curr_additional_param_sim[["window_size_for_reg"]])), each = length(sim_object@window_size_for_reg)), function(k) {
-                    matrix(curr_foreground_xreg[[k]][1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
-                  }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
-                }
+              window_size_for_reg <- c(self_window, additional_setting[["window_size_for_reg"]])
+              window_type_for_reg <- additional_setting[["window_type_for_reg"]]
+              if (is.matrix(xreg) | is.data.frame(xreg)) {
+                reg_indicator <- 1
               } else {
-                sim_object@window_size_for_reg <- c(self_window, curr_additional_param_sim[["window_size_for_reg"]])
-                sim_object@window_type_for_reg <- curr_additional_param_sim[["window_type_for_reg"]]
-                if (is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg)) {
-                  processed_foreground_xreg <- stats::setNames(lapply(1:length(sim_object@window_size_for_reg), function(k) {
-                    matrix(curr_foreground_xreg[1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
-                  }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
-                } else {
-                  processed_foreground_xreg <- stats::setNames(lapply(1:length(c(self_window, curr_additional_param_sim[["window_size_for_reg"]])), function(k) {
-                    matrix(curr_foreground_xreg[[k]][1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
-                  }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
-                }
+                reg_indicator <- 1:length(xreg)
+              }
+
+              reg_lengths <- c(length(window_size_for_reg), length(window_type_for_reg), length(reg_indicator))
+              if (all(reg_lengths == 1 | reg_lengths == max(reg_lengths))) {
+                reg_param_setting <- data.frame("window_size_for_reg" = window_size_for_reg, "window_type_for_reg" = window_type_for_reg, "reg_indicator" = reg_indicator, stringsAsFactors = FALSE)
+              } else {
+                reg_param_setting <- expand.grid("window_size_for_reg" = window_size_for_reg, "window_type_for_reg" = window_type_for_reg, "reg_indicator" = reg_indicator, stringsAsFactors = FALSE)
+              }
+
+              if (is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg)) {
+                processed_foreground_xreg <- stats::setNames(lapply(reg_param_setting[, "reg_indicator"], function(k) {
+                  matrix(curr_foreground_xreg[1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
+                }), paste(reg_param_setting[, "window_type_for_reg"], reg_param_setting[, "window_size_for_reg"], sep = "_"))
+              } else {
+                processed_foreground_xreg <- stats::setNames(lapply(reg_param_setting[, "reg_indicator"], function(k) {
+                  matrix(curr_foreground_xreg[[k]][1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
+                }), paste(reg_param_setting[, "window_type_for_reg"], reg_param_setting[, "window_size_for_reg"], sep = "_"))
               }
             }  else {
               processed_foreground_xreg <- NULL
             }
+
             predict_info <- tryCatch({
               svt_predicting_sim(ts_num = ts_num, object = sim_object, x = processed_foreground_x, xreg = processed_foreground_xreg, start_point = 1 + offs * window_multiplier, write_type = "None", plot_type = "None")[["predict_info"]]
             }, error = function(e) {
               print(ts_num)
               print(e)
-              return(data.frame())
+              return(list("predicted_params" = data.frame()))
             })
             return(predict_info$predicted_params)
           })
@@ -472,42 +460,29 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
                 self_window <- NULL
               }
 
-              if ("one_to_many" %in% curr_additional_param_sim[["reg_mapping_rule"]]) {
-                sim_object@window_size_for_reg <- rep(c(self_window, curr_additional_param_sim[["window_size_for_reg"]]), times = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
-                sim_object@window_type_for_reg <- rep(curr_additional_param_sim[["window_type_for_reg"]], times = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
-                if (is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg)) {
-                  processed_foreground_xreg <- stats::setNames(lapply(1:length(sim_object@window_size_for_reg), function(k) {
-                    matrix(curr_foreground_xreg[1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
-                  }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
-                } else {
-                  processed_foreground_xreg <- stats::setNames(lapply(rep(1:length(c(self_window, curr_additional_param_sim[["window_size_for_reg"]])), each = length(sim_object@window_size_for_reg)), function(k) {
-                    matrix(curr_foreground_xreg[[k]][1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
-                  }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
-                }
-              } else if ("many_to_one" %in% curr_additional_param_sim[["reg_mapping_rule"]]) {
-                sim_object@window_size_for_reg <- rep(c(self_window, curr_additional_param_sim[["window_size_for_reg"]]), each = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
-                sim_object@window_type_for_reg <- rep(curr_additional_param_sim[["window_type_for_reg"]], each = ifelse(is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg), 1, length(curr_foreground_xreg)))
-                if (is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg)) {
-                  processed_foreground_xreg <- stats::setNames(lapply(1:length(sim_object@window_size_for_reg), function(k) {
-                    matrix(curr_foreground_xreg[1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
-                  }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
-                } else {
-                  processed_foreground_xreg <- stats::setNames(lapply(rep(1:length(c(self_window, curr_additional_param_sim[["window_size_for_reg"]])), each = length(sim_object@window_size_for_reg)), function(k) {
-                    matrix(curr_foreground_xreg[[k]][1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
-                  }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
-                }
+              window_size_for_reg <- c(self_window, additional_setting[["window_size_for_reg"]])
+              window_type_for_reg <- additional_setting[["window_type_for_reg"]]
+              if (is.matrix(xreg) | is.data.frame(xreg)) {
+                reg_indicator <- 1
               } else {
-                sim_object@window_size_for_reg <- c(self_window, curr_additional_param_sim[["window_size_for_reg"]])
-                sim_object@window_type_for_reg <- curr_additional_param_sim[["window_type_for_reg"]]
-                if (is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg)) {
-                  processed_foreground_xreg <- stats::setNames(lapply(1:length(sim_object@window_size_for_reg), function(k) {
-                    matrix(curr_foreground_xreg[1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
-                  }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
-                } else {
-                  processed_foreground_xreg <- stats::setNames(lapply(1:length(c(self_window, curr_additional_param_sim[["window_size_for_reg"]])), function(k) {
-                    matrix(curr_foreground_xreg[[k]][1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
-                  }), paste(sim_object@window_type_for_reg, sim_object@window_size_for_reg, sep = "_"))
-                }
+                reg_indicator <- 1:length(xreg)
+              }
+
+              reg_lengths <- c(length(window_size_for_reg), length(window_type_for_reg), length(reg_indicator))
+              if (all(reg_lengths == 1 | reg_lengths == max(reg_lengths))) {
+                reg_param_setting <- data.frame("window_size_for_reg" = window_size_for_reg, "window_type_for_reg" = window_type_for_reg, "reg_indicator" = reg_indicator, stringsAsFactors = FALSE)
+              } else {
+                reg_param_setting <- expand.grid("window_size_for_reg" = window_size_for_reg, "window_type_for_reg" = window_type_for_reg, "reg_indicator" = reg_indicator, stringsAsFactors = FALSE)
+              }
+
+              if (is.matrix(curr_foreground_xreg) | is.data.frame(curr_foreground_xreg)) {
+                processed_foreground_xreg <- stats::setNames(lapply(reg_param_setting[, "reg_indicator"], function(k) {
+                  matrix(curr_foreground_xreg[1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
+                }), paste(reg_param_setting[, "window_type_for_reg"], reg_param_setting[, "window_size_for_reg"], sep = "_"))
+              } else {
+                processed_foreground_xreg <- stats::setNames(lapply(reg_param_setting[, "reg_indicator"], function(k) {
+                  matrix(curr_foreground_xreg[[k]][1:trace_length,], ncol = 1, dimnames = list(rownames(curr_foreground_xreg)[1:trace_length]))
+                }), paste(reg_param_setting[, "window_type_for_reg"], reg_param_setting[, "window_size_for_reg"], sep = "_"))
               }
             }  else {
               processed_foreground_xreg <- NULL
@@ -518,7 +493,7 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
             }, error = function(e) {
               print(ts_num)
               print(e)
-              return(data.frame())
+              return(list("predicted_params" = data.frame()))
             })
             return(predict_info$predicted_params)
           })
@@ -543,6 +518,7 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
               "sim_length" = sim_length,
               "bins" = bins,
               "load_foreground_result" = load_foreground_result,
+              "sim_object_lst" = sim_object_lst,
               "window_multipliers" = window_multipliers))
 }
 

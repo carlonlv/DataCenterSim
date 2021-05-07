@@ -21,7 +21,7 @@ predict_model <- function(object, trained_result, test_x, test_xreg, predict_inf
   test_predicted_quantiles <- data.frame(stringsAsFactors = FALSE)
   test_predicted_params <- data.frame(stringsAsFactors = FALSE)
 
-  last_time_schedule <- length(test_x) - object@window_size + 1
+  last_time_schedule <- length(test_x) - object@extrap_step * object@window_size + 1
   predict_iter <- 0
   current_end <- 1
   while (current_end <= last_time_schedule) {
@@ -88,7 +88,7 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
   predict_info <- list("predicted_quantiles" = data.frame(stringsAsFactors = FALSE), "predicted_params" = data.frame(stringsAsFactors = FALSE))
 
   current <- start_point
-  last_time_update <- nrow(x) - object@train_size - object@update_freq * object@extrap_step * object@window_size + 1
+  last_time_update <- nrow(x) - object@train_size - object@extrap_step * object@window_size + 1
 
   train_models <- NULL
   train_sig <- TRUE
@@ -120,7 +120,93 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
 
     ## Get test set
     test_start <- current + object@train_size
-    test_end <- current + object@train_size + object@update_freq * object@extrap_step * object@window_size - 1
+    test_end <- min(current + object@train_size + object@update_freq * object@extrap_step * object@window_size - 1, nrow(x))
+    test_x <- matrix(x[test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(x)[test_start:test_end], colnames(x)[ts_num]))
+    if (!is.null(xreg) & (is.matrix(xreg) | is.data.frame(xreg))) {
+      test_xreg <- matrix(xreg[test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)[ts_num]))
+    } else if (!is.null(xreg) & is.list(xreg)) {
+      test_xreg <- stats::setNames(lapply(1:length(xreg), function(reg) {
+        matrix(xreg[[reg]][test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)[ts_num]))
+      }), names(xreg))
+    } else {
+      test_xreg <- NULL
+    }
+
+    ## Test Model
+    score_switch_info <- predict_model(object, train_models, test_x, test_xreg, predict_info, switch_status)
+    switch_status <- score_switch_info$switch_status
+    predict_info <- score_switch_info$predict_info
+
+    ## Update Step
+    current <- current + object@update_freq * object@extrap_step * object@window_size + wait_time
+  }
+
+  if ("tracewise" %in% write_type & !("none" %in% write_type)) {
+    write_sim_result(predict_info$predicted_quantiles, "tracewise", trace_name, ...)
+    write_sim_result(predict_info$predicted_params, "other", paste("Tracewise Parameters With trace", trace_name), ...)
+  }
+  if ("tracewise" %in% plot_type & !("none" %in% plot_type)) {
+    plot_sim_tracewise(predict_info$predicted_quantiles, trace_name, ...)
+  }
+  trace_score <- check_score_trace(object@cut_off_prob, predict_info$predicted_quantiles)
+  trace_pred_stats <- check_summary_statistics_trace(predict_info$predicted_quantiles, object@granularity)
+  return(list("trace_score" = trace_score, "trace_pred_stats" = trace_pred_stats, "predict_info" = predict_info))
+}
+
+
+#' Alternative Edition of Simulation of Scheduling Jobs Based On Predictions On A Single Trace .
+#'
+#' Sequantially training and testing by scheduling jobs based on predictions on a single trace at each time unit.
+#'
+#' @param ts_num The corresponding trace/column in \code{dataset}.
+#' @param x A numeric vector of length n representing the target dataset for scheduling and evaluations.
+#' @param xreg A numeric vector of length n representing the external regressor.
+#' @param start_point A numeric number that represents the starting point of the simulation. Default value is \code{1}.
+#' @param wait_time A numeric number that represents the time between testing and next training. Default value is \code{0}.
+#' @param write_type A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".
+#' @param plot_type A character that can be one of "charwise", "tracewise", "paramwise" or "none".
+#' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
+#' @return A list containing the resulting prediction informations.
+#' @keywords internal
+svt_predicting_sim_overlapping <- function(ts_num, object, x, xreg=NULL, start_point=1, wait_time=0, write_type, plot_type, ...) {
+  trace_name <- colnames(x)[ts_num]
+
+  predict_info <- list("predicted_quantiles" = data.frame(stringsAsFactors = FALSE), "predicted_params" = data.frame(stringsAsFactors = FALSE))
+
+  current <- start_point
+  last_time_update <- nrow(x) - object@train_size - object@extrap_step * object@window_size + 1
+
+  train_models <- NULL
+  train_sig <- TRUE
+  switch_status <- list("train_iter" = 0, "test_iter" = 1, "react_counter" = rep(0, length(object@cut_off_prob)), "adjust_switch" = rep(FALSE, length(object@cut_off_prob)))
+  while (current <= last_time_update) {
+    if (train_sig) {
+      # Get training set
+      train_start <- current
+      train_end <- current + object@train_size - 1
+      train_x <- matrix(x[train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(x)[train_start:train_end], colnames(x)[ts_num]))
+      if (!is.null(xreg) & (is.matrix(xreg) | is.data.frame(xreg))) {
+        train_xreg <- matrix(xreg[train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[train_start:train_end], colnames(xreg)[ts_num]))
+      } else if (!is.null(xreg) & is.list(xreg)) {
+        train_xreg <- stats::setNames(lapply(1:length(xreg), function(reg) {
+          matrix(xreg[[reg]][train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg[[reg]])[train_start:train_end], colnames(xreg[[reg]])[ts_num]))
+        }), names(xreg))
+      } else {
+        train_xreg <- NULL
+      }
+
+      train_models <- train_model(object, train_x, train_xreg, ifelse(is.list(train_models), train_models, list(train_models)))
+
+      switch_status$train_iter <- switch_status$train_iter + 1
+
+      if (object@train_policy == "offline") {
+        train_sig <- FALSE
+      }
+    }
+
+    ## Get test set
+    test_start <- current + object@train_size
+    test_end <- min(current + object@train_size + object@update_freq * object@extrap_step * object@window_size - 1, nrow(x))
     test_x <- matrix(x[test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(x)[test_start:test_end], colnames(x)[ts_num]))
     if (!is.null(xreg) & (is.matrix(xreg) | is.data.frame(xreg))) {
       test_xreg <- matrix(xreg[test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)[ts_num]))

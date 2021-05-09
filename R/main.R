@@ -171,52 +171,100 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
 svt_predicting_sim_overlapping <- function(ts_num, object, x, xreg=NULL, start_point=1, wait_time=0, write_type, plot_type, ...) {
   trace_name <- colnames(x)[ts_num]
 
-  predict_info <- list("predicted_quantiles" = data.frame(stringsAsFactors = FALSE), "predicted_params" = data.frame(stringsAsFactors = FALSE))
+  x_lst <- lapply(0:(object@window_size - 1), function(i) {
+    stats::setNames(x[(i + 1):nrow(x), ts_num], rownames(x)[(i + 1):nrow(x)])
+  })
+
+  if (is.null(xreg)) {
+    xreg_lst <- NULL
+  } else if (is.matrix(xreg) | is.data.frame(xreg)) {
+    xreg_lst <- lapply(0:(object@window_size - 1), function(i) {
+      stats::setNames(xreg[(object@train_size + i + 1):nrow(xreg), ts_num], rownames(xreg)[(object@train_size + i + 1):nrow(xreg)])
+    })
+  } else {
+    xreg_lst <- lapply(1:length(xreg), function(i) {
+      lapply(0:(object@window_size - 1), function(i) {
+        stats::setNames(xreg[[i]][(object@train_size + j + 1):nrow(xreg), ts_num], rownames(xreg[[i]])[(object@train_size + j + 1):nrow(xreg)])
+      })
+    })
+  }
+
+  predict_quantiles <- lapply(0:(object@window_size - 1), function(i) {
+    data.frame(stringsAsFactors = FALSE)
+  })
 
   current <- start_point
   last_time_update <- nrow(x) - object@train_size - object@extrap_step * object@window_size + 1
 
   train_models <- NULL
   train_sig <- TRUE
-  switch_status <- list("train_iter" = 0, "test_iter" = 1, "react_counter" = rep(0, length(object@cut_off_prob)), "adjust_switch" = rep(FALSE, length(object@cut_off_prob)))
-  while (current <= last_time_update) {
-    if (train_sig) {
-      # Get training set
-      train_start <- current
-      train_end <- current + object@train_size - 1
-      train_x <- matrix(x[train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(x)[train_start:train_end], colnames(x)[ts_num]))
-      if (!is.null(xreg) & (is.matrix(xreg) | is.data.frame(xreg))) {
-        train_xreg <- matrix(xreg[train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[train_start:train_end], colnames(xreg)[ts_num]))
-      } else if (!is.null(xreg) & is.list(xreg)) {
-        train_xreg <- stats::setNames(lapply(1:length(xreg), function(reg) {
-          matrix(xreg[[reg]][train_start:train_end, ts_num], ncol = 1, dimnames = list(rownames(xreg[[reg]])[train_start:train_end], colnames(xreg[[reg]])[ts_num]))
-        }), names(xreg))
-      } else {
-        train_xreg <- NULL
-      }
+  train_iter <- 1
+  predict_iter <- 1
+  react_counter <- rep(0, length(object@cut_off_prob))
+  adjust_switch <- rep(FALSE, length(object@cut_off_prob))
+  last_train_time <- 1
 
+  while (current <= last_time_update) {
+    curr_offs <- (current - start_point) %% object@window_size
+    curr_idx <- current - curr_offs
+
+    for (i in 1:object@extrap_step) {
+      identifier_info <- data.frame("train_iter" = train_iter, "predict_iter" = predict_iter)
+    }
+
+    if (train_sig & (current >= last_train_time + object@update_freq * object@window_size * object@extrap_step)) {
+      # Get training set
+      train_start <- curr_idx
+      train_end <- curr_idx + object@train_size - 1
+      train_x <- matrix(x_lst[[curr_offs]][train_start:train_end], ncol = 1, dimnames = list(names(x[[curr_offs]])[train_start:train_end], trace_name))
+      if (is.null(xreg)) {
+        train_xreg <- NULL
+      } else if (is.data.frame(xreg) | is.matrix(xreg)) {
+        train_xrg <- matrix(xreg_lst[[curr_offs]][train_start:train_end], ncol = 1, dimnames = list(names(xreg_lst[[curr_offs]])[train_start:train_end], trace_name))
+      } else {
+        train_xreg <- lapply(1:length(xreg), function(i) {
+          matrix(xreg_lst[[i]][[curr_offs]][train_start:train_end], ncol = 1, dimnames = list(names(xreg_lst[[i]][[curr_offs]])[train_start:train_end], trace_name))
+        })
+      }
       train_models <- train_model(object, train_x, train_xreg, ifelse(is.list(train_models), train_models, list(train_models)))
 
-      switch_status$train_iter <- switch_status$train_iter + 1
-
+      train_iter <- train_iter + 1
       if (object@train_policy == "offline") {
         train_sig <- FALSE
       }
     }
 
     ## Get test set
-    test_start <- current + object@train_size
-    test_end <- min(current + object@train_size + object@update_freq * object@extrap_step * object@window_size - 1, nrow(x))
-    test_x <- matrix(x[test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(x)[test_start:test_end], colnames(x)[ts_num]))
-    if (!is.null(xreg) & (is.matrix(xreg) | is.data.frame(xreg))) {
-      test_xreg <- matrix(xreg[test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)[ts_num]))
-    } else if (!is.null(xreg) & is.list(xreg)) {
-      test_xreg <- stats::setNames(lapply(1:length(xreg), function(reg) {
-        matrix(xreg[[reg]][test_start:test_end, ts_num], ncol = 1, dimnames = list(rownames(xreg)[test_start:test_end], colnames(xreg)[ts_num]))
-      }), names(xreg))
+    test_start_time <- curr_idx + object@train_size
+    test_end_time <- test_start_time + object@window_size * object@extrap_step - 1
+    current_test_x <- matrix(x_lst[[curr_offs]][0:(test_start_time - 1)], ncol = 1, dimnames = list(names(x_lst[[curr_offs]])[0:(test_start_time - 1)]))
+    if (is.null(xreg)) {
+      current_test_xreg <- NULL
+    } else if (is.data.frame(xreg) | is.matrix(xreg)) {
+      current_test_xreg <- matrix(xreg_lst[[curr_offs]][0:(test_start_time - 1)], ncol = 1, dimnames = list(names(xreg_lst[[curr_offs]])[0:(test_start_time - 1)], trace_name))
     } else {
-      test_xreg <- NULL
+      current_test_xreg <- lapply(1:length(xreg), function(i) {
+        matrix(xreg_lst[[i]][[curr_offs]][0:(test_start_time - 1)], ncol = 1, dimnames = list(names(xreg_lst[[i]][[curr_offs]])[0:(test_start_time - 1)], trace_name))
+      })
     }
+    predictor_info_lst <- do_prediction(object, trained_result, predict_quantiles[[curr_offs]], current_test_x, current_test_xreg)
+
+    actual_obs <- stats::setNames(current_test_x[test_start_time:test_end_time, 1], rownames(current_test_x)[start_time:end_time])
+    scoring_info <- check_score_pred(object, predictor_info_lst$predicted_quantiles, actual_obs, adjust_switch)
+
+    ## Update step based on adjustment policy
+    update_info <- get_adjust_switch(scoring_info[nrow(scoring_info), grep("score_pred_1_*", colnames(scoring_info), value = TRUE)], react_counter, adjust_switch, object@react_speed)
+    adjust_switch <- update_info$adjust_switch
+    react_counter <- update_info$react_counter
+
+    ## Write to predict info dataframe
+    test_predicted_quantiles <- rbind(test_predicted_quantiles, cbind(identifier_info, predictor_info_lst$predicted_quantiles, scoring_info))
+    test_predicted_params <- rbind(test_predicted_params, cbind(identifier_info, predictor_info_lst$predicted_params))
+
+    predict_iter <- predict_iter + 1
+
+
+    current_end <- current_end + object@window_size * object@extrap_step
 
     ## Test Model
     score_switch_info <- predict_model(object, train_models, test_x, test_xreg, predict_info, switch_status)
@@ -224,7 +272,7 @@ svt_predicting_sim_overlapping <- function(ts_num, object, x, xreg=NULL, start_p
     predict_info <- score_switch_info$predict_info
 
     ## Update Step
-    current <- current + object@update_freq * object@extrap_step * object@window_size + wait_time
+    current <- current + object@extrap_step * object@window_size + wait_time
   }
 
   if ("tracewise" %in% write_type & !("none" %in% write_type)) {

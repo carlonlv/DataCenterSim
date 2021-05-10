@@ -347,49 +347,6 @@ check_score_pred <- function(object, predict_info, actual_obs, adjust_switch) {
 }
 
 
-#' Check Scores Of A Single Prediction.
-#'
-#' @description Check the score information of a prediction based on actual observations and predictions
-#' @param object An S4 sim object.
-#' @param predict_info The dataframe storing the prediction info
-#' @param actual_obs The actual observation corresponding to the predictions.
-#' @param adjust_switch A logical vector representing the status of the adjust_switch.
-#' @return The updated prediction information dataframe with last row modified.
-#' @keywords internal
-check_score_pred_maxsize(object, predict_info, actual_obs, adjust_switch) {
-  stime <- as.numeric(names(actual_obs)[1])
-
-  pi_up <- predict_info[rep(1:nrow(predict_info), each = object@extrap_step), grep("Quantile_*", colnames(predict_info), value = TRUE), drop = FALSE]
-  score1 <- sapply(1:ncol(pi_up), function(quan) {
-    min(sapply(1:nrow(pi_up), function(pred_step) {
-      check_score1(pi_up[pred_step, quan], actual[pred_step], object@granularity, "max_size")
-    }))
-  })
-  etime <- sapply(1:ncol(pi_up), function(quan) {
-    r <- which(sapply(1:nrow(pi_up), function(pred_step) {
-      check_score1(pi_up[pred_step, quan], actual[pred_step], object@granularity, "max_size")
-    }) == 0) - 1
-    ifelse(is.na(r), object@window_size, r)
-  })
-
-  score2 <- sapply(1:ncol(pi_up), function(quan) {
-    mean(sapply(1:object@extrap_step, function(pred_step){
-      check_score2(pi_up[pred_step, quan], actual[pred_step], object@granularity, "max_size")
-    }))
-  })
-  score_info <- cbind(matrix(rep(score1, each = object@extrap_step), nrow = object@extrap_step, ncol = length(object@cut_off_prob)),
-                      matrix(rep(score2, each = object@extrap_step), nrow = object@extrap_step, ncol = length(object@cut_off_prob)),
-                      matrix(rep(adjust_switch, each = object@extrap_step), nrow = object@extrap_step, ncol = length(object@cut_off_prob)))
-  colnames(score_info) <- c(paste0("score_pred_1_", sort(1 - object@cut_off_prob)),
-                            paste0("score_pred_2_", sort(1 - object@cut_off_prob)),
-                            paste0("adjustment_", sort(1 - object@cut_off_prob)))
-  score_info <- as.data.frame(score_info)
-  score_info[, "stime"] <- as.numeric(stime)
-  score_info[, "etime"] <- as.numeric(etime)
-  return(score_info)
-}
-
-
 #' Check Score Of An Entire Trace.
 #'
 #' @description Check the score information of an entire trace based on actual observations and predictions.

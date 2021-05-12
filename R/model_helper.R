@@ -1,16 +1,20 @@
 #' Round To Nearest.
 #'
 #' @description Round the \code{data} to the nearest number that can be divisible by \code{divisor}.
-#' @param data A numeric value.
-#' @param divisor A numeric value.
+#' @param data A numeic vector
+#' @param divisor A numeric vector
 #' @param lower If \code{TRUE}, then round down, if \code{FALSE}, then round up.
 #' @return The rounded data.
 #' @keywords internal
 round_to_nearest <- function(data, divisor, lower) {
   if (lower) {
-    return(floor(data / divisor) * divisor)
+    return(sapply(data, function(i) {
+      floor(i / divisor) * divisor
+    }))
   } else {
-    return(ceiling(data / divisor) * divisor)
+    return(sapply(data, function(i) {
+      ceiling(data / divisor) * divisor
+    }))
   }
 }
 
@@ -248,6 +252,31 @@ check_score1 <- function(pi_up, actual_obs, granularity, how = "max_size") {
     }
   }
   return(score)
+}
+
+
+#' Check Score 1 Based on Prediction
+#'
+#' @param pi_up A numeric value representing the prediction upper bound.
+#' @param actual_obs A numeric value representing the actual observation corresponding to the predictions.
+#' @param granularity A numeric value represneting granularity of response.
+#'@return A numeric integer or a length \code{0} integer representing the position of failure.
+#' @keywords internal
+check_score1_with_failed_pos <- function(pi_up, actual_obs, granularity) {
+  if (granularity > 0) {
+    actual_available <- max(round_to_nearest(100 - actual_obs, granularity, TRUE), 0)
+    predicted_available <- max(round_to_nearest(100 - pi_up, granularity, TRUE), 0)
+  } else {
+    actual_available <- max(100 - actual_obs, 0)
+    predicted_available <- max(100 - pi_up, 0)
+  }
+
+  if (granularity == 0) {
+    score <- ifelse(predicted_available <= 0, NA, ifelse(actual_available >= predicted_available, 1, 0))
+  } else {
+    score <- ifelse(predicted_available < granularity, NA, ifelse(actual_available >= predicted_available, 1, 0))
+  }
+  return(which(!is.na(score) & score == 0))
 }
 
 

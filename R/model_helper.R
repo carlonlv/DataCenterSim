@@ -276,7 +276,11 @@ check_score1_with_failed_pos <- function(pi_up, actual_obs, granularity) {
   } else {
     score <- ifelse(predicted_available < granularity, NA, ifelse(actual_available >= predicted_available, 1, 0))
   }
-  return(which(!is.na(score) & score == 0))
+  if (any(is.na(score))) {
+    return(-1)
+  } else {
+    return(which(score == 0))
+  }
 }
 
 

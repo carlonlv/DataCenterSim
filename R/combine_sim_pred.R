@@ -557,114 +557,104 @@ pre_compute_models_background <- function(load_background_result = NULL, param_s
 svt_combine_simulation <- function(ts_num, sim_object, window_multiplier, sim_length, bin, machine_bin_offs, fg_predict_info_lst, foreground_x, foreground_xreg, write_type, ...) {
   print("Combined simulating...")
 
-  active_jobs <- lapply(1:length(sim_object@cut_off_prob), function(i) {
-    data.frame(stringsAsFactors = FALSE)
-  })
   predict_info <- lapply(1:length(sim_object@cut_off_prob), function(i) {
     data.frame(stringsAsFactors = FALSE)
   })
 
+  emp_job_id <- 1
+
   current_time <- sim_object@train_size * window_multiplier
-  while (current_time <= min((sim_object@train_size + sim_length - 1) * window_multiplier, nrow(foreground_x))) {
-    machine_info_pi_up <- lapply(1:length(sim_object@cut_off_prob), function(i) {
+  while (current_time <= min((sim_object@train_size + sim_length - 1) * window_multiplier, nrow(foreground_x) - bin * window_multiplier + 1)) {
+    update_step <- window_multiplier
+
+    for (i in 1:sim_object@cut_off_prob) {
       remain <- ((current_time - sim_object@train_size * window_multiplier) / window_multiplier + bin) %% bin
       quot <- ((current_time - sim_object@train_size * window_multiplier) / window_multiplier + bin - remain) / bin
 
       idx <- which(machine_bin_offs$bin == bin & machine_bin_offs$offs == remain)
-      predict_info <- fg_predict_info_lst[[ts_num]][[idx]]
-      if (quot > nrow(predict_info)) {
-        return(NA)
-      } else {
-        return(predict_info[quot, paste0("Quantile_",  1 - sim_object@cut_off_prob[i])])
-      }
-    })
+      predict_info <- fg_predict_info_lst[[idx]]
+      pi_up <- predict_info[quot, paste0("Quantile_",  1 - sim_object@cut_off_prob[i])]
 
-    ## Assign jobs
-    for (i in 1:length(sim_object@cut_off_prob)) {
-      curr_pred_info <- predict_info[[i]]
-      active_jobs <- curr_pred_info[curr_pred_info$status == 0,]
 
-      pi_up <- machine_info_pi_up[[i]]
-      for (i in 1:nrow(active_jobs)) {
-        temp_active_job <- active_jobs[i,]
-        pi_up <- machine_update(pi_up, temp_active_job$requestedCPU)
+      curr_predict_info <- predict_info[[i]]
+      active_jobs <- curr_predict_info[curr_predict_info$status == 0,]
+      if (nrow(active_jobs) > 0) {
+        for (j in 1:nrow(active_jobs)) {
+          pi_up <- machine_update(active_jobs[j,], temp_active_job$requestedCPU)
+        }
       }
-      machine_info_pi_up[[i]] <- pi_up
 
       if (sim_object@schedule_setting == "max_size") {
         if (nrow(active_jobs) < 1) {
-          scheduled_jobs <- data.frame("stime" = current_time, "etime" = NA, "status" = 0, "requestedCPU" = round_to_nearest(100 - machine_info_pi_up[[i]], sim_object@granularity, TRUE))
-          predict_info[[i]] <- rbind(predict_info[[i]], scheduled_jobs)
+          scheduled_jobs <- data.frame("emp_job_id" = emp_job_id, "stime" = current_time, "etime" = NA, "status" = 0, "decision" = NA, "requestedCPU" = round_to_nearest(100 - machine_info_pi_up[[i]], sim_object@granularity, TRUE))
+          emp_job_id <- emp_job_id + 1
+        } else {
+          scheduled_jobs <- data.frame()
         }
       } else if (grepl("^\\d+_jobs$", sim_object@schedule_setting)) {
         num_jobs <- as.numeric(gsub("_jobs", "", sim_object@schedule_setting))
         need_to_schedule_num <- num_jobs - nrow(active_jobs)
         if (need_to_schedule_num > 0) {
-          one_job <- data.frame("stime" = current_time, "etime" = NA, "status" = 0, "requestedCPU" = round_to_nearest((100 - machine_info_pi_up[[i]]) / num_jobs, sim_object@granularity, TRUE))
+          one_job <- data.frame("emp_job_id" = emp_job_id, "stime" = current_time, "etime" = NA, "status" = 0, "decision" = NA, "requestedCPU" = round_to_nearest((100 - machine_info_pi_up[[i]]) / num_jobs, sim_object@granularity, TRUE))
           scheduled_jobs <- one_job[rep(1, times = need_to_schedule_num),]
-          predict_info[[i]] <- rbind(predict_info[[i]], scheduled_jobs)
+          scheduled_jobs$emp_job_id <- emp_job_id:(emp_job_id + need_to_schedule_num - 1)
+          emp_job_id <- emp_job_id + need_to_schedule_num
+        } else {
+          scheduled_jobs <- data.frame()
         }
       } else {
         job_size <- as.numeric(gsub("_cores", "", sim_object@schedule_setting))
-        available_space <- 100 - machine_info_pi_up[[i]]
+        available_space <- round_to_nearest(100 - pi_up, sim_object@granularity, TRUE)
         need_to_schedule_num <- floor(available_space / (sim_object@granularity * job_size))
         if (need_to_schedule_num >= 0) {
-          one_job <- data.frame("stime" = current_time, "etime" = NA, "status" = 0, "requestedCPU" = job_size * sim_object@granularity)
+          one_job <- data.frame("emp_job_id" = emp_job_id, "stime" = current_time, "etime" = NA, "status" = 0, "decision" = NA, "requestedCPU" = job_size * sim_object@granularity)
           scheduled_jobs <- one_job[rep(1, times = need_to_schedule_num),]
-          predict_info[[i]] <- rbind(predict_info[[i]], scheduled_jobs)
+          scheduled_jobs$emp_job_id <- emp_job_id:(emp_job_id + need_to_schedule_num - 1)
+          emp_job_id <- emp_job_id + need_to_schedule_num
+        } else {
+          scheduled_jobs <- data.frame()
         }
       }
-    }
 
-    ## Check Survival
-    for (i in 1:length(sim_object@cut_off_prob)) {
-      curr_pred_info <- predict_info[[i]]
-      new_jobs <- curr_pred_info[curr_pred_info$status == 0 & is.na(curr_pred_info$etime),]
-      if (nrow(new_jobs) > 0) {
-        check_score1_with_failed_pos
-      }
-    }
-
-
-    active_jobs <- predict_info[predict_info$status == 0,]
-    ## Job Execution and Termination
-    if (nrow(active_jobs) > 0) {
-      job_decisions <- machine_survival(machine_info_actual, active_jobs, current_time, window_multiplier, cores)
-
-      print("Enforcing scheduler decisions on jobs...")
-      pb2 <- pbmcapply::progressBar(min = 0, max = nrow(active_jobs), style = "ETA")
-      for (job_idx in 1:nrow(active_jobs)) {
-        utils::setTxtProgressBar(pb2, job_idx)
-        emp_job_id <- active_jobs[job_idx, "emp_job_id"]
-        job_id <- active_jobs[job_idx, "job_id"]
-        requested_CPU <- active_jobs[job_idx, "requestedCPU"]
-        scheduled_time <- active_jobs[job_idx, "arrival_time"] + active_jobs[job_idx, "delayed_time"]
-        actual_time <- active_jobs[job_idx, "scheduled_time"]
-        terminate_time <- scheduled_time + actual_time - window_multiplier
-
-        if (emp_job_id %in% job_decisions$killed) {
-          ## Kill Job
-          past_failures <- rbind(past_failures, data.frame("emp_job_id" = emp_job_id, "job_id" = job_id, "deploy_time" = scheduled_time, "killed_time" = current_time, "run_time" = current_time - scheduled_time + window_multiplier, "scheduled_machine" = active_jobs[job_idx, "scheduled_machine"], "scheduled_score" = active_jobs[job_idx, "scheduled_score"], "requestedCPU" = requested_CPU))
-          predict_info[predict_info$emp_job_id == emp_job_id, "delayed_time"] <- predict_info[predict_info$emp_job_id == emp_job_id, "delayed_time"] + current_time - scheduled_time + window_multiplier
-          predict_info[predict_info$emp_job_id == emp_job_id, "scheduled_machine"] <- NA
-          predict_info[predict_info$emp_job_id == emp_job_id, "scheduled_score"] <- NA
-          predict_info[predict_info$emp_job_id == emp_job_id, "terminate_time"] <- NA
-          predict_info[predict_info$emp_job_id == emp_job_id, "status"] <- 3
-        } else if (job_id %in% job_decisions$unknown) {
-          predict_info[predict_info$emp_job_id == emp_job_id, "status"] <- 4
-        } else {
-          ## Check Terminated
-          if (terminate_time == current_time) {
-            predict_info[predict_info$emp_job_id == emp_job_id, "terminate_time"] <- current_time
-            predict_info[predict_info$emp_job_id == emp_job_id, "status"] <- 1
+      if (nrow(scheduled_jobs) > 0) {
+        for (j in 1:nrow(scheduled_jobs)) {
+          killed_pos <- check_score1_with_failed_pos(rep(pi_up, times = bin), foreground_x[scheduled_jobs[j, "stime"]:(scheduled_jobs[j, "stime"] + bin - 1), ts_num], sim_object@granularity)
+          if (length(killed_pos) == 0) {
+            scheduled_jobs[j, "etime"] <- (scheduled_jobs[j, "stime"] + bin - 1) * window_multiplier
+            scheduled_jobs[j, "decision"] <- 0
+          } else if (killed_pos == -1) {
+            scheduled_jobs[j, "etime"] <- (scheduled_jobs[j, "stime"] + bin - 1) * window_multiplier
+            scheduled_jobs[j, "decision"] <- 2
+          } else {
+            scheduled_jobs[j, "etime"] <- (scheduled_jobs[j, "stime"] + killed_pos - 1) * window_multiplier
+            scheduled_jobs[j, "decision"] <- 1
           }
         }
       }
-      close(pb2)
-    }
+      predict_info[[i]] <- rbind(predict_info[[i]], scheduled_jobs)
 
-    current_time <- current_time + window_multiplier
+      curr_predict_info <- predict_info[[i]]
+      curr_predict_info[curr_predict_info$status == 0 & curr_predict_info$etime == current_time, "status"] <- 1
+
+      smallest_update_step <- min(curr_predict_info[curr_predict_info$status == 0, "etime"] - current_time)
+      if (smallest_update_step > update_step) {
+        update_step <- smallest_update_step
+      }
+    }
+    current_time <- current_time + update_step
   }
+
+  total_available_space <- sum(round_to_nearest(100 - foreground_x[, ts_num], sim_object@granularity, TRUE))
+  survival_rate <- sapply(1:length(sim_object@cut_off_prob), function(i) {
+    curr_predict_info <- predict_info[[i]]
+    return(nrow(curr_predict_info[curr_predict_info$decision == 0,]) / nrow(curr_predict_info[curr_predict_info$decision == 0 | curr_predict_info$decision == 1,]))
+  })
+  utilization_rate <- sapply(1:length(sim_object@cut_off_prob), function(i) {
+    curr_predict_info <- predict_info[[i]]
+    curr_predict_info <- curr_predict_info[curr_predict_info$decision == 1,]
+    return(sum(curr_predict_info[curr_predict_info$requestedCPU]) / total_available_space)
+  })
+  return(data.frame("quantile" = sim_object@cut_off_prob, "survival_rate" = survival_rate, "utilization_rat" = utilization_rate))
 }
 
 

@@ -32,7 +32,7 @@ replenish_jobs <- function(bg_predict_info, arrival_jobs, pin, emp_job_idx) {
 #' @param scheduled_jobs A dataframe containing information of all active jobs.
 #' @param machine_available_info A numeric value representing the current time.
 #' @param current_time A numeric value representing the current time.
-#' @param window_multiplier
+#' @param window_multiplier A numeric number representing the multiplier for delayed time and scheduled time.
 #' @param algo A character value representing the algorithm of choice. Default is \code{"greedy"} which is fast but does not yield the best choice. \code{"dynamic"} is slower but ultimate produces the best selections.
 #' @param max_comb A numeric value representing the maximum number of combination in finding optimal combinations of jobs, used for limit memory use, only used when \code{algo = "dynmaic"}. Default value is \code{5000}.
 #' @return A numeric vector containing job ids to be removed.
@@ -112,7 +112,7 @@ svt_machine_survival <- function(scheduled_jobs, machine_available_info, current
 #' @param machine_list A numeric vector containing actual values at current time.
 #' @param job_list A dataframe containing information of all active jobs.
 #' @param current_time A numeric value representing the current time.
-#' @param window_multiplier
+#' @param window_multiplier A numeric number representing the multiplier for delayed time and scheduled time.
 #' @param cores A numeric value representing the number of threads for parallel programming for multiple traces, not supported for windows users.
 #' @param algo A character value representing the algorithm of choice. Default is \code{"greedy"} which is fast but does not yield the best choice. \code{"dynamic"} is slower but ultimate produces the best selections.
 #' @param max_comb A numeric value representing the maximum number of combination in finding optimal combinations of jobs, used for limit memory use, only used when \code{algo = "dynmaic"}. Default value is \code{5000}.
@@ -497,8 +497,6 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
   }
   return(list("param_setting_sim" = param_setting_sim,
               "additional_param_sim" = additional_param_sim,
-              "foreground_x" = foreground_x,
-              "foreground_xreg" = foreground_xreg,
               "sim_length" = sim_length,
               "load_foreground_result" = load_foreground_result,
               "machine_bin_offs" = machine_bin_offs,
@@ -550,10 +548,21 @@ pre_compute_models_background <- function(load_background_result = NULL, param_s
 }
 
 
+#' Single Combined  Simulation with Synthetic Background Jobs
 #'
-#'
-#'
-#'
+#' @param ts_num A numeric value representing the index of current trace.
+#' @param sim_object A sim object representing foreground setting.
+#' @param window_multiplier A numeric number representing the multiplier for delayed time and scheduled time.
+#' @param sim_length A numeric integer representing the length of time for simulation, training size excluded.
+#' @param bin A numeric integer representing a specific partioning of time.
+#' @param machine_bin_offs A dataframe containing the offset and bin information for each element of the list.
+#' @param fg_predict_info_offs A list containing foreground simulation predictions at each time.
+#' @param foreground_x A dataframe representing foreground dataset.
+#' @param foreground_xreg \code{NULL} or a dataframe or a list of dataframes representing the regressor of foreground data.
+#' @param write_type A character representing whether to record the simulated information.
+#' @param ... Additional arguments passed into \code{write_sim_result}.
+#' @return A dataframe representing the score for this single trace.
+#' @keywords internal
 svt_combine_simulation <- function(ts_num, sim_object, window_multiplier, sim_length, bin, machine_bin_offs, fg_predict_info_lst, foreground_x, foreground_xreg, write_type, ...) {
   print("Combined simulating...")
 
@@ -580,13 +589,13 @@ svt_combine_simulation <- function(ts_num, sim_object, window_multiplier, sim_le
       active_jobs <- curr_predict_info[curr_predict_info$status == 0,]
       if (nrow(active_jobs) > 0) {
         for (j in 1:nrow(active_jobs)) {
-          pi_up <- machine_update(active_jobs[j,], temp_active_job$requestedCPU)
+          pi_up <- machine_update(pi_up, active_jobs[j, "requestedCPU"])
         }
       }
 
       if (sim_object@schedule_setting == "max_size") {
         if (nrow(active_jobs) < 1) {
-          scheduled_jobs <- data.frame("emp_job_id" = emp_job_id, "stime" = current_time, "etime" = NA, "status" = 0, "decision" = NA, "requestedCPU" = round_to_nearest(100 - machine_info_pi_up[[i]], sim_object@granularity, TRUE))
+          scheduled_jobs <- data.frame("emp_job_id" = emp_job_id, "stime" = current_time, "etime" = NA, "status" = 0, "decision" = NA, "requestedCPU" = round_to_nearest(100 - pi_up, sim_object@granularity, TRUE))
           emp_job_id <- emp_job_id + 1
         } else {
           scheduled_jobs <- data.frame()
@@ -595,7 +604,7 @@ svt_combine_simulation <- function(ts_num, sim_object, window_multiplier, sim_le
         num_jobs <- as.numeric(gsub("_jobs", "", sim_object@schedule_setting))
         need_to_schedule_num <- num_jobs - nrow(active_jobs)
         if (need_to_schedule_num > 0) {
-          one_job <- data.frame("emp_job_id" = emp_job_id, "stime" = current_time, "etime" = NA, "status" = 0, "decision" = NA, "requestedCPU" = round_to_nearest((100 - machine_info_pi_up[[i]]) / num_jobs, sim_object@granularity, TRUE))
+          one_job <- data.frame("emp_job_id" = emp_job_id, "stime" = current_time, "etime" = NA, "status" = 0, "decision" = NA, "requestedCPU" = round_to_nearest((100 - pi_up) / num_jobs, sim_object@granularity, TRUE))
           scheduled_jobs <- one_job[rep(1, times = need_to_schedule_num),]
           scheduled_jobs$emp_job_id <- emp_job_id:(emp_job_id + need_to_schedule_num - 1)
           emp_job_id <- emp_job_id + need_to_schedule_num
@@ -644,6 +653,16 @@ svt_combine_simulation <- function(ts_num, sim_object, window_multiplier, sim_le
     current_time <- current_time + update_step
   }
 
+  predict_info <- do.call(rbind, lapply(1:length(sim_length@granularity), function(i) {
+    temp_predict_info <- predict_info[[i]]
+    temp_predict_info[, "quantile"] <- sim_length@granularity[i]
+    return(temp_predict_info)
+  }))
+
+  if ("tracewise" %in% write_type & !("none" %in% write_type)) {
+    write_sim_result(predict_info, "other", name = paste("Combined Simulation With Synthtic Bg Jobs on trace", colnames(foreground_x)[ts_num]), ...)
+  }
+
   total_available_space <- sum(round_to_nearest(100 - foreground_x[, ts_num], sim_object@granularity, TRUE))
   survival_rate <- sapply(1:length(sim_object@cut_off_prob), function(i) {
     curr_predict_info <- predict_info[[i]]
@@ -654,19 +673,31 @@ svt_combine_simulation <- function(ts_num, sim_object, window_multiplier, sim_le
     curr_predict_info <- curr_predict_info[curr_predict_info$decision == 1,]
     return(sum(curr_predict_info[curr_predict_info$requestedCPU]) / total_available_space)
   })
+
   return(data.frame("quantile" = sim_object@cut_off_prob, "survival_rate" = survival_rate, "utilization_rat" = utilization_rate))
 }
 
 
+#' Combined Simulation with Synthetic Background Jobs
+#'
+#' @param load_foreground_result A character value representing the location of the previously run foregound simulation results. Default value is \code{NULL}.
+#' @param param_setting_sim A dataframe representing a specific parameter setting for sim object.
+#' @param additional_param_sim A list containing additional arguments to be passed into param_sim.
+#' @param foreground_x A matrix of size n by m representing the target dataset for scheduling and evaluations.
+#' @param foreground_xreg A matrix of size n by m representing the target dataset for scheduling and evaluations, or \code{NULL}.
+#' @param sim_length A numeric integer representing the length of time for simulation, training size excluded.
+#' @param bin A numeric integer representing a specific partioning of time.
+#' @param cores A numeric numb representing the number of threads for parallel programming for multiple traces, not supported for windows users.
+#' @param write_type A character that represents how to write the result of simulation, can be one of "charwise", "tracewise", "paramwise" or "none".
+#' @param result_loc A character that specify the path to which the result of simulations will be saved to. Default is your work directory.
+#' @return A dataframe containing parameter setting and score.
+#' @export
 combined_sim_machine_centered <- function(load_foreground_result = NULL, param_setting_sim = NULL, additional_param_sim = list(), foreground_x = NULL, foreground_xreg = NULL, sim_length = 200,
-                                          load_background_result = NULL, param_setting_pred = NULL, additional_param_pred = list(), background_x = NULL, background_xreg = NULL,
-                                          bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), use_virtual_jobs = TRUE, cores = parallel::detectCores(), write_type="none", result_loc=getwd(), ...) {
+                                          bin = 12, cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
 
-  foreground_result_lst <- pre_compute_models_foreground(load_foreground_result, param_setting_sim, additional_param_sim, foreground_x, foreground_xreg, sim_length, bins, cores)
+  foreground_result_lst <- pre_compute_models_foreground(load_foreground_result, param_setting_sim, additional_param_sim, foreground_x, foreground_xreg, sim_length, bin, cores)
   param_setting_sim <- foreground_result_lst$param_setting_sim
   additional_param_sim <- foreground_result_lst$additional_param_sim
-  foreground_x <- foreground_result_lst$foreground_x
-  foreground_xreg <- foreground_result_lst$foreground_xreg
   sim_length <- foreground_result_lst$sim_length
   load_foreground_result <- foreground_result_lst$load_foreground_result
   machine_bin_offs <- foreground_result_lst$machine_bin_offs
@@ -674,18 +705,26 @@ combined_sim_machine_centered <- function(load_foreground_result = NULL, param_s
   sim_object_lst <- foreground_result_lst$sim_object_lst
   window_multipliers <- foreground_result_lst$window_multipliers
 
+  overall_score <- data.frame(stringsAsFactors = FALSE)
   for (sim_object in sim_object_lst) {
-    pbapply::pboptions(type = "txt")
-    trace_score <- pbapply::pblapply(1:ncol(x), function(ts_num) {
-      tryCatch({
-        svt_predicting_sim(ts_num, object, x, xreg, start_point, wait_time, write_type, plot_type, ..., get_representation(object, "param_con"))
-      }, error = function(e) {
-        print(ts_num)
-        print(e)
-        return(ts_num)
-      })
-    })
+    if (cores == 1) {
+      pbapply::pboptions(type = "txt")
+      trace_score <- do.call(rbind, pbapply::pblapply(1:ncol(foreground_x), function(ts_num) {
+        svt_combine_simulation(ts_num, sim_object, window_multipliers[ts_num], sim_length, bin, machine_bin_offs, fg_predict_info_lst, foreground_x, foreground_xreg, write_type, result_loc, get_representation(sim_object, "char_con"), get_representation(sim_object, "param_con"))
+      }))
+    } else {
+      trace_score <- do.call(rbind, pbmcapply::pbmclapply(1:ncol(foreground_x), function(ts_num) {
+        svt_combine_simulation(ts_num, sim_object, window_multipliers[ts_num], sim_length, bin, machine_bin_offs, fg_predict_info_lst, foreground_x, foreground_xreg, write_type, result_loc, get_representation(sim_object, "char_con"), get_representation(sim_object, "param_con"))
+      }, mc.cores = cores))
+    }
+
+    overall_score <- rbind(overall_score, cbind(methods::setAs(sim_object, "dataframe"), trace_score))
+
+    if ("paramwise" %in% write_type & !("none" %in% write_type)) {
+      write_sim_result(trace_score, "other", name = paste("Combined Simulation With Synthtic Bg Jobs Started at", as.character(Sys.time())), result_loc, get_representation(sim_object, "char_con"), get_representation(sim_object, "param_con"))
+    }
   }
+  return(overall_score)
 }
 
 
@@ -699,7 +738,6 @@ combined_sim_machine_centered <- function(load_foreground_result = NULL, param_s
 #' @param additional_param_sim A list containing additional arguments to be passed into param_sim.
 #' @param param_setting_pred A dataframe representing a specific parameter setting for pred object.
 #' @param additional_param_pred A list containing additional arguments to be passed into param_pred.
-#' @param bins A numeric vector representing a specific partioning of time
 #' @param foreground_x A matrix of size n by m representing the target dataset for scheduling and evaluations.
 #' @param foreground_xreg A matrix of size n by m representing the target dataset for scheduling and evaluations, or \code{NULL}.
 #' @param background_x A matrix of size n by m representing the target dataset for scheduling and evaluations.
@@ -716,7 +754,7 @@ combined_sim_machine_centered <- function(load_foreground_result = NULL, param_s
 #' @export
 combined_sim_job_centered <- function(load_foreground_result = NULL, param_setting_sim = NULL, additional_param_sim = list(), foreground_x = NULL, foreground_xreg = NULL, sim_length = 200,
                                       load_background_result = NULL, param_setting_pred = NULL, additional_param_pred = list(), background_x = NULL, background_xreg = NULL,
-                                      bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
+                                      bins = c(0, 1, 2, 6, 10, 14, 18, 22, 26, 30, 50, 80, 205), cores = parallel::detectCores(), write_type="none", result_loc=getwd()) {
   ## Foreground
   foreground_result_lst <- pre_compute_models_foreground(load_foreground_result, param_setting_sim, additional_param_sim, foreground_x, foreground_xreg, sim_length, bins, cores)
   param_setting_sim <- foreground_result_lst$param_setting_sim

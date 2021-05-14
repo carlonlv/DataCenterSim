@@ -18,7 +18,7 @@ pre_compute_models_foreground(
 \arguments{
 \item{load_foreground_result}{\code{NULL} or a character representing the destined load/save file path.}
 
-\item{param_setting_sim}{\code{NULL} or a dataframe representing the parameter setting of simulation, can be multiple roles corresponding to each \code{foreground_x} type.}
+\item{param_setting_sim}{\code{NULL} or a dataframe representing the parameter setting of simulation, can be multiple rows corresponding to each \code{foreground_x} type.}
 
 \item{additional_param_sim}{A list of additional parameter settings of simulation.}
 

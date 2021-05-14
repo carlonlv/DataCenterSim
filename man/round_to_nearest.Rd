@@ -7,9 +7,9 @@
 round_to_nearest(data, divisor, lower)
 }
 \arguments{
-\item{data}{A numeric value.}
+\item{data}{A numeic vector}
 
-\item{divisor}{A numeric value.}
+\item{divisor}{A numeric vector}
 
 \item{lower}{If \code{TRUE}, then round down, if \code{FALSE}, then round up.}
 }

@@ -492,7 +492,7 @@ pre_compute_models_foreground <- function(load_foreground_result = NULL, param_s
     }
 
     if (!is.null(load_foreground_result)) {
-      save(param_setting_sim, additional_param_sim, foreground_x, foreground_xreg, sim_length, bins, machine_bin_offs, fg_predict_info_lst, file = load_foreground_result)
+      save(param_setting_sim, additional_param_sim, sim_length, bins, machine_bin_offs, fg_predict_info_lst, file = load_foreground_result)
     }
   }
   return(list("param_setting_sim" = param_setting_sim,
@@ -534,13 +534,11 @@ pre_compute_models_background <- function(load_background_result = NULL, param_s
     prob_vec_lst <- bg_predict_info_lst$trained_model$prob
     bg_predict_info <- bg_predict_info_lst$predict_info
     if (!is.null(load_background_result)) {
-      save(param_setting_pred, background_x, background_xreg, bg_predict_info_lst, prob_vec_lst, bg_predict_info, file = load_background_result)
+      save(param_setting_pred, bg_predict_info_lst, prob_vec_lst, bg_predict_info, file = load_background_result)
     }
   }
   return(list("param_setting_pred" = param_setting_pred,
               "additional_param_pred" = additional_param_pred,
-              "background_x" = background_x,
-              "background_xreg" = background_xreg,
               "load_background_result" = load_background_result,
               "bg_predict_info" = bg_predict_info,
               "prob_vec_lst" = prob_vec_lst,

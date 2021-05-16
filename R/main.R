@@ -262,18 +262,26 @@ run_sim <- function(epoch_setting, additional_setting = list(), x, xreg, start_p
                                                       function(other, char) {
                                                         param_uni_lst <- methods::as(cbind(char, other), "sim")
                                                         if (!is.null(xreg)) {
-                                                          if (ifelse(is.null(additional_setting[["include_past_window_size"]]), FALSE, additional_setting[["include_past_window_size"]])) {
-                                                            self_window <- param_uni_lst[[1]]@window_size
+                                                          if (ifelse(is.null(additional_setting[["include_response_window_size"]]), FALSE, additional_setting[["include_response_window_size"]])) {
+                                                            window_size_for_reg <- c(param_uni_lst[[1]]@window_size, additional_setting[["window_size_for_reg"]])
                                                           } else {
-                                                            self_window <- NULL
+                                                            window_size_for_reg <- additional_setting[["window_size_for_reg"]]
                                                           }
 
-                                                          window_size_for_reg <- c(self_window, additional_setting[["window_size_for_reg"]])
-                                                          window_type_for_reg <- additional_setting[["window_type_for_reg"]]
+                                                          if (ifelse(is.null(additional_setting[["include_response_window_type"]]), FALSE, additional_setting[["include_response_window_type"]])) {
+                                                            window_type_for_reg <- c(param_uni_lst[[1]]@response, additional_setting[["window_type_for_reg"]])
+                                                          } else {
+                                                            window_type_for_reg <- additional_setting[["window_type_for_reg"]]
+                                                          }
+
                                                           if (is.matrix(xreg) | is.data.frame(xreg)) {
                                                             reg_indicator <- 1
                                                           } else {
                                                             reg_indicator <- 1:length(xreg)
+                                                          }
+
+                                                          if (ifelse(is.null(additional_setting[["include_response_data"]]), FALSE, additional_setting[["include_response_data"]])) {
+                                                            reg_indicator <- c(0, reg_indicator)
                                                           }
 
                                                           reg_lengths <- c(length(window_size_for_reg), length(window_type_for_reg), length(reg_indicator))
@@ -284,7 +292,7 @@ run_sim <- function(epoch_setting, additional_setting = list(), x, xreg, start_p
                                                           }
                                                         }
                                                         param_uni_lst <- lapply(param_uni_lst, function(param_uni) {
-                                                          for (j in names(additional_setting)[!(names(additional_setting) %in% c("window_size", "include_past_window_size", "window_type_for_reg", "window_size_for_reg"))]) {
+                                                          for (j in names(additional_setting)[!(names(additional_setting) %in% c("include_response_window_size", "include_response_window_type", "window_type_for_reg", "window_size_for_reg"))]) {
                                                             methods::slot(param_uni, j) <- additional_setting[[j]]
                                                             if ((j %in% colnames(char)) | (j %in% colnames(other))) {
                                                               methods::slot(param_uni, j) <- c(methods::slot(param_uni, j), additional_setting[[j]])
@@ -303,11 +311,19 @@ run_sim <- function(epoch_setting, additional_setting = list(), x, xreg, start_p
                                                         if (!is.null(xreg)) {
                                                           if (is.matrix(xreg) | is.data.frame(xreg)) {
                                                             mapped_xreg <- stats::setNames(lapply(reg_param_setting[, "reg_indicator"], function(k) {
-                                                              xreg
+                                                              if (k == 0) {
+                                                                x
+                                                              } else {
+                                                                xreg
+                                                              }
                                                             }), paste(reg_param_setting[, "window_type_for_reg"], reg_param_setting[, "window_size_for_reg"], sep = "_"))
                                                           } else {
                                                             mapped_xreg <- stats::setNames(lapply(reg_param_setting[, "reg_indicator"], function(k) {
-                                                              xreg[[k]]
+                                                              if (k == 0) {
+                                                                x
+                                                              } else {
+                                                                xreg[[k]]
+                                                              }
                                                             }), paste(reg_param_setting[, "window_type_for_reg"], reg_param_setting[, "window_size_for_reg"], sep = "_"))
                                                           }
                                                         } else {

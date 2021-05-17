@@ -280,10 +280,6 @@ run_sim <- function(epoch_setting, additional_setting = list(), x, xreg, start_p
                                                             reg_indicator <- 1:length(xreg)
                                                           }
 
-                                                          if (ifelse(is.null(additional_setting[["include_response_data"]]), FALSE, additional_setting[["include_response_data"]])) {
-                                                            reg_indicator <- c(0, reg_indicator)
-                                                          }
-
                                                           reg_lengths <- c(length(window_size_for_reg), length(window_type_for_reg), length(reg_indicator))
                                                           if (all(reg_lengths == 1 | reg_lengths == max(reg_lengths))) {
                                                             reg_param_setting <- data.frame("window_size_for_reg" = window_size_for_reg, "window_type_for_reg" = window_type_for_reg, "reg_indicator" = reg_indicator, stringsAsFactors = FALSE)

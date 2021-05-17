@@ -216,6 +216,7 @@ setMethod("get_param_slots",
           signature(object = "multinom_sim"),
           function(object) {
             numeric_lst <- methods::callNextMethod(object)
+            numeric_lst[["state_num"]] <- methods::slot(object, "state_num")
             return(numeric_lst)
           })
 

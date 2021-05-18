@@ -10,7 +10,7 @@ NULL
 check_valid_auto_arima_sim <- function(object) {
   errors <- character()
   window_type_choices <- c("max", "avg")
-  res_dist_choices <- c("normal", "skew_norm", "empirical")
+  res_dist_choices <- c("normal", "skew_norm", "empirical", "discretized")
   outlier_type_choices <- c("AO", "IO", "LS", "None", "All")
   outlier_prediction_choices <- c("None", "Categorical", "Categorical-Dirichlet")
   if (any(is.na(object@window_type_for_reg)) | all(object@window_type_for_reg != window_type_choices)) {
@@ -666,6 +666,7 @@ setMethod("get_param_slots",
           function(object) {
             numeric_lst <- methods::callNextMethod(object)
             numeric_lst[["outlier_cval"]] <- methods::slot(object, "outlier_cval")
+            numeric_lst[["state_num"]] <- methods::slot(object, "state_num")
             return(numeric_lst)
           })
 

@@ -23,6 +23,7 @@
 \alias{train_model,nn_sim,matrix,list,list-method}
 \alias{train_model,surtree_pred,numeric,data.frame,list-method}
 \alias{train_model,var_sim,matrix,matrix,list-method}
+\alias{train_model,var_sim,matrix,list,list-method}
 \title{Train Model}
 \usage{
 train_model(object, train_x, train_xreg, trained_model)
@@ -64,6 +65,8 @@ train_model(object, train_x, train_xreg, trained_model)
 \S4method{train_model}{surtree_pred,numeric,data.frame,list}(object, train_x, train_xreg, trained_model)
 
 \S4method{train_model}{var_sim,matrix,matrix,list}(object, train_x, train_xreg, trained_model)
+
+\S4method{train_model}{var_sim,matrix,list,list}(object, train_x, train_xreg, trained_model)
 }
 \arguments{
 \item{object}{An S4 sim object.}
@@ -119,5 +122,7 @@ This is a generic function that trains model according to the input object type,
 \item \code{object = surtree_pred,train_x = numeric,train_xreg = data.frame,trained_model = list}: Train ARMA Model specific to surtree_pred object.
 
 \item \code{object = var_sim,train_x = matrix,train_xreg = matrix,trained_model = list}: Train VAR Model specific to var_sim object.
+
+\item \code{object = var_sim,train_x = matrix,train_xreg = list,trained_model = list}: Train VAR Model specific to var_sim object.
 }}
 

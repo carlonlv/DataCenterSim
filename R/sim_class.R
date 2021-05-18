@@ -23,6 +23,10 @@ check_valid_sim <- function(object) {
     msg <- paste0("window_size must be a positive integer.")
     errors <- c(errors, msg)
   }
+  if (!all(is.na(object@window_type_for_reg)) & any(object@window_size %% 1 != 0 | object@window_size <= 0)) {
+    msg <- paste0("window_type_for_reg must be NA or consists of all positive integers.")
+    errors <- c(errors, msg)
+  }
   if (length(object@target) != 1 | is.na(object@target) | object@target <= 0 | object@target >= 1) {
     msg <- paste0("target must be a numeric value within 0 and 1, exclusively.")
     errors <- c(errors, msg)

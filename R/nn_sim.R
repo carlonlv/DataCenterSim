@@ -10,8 +10,13 @@ NULL
 check_valid_nn_sim <- function(object) {
   errors <- character()
   window_type_choices <- c("max", "avg")
+  res_dist_choices <- c("normal", "discretized")
   if (any(is.na(object@window_type_for_reg)) | all(object@window_type_for_reg != window_type_choices)) {
     msg <- paste0("window_type_for_reg must be one of ", paste(window_type_choices, collapse = " "))
+    errors <- c(errors, msg)
+  }
+  if (length(object@res_dist) != 1 | is.na(object@res_dist) | all(object@res_dist != res_dist_choices)) {
+    msg <- paste0("res_dist must be one of ", paste(res_dist_choices, collapse = " "), ".")
     errors <- c(errors, msg)
   }
   if (length(object@p) != 1 | any(object@p %% 1 != 0, na.rm = TRUE) | any(object@p <= 0, na.rm = TRUE)) {
@@ -392,6 +397,7 @@ setMethod("get_param_slots",
             numeric_lst <- methods::callNextMethod(object)
             numeric_lst[["p"]] <- methods::slot(object, "p")
             numeric_lst[["P"]] <- methods::slot(object, "P")
+            numeric_lst[["state_num"]] <- methods::slot(object, "state_num")
             return(numeric_lst)
           })
 
@@ -403,6 +409,7 @@ setMethod("get_characteristic_slots",
           signature(object = "nn_sim"),
           function(object) {
             character_lst <- methods::callNextMethod(object)
+            character_lst[["res_dist"]] <- methods::slot(object, "res_dist")
             return(character_lst)
           })
 

@@ -23,6 +23,7 @@
 \alias{do_prediction,nn_sim,list,data.frame,matrix,list-method}
 \alias{do_prediction,surtree_pred,list,data.frame,numeric,data.frame-method}
 \alias{do_prediction,var_sim,list,data.frame,matrix,matrix-method}
+\alias{do_prediction,var_sim,list,data.frame,matrix,list-method}
 \title{Do Prediction}
 \usage{
 do_prediction(object, trained_result, predict_info, test_x, test_xreg)
@@ -64,6 +65,8 @@ do_prediction(object, trained_result, predict_info, test_x, test_xreg)
 \S4method{do_prediction}{surtree_pred,list,data.frame,numeric,data.frame}(object, trained_result, predict_info, test_x, test_xreg)
 
 \S4method{do_prediction}{var_sim,list,data.frame,matrix,matrix}(object, trained_result, predict_info, test_x, test_xreg)
+
+\S4method{do_prediction}{var_sim,list,data.frame,matrix,list}(object, trained_result, predict_info, test_x, test_xreg)
 }
 \arguments{
 \item{object}{An S4 sim object.}
@@ -121,5 +124,7 @@ This is a generic function that do prediction according to the input object type
 \item \code{object = surtree_pred,trained_result = list,predict_info = data.frame,test_x = numeric,test_xreg = data.frame}: Do prediction based on trained survival tree clustering Model.
 
 \item \code{object = var_sim,trained_result = list,predict_info = data.frame,test_x = matrix,test_xreg = matrix}: Do prediction based on trained VAR Model.
+
+\item \code{object = var_sim,trained_result = list,predict_info = data.frame,test_x = matrix,test_xreg = list}: Do prediction based on trained VAR Model.
 }}
 

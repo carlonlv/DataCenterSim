@@ -858,6 +858,7 @@ setMethod("get_param_slots",
           function(object) {
             numeric_lst <- methods::callNextMethod(object)
             numeric_lst[["outlier_cval"]] <- methods::slot(object, "outlier_cval")
+            numeric_lst[["state_num"]] <- methods::slot(object, "state_num")
             return(numeric_lst)
           })
 

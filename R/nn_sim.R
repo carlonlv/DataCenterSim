@@ -10,7 +10,7 @@ NULL
 check_valid_nn_sim <- function(object) {
   errors <- character()
   window_type_choices <- c("max", "avg")
-  res_dist_choices <- c("normal", "discretized")
+  res_dist_choices <- c("empirical", "discretized")
   if (any(is.na(object@window_type_for_reg)) | all(object@window_type_for_reg != window_type_choices)) {
     msg <- paste0("window_type_for_reg must be one of ", paste(window_type_choices, collapse = " "))
     errors <- c(errors, msg)
@@ -55,6 +55,7 @@ nn_sim <- setClass("nn_sim",
                                         P = "numeric",
                                         size = "numeric",
                                         state_num = "numeric",
+                                        res_dist = "character",
                                         train_args = "list",
                                         pred_args = "list"),
                            contains = "sim",
@@ -63,6 +64,7 @@ nn_sim <- setClass("nn_sim",
                                             P = 0,
                                             size = NA_real_,
                                             state_num = NA_real_,
+                                            res_dist = "empirical",
                                             train_args = list("repeats" = 50),
                                             pred_args = list("bootstrap" = TRUE, "npaths" = 800)),
                            validity = check_valid_nn_sim)

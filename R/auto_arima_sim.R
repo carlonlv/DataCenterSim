@@ -274,7 +274,7 @@ setMethod("train_model",
                                                                               length.out = length(new_train_x)))
             colnames(new_train_xreg) <- "xreg"
 
-            args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
+            args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "CSS-ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
             for (i in names(object@train_args)) {
               args.tsmethod[[i]] <- object@train_args[[i]]
             }
@@ -474,7 +474,7 @@ setMethod("train_model",
             }))
             colnames(new_train_xreg) <- names(train_xreg)
 
-            args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
+            args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "CSS-ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
             for (i in names(object@train_args)) {
               args.tsmethod[[i]] <- object@train_args[[i]]
             }

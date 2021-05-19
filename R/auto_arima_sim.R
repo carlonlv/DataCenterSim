@@ -80,7 +80,7 @@ auto_arima_sim <- setClass("auto_arima_sim",
                                        outlier_prediction_prior = NA_real_,
                                        outlier_prediction_update_param = TRUE,
                                        state_num = NA_real_,
-                                       train_args = list("order" = c(1, 0, 0))),
+                                       train_args = list()),
                       validity = check_valid_auto_arima_sim)
 
 

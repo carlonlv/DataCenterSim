@@ -147,9 +147,9 @@ setMethod("do_prediction",
 
             if (nrow(predict_info) == 0) {
               if (is.null(trained_result$call$xreg)) {
-                target_model <- forecast::auto.arima(y = trained_result$call$x, model = trained_result)
+                target_model <- forecast::Arima(y = trained_result$call$x, model = trained_result)
               } else {
-                target_model <- forecast::auto.arima(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
+                target_model <- forecast::Arima(y = trained_result$call$x, xreg = trained_result$call$xreg, model = trained_result)
               }
             } else {
               new_x <- c(trained_result$call$x, predict_info$actual)

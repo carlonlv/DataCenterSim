@@ -152,7 +152,7 @@ setMethod("do_prediction",
               expected <- as.numeric(predict_result$pred[1])
             }
 
-            pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(level, function(i) {
+            pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(sort(level), function(i) {
               stats::qnorm(i, mean = expected, sd = predict_result$se.err[,1])
             }))), paste0("Quantile_", sort(1 - object@cut_off_prob)))
             expected <- data.frame("expected" = expected)
@@ -224,7 +224,7 @@ setMethod("do_prediction",
               expected <- as.numeric(predict_result$pred[1])
             }
 
-            pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(level, function(i) {
+            pi_up <- stats::setNames(as.data.frame(do.call(cbind, lapply(sort(level), function(i) {
               stats::qnorm(i, mean = expected, sd = predict_result$se.err[,1])
             }))), paste0("Quantile_", sort(1 - object@cut_off_prob)))
             expected <- data.frame("expected" = expected)

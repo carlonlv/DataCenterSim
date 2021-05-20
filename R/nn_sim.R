@@ -116,7 +116,7 @@ setMethod("do_prediction",
             predict_result <- do.call(forecast::forecast, args.tsmethod)
 
             expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
-            pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
+            pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", as.numeric(sub("%", "", colnames(as.data.frame(predict_result$upper)))) / 100))
             predicted_params <- data.frame("mean" = as.numeric(predict_result$mean), "sd." = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
             if (object@res_dist == "discretized") {
@@ -231,7 +231,7 @@ setMethod("do_prediction",
             predict_result <- do.call(forecast::forecast, args.tsmethod)
 
             expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
-            pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
+            pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", as.numeric(sub("%", "", colnames(as.data.frame(predict_result$upper)))) / 100))
             predicted_params <- data.frame("mean." = as.numeric(predict_result$mean), "sd." = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
             if (object@res_dist == "discretized") {
@@ -353,7 +353,7 @@ setMethod("do_prediction",
             predict_result <- do.call(forecast::forecast, args.tsmethod)
 
             expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
-            pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", sort(1 - object@cut_off_prob)))
+            pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", as.numeric(sub("%", "", colnames(as.data.frame(predict_result$upper)))) / 100))
             predicted_params <- data.frame("mean" = as.numeric(predict_result$mean), "sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
             if (object@res_dist == "discretized") {

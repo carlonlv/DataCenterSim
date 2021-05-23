@@ -47,6 +47,8 @@ check_valid_nn_sim <- function(object) {
 #' @param p A numeric integer value representing the number of lags for the input series of neural network. If \code{NA_real_} is supplied, optimal number of lags according to the AIC will be selected. It will be passed into \code{forecast::nnetar} as \code{p}. Default value is \code{1}.
 #' @param P A numeric integer value representing the number of seasonal lags for the input series of neural network. It will be passed into \code{forecast::nnetar} as \code{P}. Default value is \code{0}.
 #' @param size A numeric integer value representing the number of parameters in the hidden layer of the neural network. If \code{NA_real_} is supplied, half of the number of input nodes plus 1 will be used. Default value is \code{NA_real_}.
+#' @param state_num A numeric number that represents the number of states in residual discretization.
+#' @param res_dist A character representing the distribution of residual, \code{"empirical"} for empirical distribution, or \code{"discretized"} for discretized over \code{"state_num"} number of states equally partitioned from 0 to 100. Default value is \code{"empirical"}.
 #' @param train_args A list representing additional call passed into the training function, \code{forecast::nnetar}. Default value is \code{list("repeats" = 50)}.
 #' @param pred_args A list representing additional call passed into the prediction function, \code{forecast::forecast.nnetar}. Default value is \code{list("bootstrap" = TRUE, "npaths" = 800)}.
 #' @export nn_sim
@@ -353,7 +355,7 @@ setMethod("do_prediction",
             predict_result <- do.call(forecast::forecast, args.tsmethod)
 
             expected <- stats::setNames(as.data.frame(as.numeric(predict_result$mean)), "expected")
-            pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", as.numeric(sub("%", "", colnames(as.data.frame(predict_result$upper)))) / 100))
+            pi_up <- stats::setNames(as.data.frame(predict_result$upper), paste0("Quantile_", 0.5 + as.numeric(sub("%", "", colnames(as.data.frame(predict_result$upper)))) / 100 / 2))
             predicted_params <- data.frame("mean" = as.numeric(predict_result$mean), "sd" = (pi_up[,1] - expected[,1]) / stats::qnorm(sort(1 - object@cut_off_prob)[1]))
 
             if (object@res_dist == "discretized") {
@@ -399,6 +401,7 @@ setMethod("get_param_slots",
             numeric_lst <- methods::callNextMethod(object)
             numeric_lst[["p"]] <- methods::slot(object, "p")
             numeric_lst[["P"]] <- methods::slot(object, "P")
+            numeric_lst[["size"]] <- methods::slot(object, "size")
             numeric_lst[["state_num"]] <- methods::slot(object, "state_num")
             return(numeric_lst)
           })

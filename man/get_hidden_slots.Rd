@@ -2,7 +2,7 @@
 % Please edit documentation in R/generics.R, R/anovatree_pred.R, R/arima_sim.R,
 %   R/auto_arima_sim.R, R/autopilot_sim.R, R/gmm_pred.R, R/lm_sim.R,
 %   R/markov_sim.R, R/multinom_sim.R, R/nn_sim.R, R/pred_methods.R,
-%   R/sim_methods.R, R/surtree_pred.R, R/var_sim.R
+%   R/sim_methods.R, R/structal_sim.R, R/surtree_pred.R, R/var_sim.R
 \name{get_hidden_slots}
 \alias{get_hidden_slots}
 \alias{get_hidden_slots,anovatree_pred-method}
@@ -16,6 +16,7 @@
 \alias{get_hidden_slots,nn_sim-method}
 \alias{get_hidden_slots,pred-method}
 \alias{get_hidden_slots,sim-method}
+\alias{get_hidden_slots,structual_sim-method}
 \alias{get_hidden_slots,surtree_pred-method}
 \alias{get_hidden_slots,var_sim-method}
 \title{Get The Slots that Are Not Displayed}
@@ -43,6 +44,8 @@ get_hidden_slots(object)
 \S4method{get_hidden_slots}{pred}(object)
 
 \S4method{get_hidden_slots}{sim}(object)
+
+\S4method{get_hidden_slots}{structual_sim}(object)
 
 \S4method{get_hidden_slots}{surtree_pred}(object)
 
@@ -73,6 +76,8 @@ A list containing all character parameter informations.
 A list containing all hidden parameter informations.
 
 A list containing all hidden parameter informations.
+
+A list containing all character parameter informations.
 
 A list containing all character parameter informations.
 

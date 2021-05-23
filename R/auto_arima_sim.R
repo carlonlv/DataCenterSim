@@ -56,6 +56,7 @@ check_valid_auto_arima_sim <- function(object) {
 #' @param outlier_prediction A character representing the distribution of occurences of outliers, and the prior distribution for probability of occurences. Current choices are "None", "Categorical" for predictions based on MLE, "Categorical-Dirichlet" for Bayesian prediction and prior distribution.
 #' @param outlier_prediction_prior A numeric vector representing the starting value of the hyperparameters of prior distirbution.
 #' @param outlier_prediction_update_param A logical value representing whether to update the value of the hyperparameters of prior distribution or MLE estimations of parameters depending on \code{outlier_prediction}.
+#' @param state_num A numeric number that represents the number of states in Multinomial chain.
 #' @param train_args A list representing additional call passed into the training function, \code{forecast::auto.arima}. Default value is \code{list("order" = c(1, 0, 0))}.
 #' @export auto_arima_sim
 auto_arima_sim <- setClass("auto_arima_sim",

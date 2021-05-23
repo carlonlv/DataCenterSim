@@ -64,5 +64,6 @@ Collate:
     'nn_sim.R'
     'pred_methods.R'
     'sim_methods.R'
+    'structal_sim.R'
     'surtree_pred.R'
     'var_sim.R'

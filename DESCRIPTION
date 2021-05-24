@@ -54,6 +54,7 @@ Collate:
     'autopilot_sim.R'
     'combine_sim_pred.R'
     'data.R'
+    'ets_sim.R'
     'gmm_pred.R'
     'lm_sim.R'
     'plotting_tools.R'

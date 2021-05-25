@@ -68,7 +68,7 @@ setMethod("train_model",
             } else if (object@train_args[["method"]] == "ets") {
               args.tsmethod <- list("additive.only" = TRUE)
             } else if (object@train_args[["method"]] == "arima") {
-              args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "CSS-ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
+              args.tsmethod <- list()
             } else {
               args.tsmethod <- list()
             }
@@ -163,7 +163,7 @@ setMethod("train_model",
             } else if (object@train_args[["method"]] == "ets") {
               args.tsmethod <- list("additive.only" = TRUE)
             } else if (object@train_args[["method"]] == "arima") {
-              args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "CSS-ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
+              args.tsmethod <- list()
             } else {
               args.tsmethod <- list()
             }
@@ -283,7 +283,7 @@ setMethod("train_model",
             } else if (object@train_args[["method"]] == "ets") {
               args.tsmethod <- list("additive.only" = TRUE)
             } else if (object@train_args[["method"]] == "arima") {
-              args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "CSS-ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
+              args.tsmethod <- list()
             } else {
               args.tsmethod <- list()
             }

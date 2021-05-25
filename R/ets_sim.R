@@ -64,7 +64,7 @@ ets_sim <- setClass("ets_sim",
                            validity = check_valid_ets_sim)
 
 
-#' @describeIn train_model Train Structual Model specific to ets_sim object.
+#' @describeIn train_model Train Exponential Smoothing State-based Model specific to ets_sim object.
 setMethod("train_model",
           signature(object = "ets_sim", train_x = "matrix", train_xreg = "NULL", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
@@ -75,7 +75,7 @@ setMethod("train_model",
             }
 
             args.tsmethod <- list()
-            for (i in object@train_args) {
+            for (i in names(object@train_args)) {
               args.tsmethod[[i]] <- object@train_args[[i]]
             }
             args.tsmethod <- c(args.tsmethod, list("y" = new_train_x, "model" = object@model, "additive.only" = TRUE))
@@ -106,7 +106,7 @@ setMethod("do_prediction",
             }
 
             args.tsmethod <- list()
-            for (i in object@pred_args) {
+            for (i in names(object@pred_args)) {
               args.tsmethod[[i]] <- object@pred_args[[i]]
             }
             args.tsmethod <- c(args.tsmethod, list("object" = trained_result, "h" = object@extrap_step, "level" = level, "bootstrap" = ifelse(object@res_dist == "empirical", TRUE, FALSE)))

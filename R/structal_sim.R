@@ -74,7 +74,7 @@ setMethod("train_model",
             }
 
             args.tsmethod <- list("type" = object@type)
-            for (i in object@train_args) {
+            for (i in names(object@train_args)) {
               args.tsmethod[[i]] <- object@train_args[[i]]
             }
             args.tsmethod <- c(args.tsmethod, list("x" = new_train_x))

@@ -2,7 +2,8 @@
 % Please edit documentation in R/generics.R, R/anovatree_pred.R, R/arima_sim.R,
 %   R/auto_arima_sim.R, R/autopilot_sim.R, R/ets_sim.R, R/gmm_pred.R,
 %   R/lm_sim.R, R/markov_sim.R, R/multinom_sim.R, R/nn_sim.R, R/pred_methods.R,
-%   R/sim_methods.R, R/structal_sim.R, R/surtree_pred.R, R/var_sim.R
+%   R/sim_methods.R, R/stlm_sim.R, R/structal_sim.R, R/surtree_pred.R,
+%   R/var_sim.R
 \name{get_param_slots}
 \alias{get_param_slots}
 \alias{get_param_slots,anovatree_pred-method}
@@ -17,6 +18,7 @@
 \alias{get_param_slots,nn_sim-method}
 \alias{get_param_slots,pred-method}
 \alias{get_param_slots,sim-method}
+\alias{get_param_slots,stlm_sim-method}
 \alias{get_param_slots,structual_sim-method}
 \alias{get_param_slots,surtree_pred-method}
 \alias{get_param_slots,var_sim-method}
@@ -48,6 +50,8 @@ get_param_slots(object)
 
 \S4method{get_param_slots}{sim}(object)
 
+\S4method{get_param_slots}{stlm_sim}(object)
+
 \S4method{get_param_slots}{structual_sim}(object)
 
 \S4method{get_param_slots}{surtree_pred}(object)
@@ -63,6 +67,8 @@ A list containing all numeric parameter informations.
 A list containing all numeric parameter information.
 
 A list containing all numeric parameter information.
+
+A list containing all numeric parameter informations.
 
 A list containing all numeric parameter informations.
 

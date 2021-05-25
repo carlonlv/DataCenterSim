@@ -58,6 +58,7 @@ nn_sim <- setClass("nn_sim",
                                         size = "numeric",
                                         state_num = "numeric",
                                         res_dist = "character",
+                                        freq = "numeric",
                                         train_args = "list",
                                         pred_args = "list"),
                            contains = "sim",
@@ -67,6 +68,7 @@ nn_sim <- setClass("nn_sim",
                                             size = NA_real_,
                                             state_num = NA_real_,
                                             res_dist = "empirical",
+                                            freq = NA_real_,
                                             train_args = list("repeats" = 50),
                                             pred_args = list("bootstrap" = TRUE, "npaths" = 800)),
                            validity = check_valid_nn_sim)
@@ -76,7 +78,18 @@ nn_sim <- setClass("nn_sim",
 setMethod("train_model",
           signature(object = "nn_sim", train_x = "matrix", train_xreg = "NULL", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
+            if (!is.na(object@freq)) {
+              new_train_x <- stats::ts(convert_frequency_dataset(train_x,
+                                                                 object@window_size,
+                                                                 object@response,
+                                                                 keep.names = TRUE),
+                                       frequency = object@freq)
+            } else {
+              new_train_x <- stats::ts(convert_frequency_dataset(train_x,
+                                                                 object@window_size,
+                                                                 object@response,
+                                                                 keep.names = TRUE))
+            }
 
             if (is.na(object@p) & is.na(object@size)) {
               args.tsmethod <- list()
@@ -159,11 +172,20 @@ setMethod("do_prediction",
 setMethod("train_model",
           signature(object = "nn_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)]),
-                                                               object@window_size,
-                                                               object@response,
-                                                               keep.names = TRUE,
-                                                               right.aligned = TRUE))
+            if (!is.na(object@freq)) {
+              new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)]),
+                                                                 object@window_size,
+                                                                 object@response,
+                                                                 keep.names = TRUE,
+                                                                 right.aligned = TRUE),
+                                       frequency = object@freq)
+            } else {
+              new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)]),
+                                                                 object@window_size,
+                                                                 object@response,
+                                                                 keep.names = TRUE,
+                                                                 right.aligned = TRUE))
+            }
             new_train_xreg <- as.matrix(convert_frequency_dataset_overlapping(stats::setNames(train_xreg[1:(nrow(train_xreg) - object@window_size * object@extrap_step),1], rownames(train_xreg)[1:(nrow(train_xreg) - object@window_size * object@extrap_step)]),
                                                                               object@window_size_for_reg,
                                                                               object@window_type_for_reg,
@@ -274,11 +296,21 @@ setMethod("do_prediction",
 setMethod("train_model",
           signature(object = "nn_sim", train_x = "matrix", train_xreg = "list", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x)]),
-                                                               object@window_size,
-                                                               object@response,
-                                                               keep.names = TRUE,
-                                                               right.aligned = TRUE))
+            if (!is.na(object@freq)) {
+              new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)]),
+                                                                 object@window_size,
+                                                                 object@response,
+                                                                 keep.names = TRUE,
+                                                                 right.aligned = TRUE),
+                                       frequency = object@freq)
+            } else {
+              new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)]),
+                                                                 object@window_size,
+                                                                 object@response,
+                                                                 keep.names = TRUE,
+                                                                 right.aligned = TRUE))
+            }
+
             new_train_xreg <- do.call(cbind, lapply(1:length(train_xreg), function(reg) {
               temp_reg <- train_xreg[[reg]]
               convert_frequency_dataset_overlapping(stats::setNames(temp_reg[1:(nrow(temp_reg) - object@window_size * object@extrap_step),1], rownames(temp_reg)[1:(nrow(temp_reg) - object@window_size * object@extrap_step)]),
@@ -399,6 +431,7 @@ setMethod("get_param_slots",
           signature(object = "nn_sim"),
           function(object) {
             numeric_lst <- methods::callNextMethod(object)
+            numeric_lst[["freq"]] <- methods::slot(object, "freq")
             numeric_lst[["p"]] <- methods::slot(object, "p")
             numeric_lst[["P"]] <- methods::slot(object, "P")
             numeric_lst[["size"]] <- methods::slot(object, "size")

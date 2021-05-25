@@ -56,6 +56,7 @@ check_valid_auto_arima_sim <- function(object) {
 #' @param outlier_prediction A character representing the distribution of occurences of outliers, and the prior distribution for probability of occurences. Current choices are "None", "Categorical" for predictions based on MLE, "Categorical-Dirichlet" for Bayesian prediction and prior distribution.
 #' @param outlier_prediction_prior A numeric vector representing the starting value of the hyperparameters of prior distirbution.
 #' @param outlier_prediction_update_param A logical value representing whether to update the value of the hyperparameters of prior distribution or MLE estimations of parameters depending on \code{outlier_prediction}.
+#' @param freq A numeric value representing the number of observations per unit of time.
 #' @param state_num A numeric number that represents the number of states in Multinomial chain.
 #' @param train_args A list representing additional call passed into the training function, \code{forecast::auto.arima}. Default value is \code{list("order" = c(1, 0, 0))}.
 #' @export auto_arima_sim
@@ -68,6 +69,7 @@ auto_arima_sim <- setClass("auto_arima_sim",
                                    outlier_prediction = "character",
                                    outlier_prediction_prior = "numeric",
                                    outlier_prediction_update_param = "logical",
+                                   freq = "numeric",
                                    state_num = "numeric",
                                    train_args = "list"),
                       contains = "sim",
@@ -80,6 +82,7 @@ auto_arima_sim <- setClass("auto_arima_sim",
                                        outlier_prediction = "None",
                                        outlier_prediction_prior = NA_real_,
                                        outlier_prediction_update_param = TRUE,
+                                       freq = 12,
                                        state_num = NA_real_,
                                        train_args = list()),
                       validity = check_valid_auto_arima_sim)
@@ -89,7 +92,11 @@ auto_arima_sim <- setClass("auto_arima_sim",
 setMethod("train_model",
           signature(object = "auto_arima_sim", train_x = "matrix", train_xreg = "NULL", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
+            if (!is.na(object@freq)) {
+              new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE), frequency = object@freq)
+            } else {
+              new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
+            }
 
             args.tsmethod <- list()
             for (i in names(object@train_args)) {
@@ -261,11 +268,21 @@ setMethod("do_prediction",
 setMethod("train_model",
           signature(object = "auto_arima_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)]),
-                                                               object@window_size,
-                                                               object@response,
-                                                               keep.names = TRUE,
-                                                               right.aligned = TRUE))
+            if (!is.na(object@freq)) {
+              new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)]),
+                                                                 object@window_size,
+                                                                 object@response,
+                                                                 keep.names = TRUE,
+                                                                 right.aligned = TRUE),
+                                       frequency = object@freq)
+            } else {
+              new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)]),
+                                                                 object@window_size,
+                                                                 object@response,
+                                                                 keep.names = TRUE,
+                                                                 right.aligned = TRUE))
+            }
+
             new_train_xreg <- as.matrix(convert_frequency_dataset_overlapping(stats::setNames(train_xreg[1:(nrow(train_xreg) - object@window_size * object@extrap_step),1], rownames(train_xreg)[1:(nrow(train_xreg) - object@window_size * object@extrap_step)]),
                                                                               object@window_size_for_reg,
                                                                               object@window_type_for_reg,
@@ -458,11 +475,21 @@ setMethod("do_prediction",
 setMethod("train_model",
           signature(object = "auto_arima_sim", train_x = "matrix", train_xreg = "list", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x)]),
-                                                               object@window_size,
-                                                               object@response,
-                                                               keep.names = TRUE,
-                                                               right.aligned = TRUE))
+            if (!is.na(object@freq)) {
+              new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)]),
+                                                                 object@window_size,
+                                                                 object@response,
+                                                                 keep.names = TRUE,
+                                                                 right.aligned = TRUE),
+                                       frequency = object@freq)
+            } else {
+              new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):length(train_x)]),
+                                                                 object@window_size,
+                                                                 object@response,
+                                                                 keep.names = TRUE,
+                                                                 right.aligned = TRUE))
+            }
+
             new_train_xreg <- do.call(cbind, lapply(1:length(train_xreg), function(reg) {
               temp_reg <- train_xreg[[reg]]
               as.matrix(convert_frequency_dataset_overlapping(stats::setNames(temp_reg[1:(nrow(temp_reg) - object@window_size * object@extrap_step),1], rownames(temp_reg)[1:(nrow(temp_reg) - object@window_size * object@extrap_step)]),
@@ -666,6 +693,7 @@ setMethod("get_param_slots",
           signature(object = "auto_arima_sim"),
           function(object) {
             numeric_lst <- methods::callNextMethod(object)
+            numeric_lst[["freq"]] <- methods::slot(object, "freq")
             numeric_lst[["outlier_cval"]] <- methods::slot(object, "outlier_cval")
             numeric_lst[["state_num"]] <- methods::slot(object, "state_num")
             return(numeric_lst)

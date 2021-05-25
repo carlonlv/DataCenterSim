@@ -152,8 +152,7 @@ setMethod("do_prediction",
 setMethod("train_model",
           signature(object = "stlm_sim", train_x = "matrix", train_xreg = "matrix", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1],
-                                                                               rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x)],
+            new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x)]),
                                                                                object@window_size,
                                                                                object@response,
                                                                                keep.names = TRUE),
@@ -274,8 +273,11 @@ setMethod("do_prediction",
 setMethod("train_model",
           signature(object = "stlm_sim", train_x = "matrix", train_xreg = "list", trained_model = "list"),
           function(object, train_x, train_xreg, trained_model) {
-            new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1],
-                                                                               rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x)], object@window_size, object@response, keep.names = TRUE), frequency = object@freq)
+            new_train_x <- stats::ts(convert_frequency_dataset(stats::setNames(train_x[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x),1], rownames(train_x)[(max(object@window_size_for_reg, object@window_size) + (object@extrap_step - 1) * object@window_size + 1):nrow(train_x)]),
+                                                               object@window_size,
+                                                               object@response,
+                                                               keep.names = TRUE),
+                                     frequency = object@freq)
             new_train_xreg <- do.call(cbind, lapply(1:length(train_xreg), function(reg) {
               temp_reg <- train_xreg[[reg]]
               convert_frequency_dataset_overlapping(stats::setNames(temp_reg[1:(nrow(temp_reg) - object@window_size * object@extrap_step),1], rownames(temp_reg)[1:(nrow(temp_reg) - object@window_size * object@extrap_step)]),

@@ -74,11 +74,11 @@ setMethod("train_model",
               new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE))
             }
 
-            args.tsmethod <- list()
+            args.tsmethod <- list("additive.only" = TRUE)
             for (i in names(object@train_args)) {
               args.tsmethod[[i]] <- object@train_args[[i]]
             }
-            args.tsmethod <- c(args.tsmethod, list("y" = new_train_x, "model" = object@model, "additive.only" = TRUE))
+            args.tsmethod <- c(args.tsmethod, list("y" = new_train_x, "model" = object@model))
             trained_result <- do.call(forecast::ets, args.tsmethod)
 
             trained_result$call$x <- new_train_x

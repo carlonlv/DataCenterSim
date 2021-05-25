@@ -63,7 +63,13 @@ setMethod("train_model",
           function(object, train_x, train_xreg, trained_model) {
             new_train_x <- stats::ts(convert_frequency_dataset(train_x, object@window_size, object@response, keep.names = TRUE), frequency = object@freq)
 
-            args.tsmethod <- list()
+            if (object@train_args[["method"]] == "ets") {
+              args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "CSS-ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
+            } else if (object@train_args[["method"]] == "arima") {
+              args.tsmethod <- list("additive.only" = TRUE)
+            } else {
+              args.tsmethod <- list()
+            }
             for (i in names(object@train_args)) {
               args.tsmethod[[i]] <- object@train_args[[i]]
             }
@@ -91,17 +97,7 @@ setMethod("do_prediction",
               new_x <- predict_info$actual
               new_x <- stats::ts(c(prev_x, new_x), start = stats::start(prev_x), frequency = stats::frequency(prev_x))
 
-              target_model <- trained_result
-              new_decomposed <- forecast::mstl(x = new_x, s.window = object@s.window)
-              target_model$stl <- rbind(target_model$stl, new_decomposed[(nrow(new_decomposed) - length(predict_info$actual) + 1):nrow(new_decomposed),])
-              res <- target_model$stl[, "Remainder"]
-              if (inherits(target_model$model, "Arima")) {
-                target_model$model <- forecast::Arima(y = res, model = target_model$model)
-              } else if (inherits(target_model$model, "ets")) {
-                target_model$model <- forecast::ets(res, model = target_model$model, use.initial.values = TRUE)
-              } else {
-                stop("Don't know how to update fitted value with new observations.")
-              }
+              target_model <- stlm(y = new_x, s.window = object@s.window, model = trained_result)
             }
 
             args.tsmethod <- list("object" = trained_result, "h" = object@extrap_step, "level" = level)
@@ -159,7 +155,13 @@ setMethod("train_model",
                                                                               length.out = length(new_train_x)))
             colnames(new_train_xreg) <- "xreg"
 
-            args.tsmethod <- list()
+            if (object@train_args[["method"]] == "ets") {
+              args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "CSS-ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
+            } else if (object@train_args[["method"]] == "arima") {
+              args.tsmethod <- list("additive.only" = TRUE)
+            } else {
+              args.tsmethod <- list()
+            }
             for (i in names(object@train_args)) {
               args.tsmethod[[i]] <- object@train_args[[i]]
             }
@@ -199,18 +201,7 @@ setMethod("do_prediction",
                                                                           right.aligned = TRUE,
                                                                           length.out = length(predict_info$actual)))
               new_xreg <- rbind(prev_xreg, new_xreg)
-
-              target_model <- trained_result
-              new_decomposed <- forecast::mstl(x = new_x, s.window = object@s.window)
-              target_model$stl <- rbind(target_model$stl, new_decomposed[(nrow(new_decomposed) - length(predict_info$actual) + 1):nrow(new_decomposed),])
-              res <- target_model$stl[, "Remainder"]
-              if (inherits(target_model$model, "Arima")) {
-                target_model$model <- forecast::Arima(y = res, model = target_model$model)
-              } else if (inherits(target_model$model, "ets")) {
-                target_model$model <- forecast::ets(res, model = target_model$model, use.initial.values = TRUE)
-              } else {
-                stop("Don't know how to update fitted value with new observations.")
-              }
+              target_model <- stlm(y = new_x, xreg = new_xreg, s.window = object@s.window, model = trained_result)
             }
 
             dxreg <- c(trained_result$call$orig_xreg[,1], test_xreg[,1])
@@ -281,7 +272,13 @@ setMethod("train_model",
             }))
             colnames(new_train_xreg) <- names(train_xreg)
 
-            args.tsmethod <- list()
+            if (object@train_args[["method"]] == "ets") {
+              args.tsmethod <- list("include.mean" = TRUE, "method" = ifelse(object@res_dist == "normal", "CSS-ML", "CSS"), "optim.method" = "Nelder-Mead", "optim.control" = list(maxit = 5000))
+            } else if (object@train_args[["method"]] == "arima") {
+              args.tsmethod <- list("additive.only" = TRUE)
+            } else {
+              args.tsmethod <- list()
+            }
             for (i in names(object@train_args)) {
               args.tsmethod[[i]] <- object@train_args[[i]]
             }
@@ -325,17 +322,7 @@ setMethod("do_prediction",
 
               new_xreg <- rbind(prev_xreg, new_xreg)
 
-              target_model <- trained_result
-              new_decomposed <- forecast::mstl(x = new_x, s.window = object@s.window)
-              target_model$stl <- rbind(target_model$stl, new_decomposed[(nrow(new_decomposed) - length(predict_info$actual) + 1):nrow(new_decomposed),])
-              res <- target_model$stl[, "Remainder"]
-              if (inherits(target_model$model, "Arima")) {
-                target_model$model <- forecast::Arima(y = res, model = target_model$model)
-              } else if (inherits(target_model$model, "ets")) {
-                target_model$model <- forecast::ets(res, model = target_model$model, use.initial.values = TRUE)
-              } else {
-                stop("Don't know how to update fitted value with new observations.")
-              }
+              target_model <- stlm(y = new_x, xreg = new_xreg, s.window = object@s.window, model = trained_result)
             }
 
             dxreg <- do.call(cbind, lapply(1:length(test_xreg), function(reg) {

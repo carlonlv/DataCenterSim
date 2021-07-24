@@ -168,7 +168,6 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
 #' @param plot_type A character that represents how to plot the result of simulation can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
 #' @return An S4 sim result object.
-#' @import foreach
 #' @keywords internal
 predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, write_type, plot_type, ...) {
   ## Do Simulation
@@ -186,7 +185,11 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
   doSNOW::registerDoSNOW(cl)
   trace_score <- foreach::foreach(ts_num = 1:ncol(x), .combine = "c", .errorhandling = "remove", .inorder = TRUE,
                                   .options.snow = list(progress = function(n) pb$tick())) %dopar% {
-    list(svt_predicting_sim(ts_num, object, x, xreg, start_point, wait_time, write_type, plot_type, ..., get_representation(object, "param_con")))
+                                    tryCatch({
+                                      list(svt_predicting_sim(ts_num, object, x, xreg, start_point, wait_time, write_type, plot_type, ..., get_representation(object, "param_con")))
+                                    }, error = function(e) {
+                                      list(ts_num)
+                                    })
   }
   snow::stopCluster(cl)
 
@@ -199,9 +202,13 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
   trace_names <- c()
   for (ts_num in 1:ncol(x)) {
     #trace_score_info <- rbind(trace_score_info, trace_score[[ts_num]][["trace_score"]])
-    trace_score_info <- rbind(trace_score_info, trace_score[[ts_num]][["trace_score"]])
-    trace_pred_stats_info <- rbind(trace_pred_stats_info, trace_score[[ts_num]][["trace_pred_stats"]])
-    trace_names <- c(trace_names, colnames(x)[ts_num])
+    if (!is.numeric(trace_score[[ts_num]])) {
+      trace_score_info <- rbind(trace_score_info, trace_score[[ts_num]][["trace_score"]])
+      trace_pred_stats_info <- rbind(trace_pred_stats_info, trace_score[[ts_num]][["trace_pred_stats"]])
+      trace_names <- c(trace_names, colnames(x)[ts_num])
+    } else {
+      print(ts_num)
+    }
   }
   trace_score_info$trace_name <- trace_names
   trace_pred_stats_info$trace_name <- trace_names

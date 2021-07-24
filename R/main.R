@@ -168,36 +168,28 @@ svt_predicting_sim <- function(ts_num, object, x, xreg=NULL, start_point=1, wait
 #' @param plot_type A character that represents how to plot the result of simulation can be one of "charwise", "tracewise", "paramwise" or "none".
 #' @param ... Characters that represent the name of parent directories that will be passed to \code{write_location_check}.
 #' @return An S4 sim result object.
+#' @import foreach
 #' @keywords internal
 predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, write_type, plot_type, ...) {
   ## Do Simulation
   print(get_representation(object, "char_con"))
   print(get_representation(object, "param_con"))
   start_time <- proc.time()
-  if (cores == 1) {
-    pbapply::pboptions(type = "txt")
-    #trace_score <- pbapply::pblapply(1:ncol(x), svt_predicting_sim, object = object, x = x, xreg = xreg, start_point = start_point, wait_time = wait_time, write_type = write_type, plot_type = plot_type, ..., get_representation(object, "param_con"))
-    trace_score <- pbapply::pblapply(1:ncol(x), function(ts_num) {
-      tryCatch({
-        svt_predicting_sim(ts_num, object, x, xreg, start_point, wait_time, write_type, plot_type, ..., get_representation(object, "param_con"))
-      }, error = function(e) {
-        print(ts_num)
-        print(e)
-        return(ts_num)
-      })
-    })
-  } else {
-    #trace_score <- pbmcapply::pbmclapply(1:ncol(x), svt_predicting_sim, object = object, x = x, xreg = xreg, start_point = start_point, wait_time = wait_time, write_type = write_type, plot_type = plot_type, mc.cores = cores, ignore.interactive = TRUE, ..., get_representation(object, "param_con"))
-    trace_score <- pbmcapply::pbmclapply(1:ncol(x), function(ts_num) {
-      tryCatch({
-        svt_predicting_sim(ts_num, object, x, xreg, start_point, wait_time, write_type, plot_type, ..., get_representation(object, "param_con"))
-      }, error = function(e) {
-        print(ts_num)
-        print(e)
-        return(ts_num)
-      })
-    }, mc.cores = cores, ignore.interactive = TRUE)
+
+  pb <- progress::progress_bar$new(
+    format = "Simulating [:bar] :elapsedfull :percent | ETA :eta",
+    total = ncol(x),
+    width = getOption("width"),
+    clear = FALSE
+  )
+  cl <- snow::makeCluster(cores)
+  doSNOW::registerDoSNOW(cl)
+  trace_score <- foreach::foreach(ts_num = 1:ncol(x), .combine = "c", .errorhandling = "remove", .inorder = TRUE,
+                                  .options.snow = list(progress = function(n) pb$tick())) %dopar% {
+    list(svt_predicting_sim(ts_num, object, x, xreg, start_point, wait_time, write_type, plot_type, ..., get_representation(object, "param_con")))
   }
+  snow::stopCluster(cl)
+
   end_time <- proc.time()
   print(end_time - start_time)
 
@@ -207,11 +199,9 @@ predicting_sim <- function(object, x, xreg, start_point=1, wait_time=0, cores, w
   trace_names <- c()
   for (ts_num in 1:ncol(x)) {
     #trace_score_info <- rbind(trace_score_info, trace_score[[ts_num]][["trace_score"]])
-    if (!is.numeric(trace_score[[ts_num]])) {
-      trace_score_info <- rbind(trace_score_info, trace_score[[ts_num]][["trace_score"]])
-      trace_pred_stats_info <- rbind(trace_pred_stats_info, trace_score[[ts_num]][["trace_pred_stats"]])
-      trace_names <- c(trace_names, colnames(x)[ts_num])
-    }
+    trace_score_info <- rbind(trace_score_info, trace_score[[ts_num]][["trace_score"]])
+    trace_pred_stats_info <- rbind(trace_pred_stats_info, trace_score[[ts_num]][["trace_pred_stats"]])
+    trace_names <- c(trace_names, colnames(x)[ts_num])
   }
   trace_score_info$trace_name <- trace_names
   trace_pred_stats_info$trace_name <- trace_names
